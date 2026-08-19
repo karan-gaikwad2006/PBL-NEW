@@ -11,6 +11,9 @@ import RequirementsCatalog from './pages/public/RequirementsCatalog';
 import RequirementDetails from './pages/public/RequirementDetails';
 import FoodMatching from './pages/public/FoodMatching';
 import RequirementSubmit from './pages/public/RequirementSubmit';
+import SendSupportOffer from './pages/public/SendSupportOffer';
+import SupportOfferSuccess from './pages/public/SupportOfferSuccess';
+import ConfirmSupportCompletion from './pages/public/ConfirmSupportCompletion';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -21,6 +24,25 @@ import AuthPage from './pages/auth/AuthPage'; // legacy, keep for compatibility
 
 // Dashboard
 import Dashboard from './pages/dashboard/Dashboard';
+
+// Phase 2H — Donor Dashboard + Support Details
+import DonorDashboard from './pages/dashboard/DonorDashboard';
+import SupportDetails from './pages/dashboard/SupportDetails';
+
+// Phase 2I — Requester Dashboard + Requirement Management + Status
+import RequesterDashboard from './pages/dashboard/RequesterDashboard';
+import RequirementManagement from './pages/dashboard/RequirementManagement';
+import RequirementStatus from './pages/dashboard/RequirementStatus';
+
+// Phase 2J — Institution Profile
+import InstitutionProfile from './pages/dashboard/InstitutionProfile';
+
+// Phase 2K — Notification Center
+import NotificationCenter from './pages/dashboard/NotificationCenter';
+
+// Phase 2L — Admin
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminReview from './pages/admin/AdminReview';
 
 export default function App() {
   return (
@@ -39,6 +61,9 @@ export default function App() {
             <Route path="/food-match" element={<FoodMatching />} />
             <Route path="/submit-need" element={<RequirementSubmit />} />
             <Route path="/submit-requirement" element={<RequirementSubmit />} />
+            <Route path="/requirements/:id/support" element={<SendSupportOffer />} />
+            <Route path="/requirements/:id/support-success" element={<SupportOfferSuccess />} />
+            <Route path="/confirm-completion/:id" element={<ConfirmSupportCompletion />} />
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
@@ -48,8 +73,28 @@ export default function App() {
             <Route path="/login-required" element={<LoginRequired />} />
             <Route path="/auth" element={<AuthPage />} />  {/* legacy */}
 
-            {/* Dashboard */}
+            {/* Dashboard (legacy generic) */}
             <Route path="/dashboard" element={<Dashboard />} />
+
+            {/* Phase 2H — Donor */}
+            <Route path="/donor/dashboard" element={<DonorDashboard />} />
+            <Route path="/donor/supports/:supportId" element={<SupportDetails />} />
+
+            {/* Phase 2I — Requester */}
+            <Route path="/requester/dashboard" element={<RequesterDashboard />} />
+            <Route path="/requester/requirements/:id" element={<RequirementManagement />} />
+            <Route path="/requester/requirements/:id/status" element={<RequirementStatus />} />
+
+            {/* Phase 2J — Institution Profile */}
+            <Route path="/institution-profile" element={<InstitutionProfile />} />
+
+            {/* Phase 2K — Notifications */}
+            <Route path="/notifications" element={<NotificationCenter />} />
+
+            {/* Phase 2L — Admin */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/review/:id" element={<AdminReview />} />
+            <Route path="/admin/institution-review/:id" element={<AdminReview />} />
           </Routes>
         </main>
         <Footer />

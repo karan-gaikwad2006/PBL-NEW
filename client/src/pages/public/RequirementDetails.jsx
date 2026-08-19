@@ -31,12 +31,7 @@ export default function RequirementDetails() {
   };
 
   const handleHelpClick = () => {
-    navigate('/login-required', {
-      state: {
-        from: `/requirements/${id}`,
-        context: 'respond to this food requirement',
-      },
-    });
+    navigate(`/requirements/${id}/support`);
   };
 
   return (

@@ -1,39 +1,105 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PageContainer from '../../components/layout/PageContainer';
 import FormLayout from '../../components/common/FormLayout';
-import Input from '../../components/common/Input';
-import Select from '../../components/common/Select';
-import TextArea from '../../components/common/TextArea';
-import Button from '../../components/common/Button';
+import Step1Requester from '../../components/domain/requirement-submit/Step1Requester';
+import Step2Location from '../../components/domain/requirement-submit/Step2Location';
+import Step3Beneficiaries from '../../components/domain/requirement-submit/Step3Beneficiaries';
+import Step4Items from '../../components/domain/requirement-submit/Step4Items';
+import Step5Urgency from '../../components/domain/requirement-submit/Step5Urgency';
+import Step6Details from '../../components/domain/requirement-submit/Step6Details';
+import Step7Review from '../../components/domain/requirement-submit/Step7Review';
+import Step8Success from '../../components/domain/requirement-submit/Step8Success';
 
 export default function RequirementSubmit() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 7;
+
+  const [formData, setFormData] = useState({
+    // Step 1
+    requester_type: 'individual',
+    name: '',
+    institution_name: '',
+    institution_type: '',
+    // Step 2
+    state: 'maharashtra',
+    district: '',
+    city: '',
+    address: '',
+    // Step 3
+    beneficiary_count: '',
+    beneficiary_desc: '',
+    // Step 4
+    items: [{ name: '', quantity: '', unit: 'kg' }],
+    // Step 5
+    urgency: 'medium',
+    // Step 6
+    description: '',
+    additional_notes: '',
+  });
+
+  const updateData = (newData) => {
+    setFormData((prev) => ({ ...prev, ...newData }));
+  };
+
+  const handleNext = () => {
+    if (currentStep === 7) {
+      // Simulate submission
+      setTimeout(() => {
+        setCurrentStep(8); // Success step
+      }, 800);
+    } else {
+      setCurrentStep((prev) => Math.min(prev + 1, 8));
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
+  };
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return <Step1Requester formData={formData} updateData={updateData} onNext={handleNext} />;
+      case 2:
+        return <Step2Location formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
+      case 3:
+        return <Step3Beneficiaries formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
+      case 4:
+        return <Step4Items formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
+      case 5:
+        return <Step5Urgency formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
+      case 6:
+        return <Step6Details formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
+      case 7:
+        return <Step7Review formData={formData} onNext={handleNext} onBack={handleBack} setStep={setCurrentStep} />;
+      case 8:
+        return <Step8Success />;
+      default:
+        return <Step1Requester formData={formData} updateData={updateData} onNext={handleNext} />;
+    }
+  };
+
   return (
     <PageContainer>
-      <FormLayout
-        title="Submit Local Food Requirement"
-        description="Step 1 of 7: Requester Identity and Organization Details"
-        currentStep={1}
-        totalSteps={7}
-        footer={
-          <div className="flex justify-between w-full">
-            <Button variant="ghost" disabled>Back</Button>
-            <Button variant="primary">Continue to Location</Button>
+      <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6">
+        {currentStep < 8 && (
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-bold text-[#304355] uppercase tracking-wider block mb-1">
+                Step {currentStep} of {totalSteps}
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden shrink-0">
+              <div
+                className="bg-[#304355] h-full transition-all duration-300 rounded-full"
+                style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              />
+            </div>
           </div>
-        }
-      >
-        <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-          <Input label="Full Name / Representative Name" placeholder="e.g. Rahul Sharma" required />
-          <Input label="Organization / Institution Name" placeholder="e.g. Ashram Shala Trimbak" required />
-          <Select label="District in Maharashtra" required>
-            <option value="">Select District</option>
-            <option value="nashik">Nashik</option>
-            <option value="nandurbar">Nandurbar</option>
-            <option value="gadchiroli">Gadchiroli</option>
-            <option value="amravati">Amravati</option>
-          </Select>
-          <TextArea label="Brief Description of Institution / Need" placeholder="Explain the context of beneficiaries and food requirements..." rows={3} />
-        </form>
-      </FormLayout>
+        )}
+        
+        {renderStep()}
+      </div>
     </PageContainer>
   );
 }
