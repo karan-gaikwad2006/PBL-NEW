@@ -2,6 +2,9 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import RequirementSubmit from './pages/public/RequirementSubmit';
 
 // Public pages
 import LandingPage from './pages/public/LandingPage';
@@ -10,7 +13,6 @@ import DistrictInsights from './pages/public/DistrictInsights';
 import RequirementsCatalog from './pages/public/RequirementsCatalog';
 import RequirementDetails from './pages/public/RequirementDetails';
 import FoodMatching from './pages/public/FoodMatching';
-import RequirementSubmit from './pages/public/RequirementSubmit';
 import SendSupportOffer from './pages/public/SendSupportOffer';
 import SupportOfferSuccess from './pages/public/SupportOfferSuccess';
 import ConfirmSupportCompletion from './pages/public/ConfirmSupportCompletion';
@@ -46,24 +48,43 @@ import AdminReview from './pages/admin/AdminReview';
 
 export default function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-[#E8E8E2] text-[#1F2933] flex flex-col justify-between font-sans">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            {/* Public */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/explore" element={<ExploreMap />} />
-            <Route path="/browse" element={<ExploreMap />} />
-            <Route path="/districts/:districtId" element={<DistrictInsights />} />
-            <Route path="/requirements" element={<RequirementsCatalog />} />
-            <Route path="/requirements/:id" element={<RequirementDetails />} />
-            <Route path="/food-match" element={<FoodMatching />} />
-            <Route path="/submit-need" element={<RequirementSubmit />} />
-            <Route path="/submit-requirement" element={<RequirementSubmit />} />
-            <Route path="/requirements/:id/support" element={<SendSupportOffer />} />
-            <Route path="/requirements/:id/support-success" element={<SupportOfferSuccess />} />
-            <Route path="/confirm-completion/:id" element={<ConfirmSupportCompletion />} />
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-[#E8E8E2] text-[#1F2933] flex flex-col justify-between font-sans">
+          <Navbar />
+          <main className="flex-grow">
+            <Routes>
+              {/* Public */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/explore" element={<ExploreMap />} />
+              <Route path="/browse" element={<ExploreMap />} />
+              <Route path="/districts/:districtId" element={<DistrictInsights />} />
+              <Route path="/requirements" element={<RequirementsCatalog />} />
+              <Route path="/requirements/:id" element={<RequirementDetails />} />
+              <Route path="/food-match" element={<FoodMatching />} />
+              <Route
+                path="/submit-need"
+                element={
+                  <ProtectedRoute
+                    element={<RequirementSubmit />}
+                    context="submit a requirement"
+                    preserveAs="/submit-need"
+                  />
+                }
+              />
+              <Route
+                path="/submit-requirement"
+                element={
+                  <ProtectedRoute
+                    element={<RequirementSubmit />}
+                    context="submit a requirement"
+                    preserveAs="/submit-need"
+                  />
+                }
+              />
+              <Route path="/requirements/:id/support" element={<SendSupportOffer />} />
+              <Route path="/requirements/:id/support-success" element={<SupportOfferSuccess />} />
+              <Route path="/confirm-completion/:id" element={<ConfirmSupportCompletion />} />
 
             {/* Auth */}
             <Route path="/login" element={<LoginPage />} />
@@ -100,5 +121,6 @@ export default function App() {
         <Footer />
       </div>
     </Router>
+    </AuthProvider>
   );
 }

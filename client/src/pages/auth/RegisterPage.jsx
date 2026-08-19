@@ -3,11 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HeartHandshake, User, Building2, Lock, Mail, UserCheck, AlertCircle } from 'lucide-react';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
+import useAuth from '../../hooks/useAuth';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirect = new URLSearchParams(location.search).get('redirect') || '/dashboard';
+  const { login } = useAuth();
 
   const [accountType, setAccountType] = useState('donor');
   const [fullName, setFullName] = useState('');
@@ -32,6 +34,7 @@ export default function RegisterPage() {
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
+    login({ email, name: fullName, role: accountType });
     setTimeout(() => navigate(redirect), 400);
   };
 

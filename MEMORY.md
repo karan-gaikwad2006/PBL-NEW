@@ -3,11 +3,13 @@
 Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
-**Current Phase:** Phase 2 — Frontend/UI Complete (2A through 2L)
+**Current Phase:** Phase 2 — Frontend/UI Complete (2A through 2L) + Bug Fix: Auth Guard for Submission
 **Next Recommended Phase:** Phase 3 — Backend Foundation (Neon PostgreSQL + Firebase Auth + Express API)
-**Current Task:** All Phase 2 desktop screens implemented with mock data.
+**Current Task:** All Phase 2 desktop screens implemented + submission auth guard enforced with mock auth state.
 
 ## Architectural Decisions
+- 2026-08-19 - **Mock AuthContext + ProtectedRoute pattern**: Created `AuthContext.jsx` (isAuthenticated, login(), logout(), user state) + `useAuth.js` hook + `ProtectedRoute.jsx` wrapper. Structured to be a drop-in replacement target for Firebase Auth in Phase 5 (same API shape: login/logout/user/isAuthenticated). No Firebase calls.
+- 2026-08-19 - **Route-level protection for submission**: Both `/submit-need` and `/submit-requirement` are wrapped in ProtectedRoute. Unauthenticated access → Navigate to `/login-required` with `state: { from: "/submit-need", context: "submit a requirement" }`. All CTA entry points (Navbar, Footer, LandingPage, RequesterDashboard) are automatically protected via the route guard — no per-CTA auth checks required.
 - 2026-08-19 - Desktop-first scope: Build ONLY desktop web screens for Phase 2. Mobile UI is still out of scope.
 - 2026-08-19 - Google Stitch desktop screens are the PRIMARY visual source of truth.
 - 2026-08-19 - React + Vite frontend with Tailwind CSS v4 (`@tailwindcss/postcss`) and React Router v7.
@@ -23,7 +25,12 @@ Update this file after each major milestone, structural change, or resolved bug.
 
 ### client/ (React Frontend)
 - Vite 8 + React 19 + Tailwind CSS v4
-- Build: ✅ Succeeds with 0 errors (446ms, 504 KB JS bundle)
+- Build: ✅ Succeeds with 0 errors (621ms, 506.27 KB JS bundle, 54.53 KB CSS bundle)
+
+### Auth Infrastructure (NEW — mock, Phase 5 Firebase-ready)
+- `client/src/context/AuthContext.jsx` — `AuthProvider` with `isAuthenticated`, `user`, `login()`, `logout()`
+- `client/src/hooks/useAuth.js` — Type-safe context consumer hook
+- `client/src/components/auth/ProtectedRoute.jsx` — Route guard wrapper, redirects to `/login-required` with preserved destination
 
 ### Routes implemented:
 #### Public
@@ -33,7 +40,7 @@ Update this file after each major milestone, structural change, or resolved bug.
 - `/requirements` → `RequirementsCatalog.jsx`
 - `/requirements/:id` → `RequirementDetails.jsx`
 - `/food-match` → `FoodMatching.jsx`
-- `/submit-need`, `/submit-requirement` → `RequirementSubmit.jsx`
+- `/submit-need`, `/submit-requirement` → `ProtectedRoute(RequirementSubmit.jsx)` — **AUTH GUARDED**: unauthenticated → `/login-required` with redirect preserved as `/submit-need`
 - `/requirements/:id/support` → `SendSupportOffer.jsx`
 - `/requirements/:id/support-success` → `SupportOfferSuccess.jsx`
 - `/confirm-completion/:id` → `ConfirmSupportCompletion.jsx`
@@ -81,6 +88,39 @@ Update this file after each major milestone, structural change, or resolved bug.
 - [x] Phase 2J Institution Profile & Trust + Document Upload UI
 - [x] Phase 2K Notification Center
 - [x] Phase 2L Admin Dashboard + Admin Requirement & Fraud Review
+- [x] Bug Fix 2026-08-19: Auth Guard for Requirement Submission
+
+## Bug Fixes
+### 2026-08-19 — Requirement Submission Auth Guard Enforced
+**Bug:** Unauthenticated users could access the 7-step requirement submission wizard via all 6 entry points (Navbar CTA, Footer CTA, Homepage Path 2 CTA, RequesterDashboard submit CTA, direct URLs `/submit-need` and `/submit-requirement`).
+
+**Root Cause:** No route-level or CTA-level authentication check existed. No auth state mechanism existed. `LoginRequired.jsx` page existed but was never invoked for submission flows.
+
+**Fix applied (6 files, 0 visual UI changes):**
+1. **Created mock auth infrastructure (Firebase Phase 5 ready):**
+   - `client/src/context/AuthContext.jsx` — `AuthProvider` exposing `{ isAuthenticated, user, login(userData), logout() }`. Standard shape matches Firebase Auth integration targets.
+   - `client/src/hooks/useAuth.js` — Type-safe context consumer hook.
+   - `client/src/components/auth/ProtectedRoute.jsx` — Route-level guard: if `!isAuthenticated`, `<Navigate replace to="/login-required" state={{ from: preserveAs || pathname, context }} />`.
+2. **Protected both submission routes in `App.jsx`:**
+   - Wrapped `/submit-need` and `/submit-requirement` routes in `<ProtectedRoute>` with `context="submit a requirement"` and `preserveAs="/submit-need"` (canonical destination).
+   - Wrapped entire app in `<AuthProvider>` above `<Router>` so all routes/pages can access auth state.
+3. **Wired mock login state into existing auth pages:**
+   - `LoginPage.jsx`: Imported `useAuth`, called `login({ email, role: 'donor' })` before `navigate(redirect)`.
+   - `RegisterPage.jsx`: Imported `useAuth`, called `login({ email, name: fullName, role: accountType })` before `navigate(redirect)`.
+4. **Preserved full redirect chain:**
+   - ProtectedRoute → `/login-required` (state.from = "/submit-need")
+   - LoginRequired → `/login?redirect=%2Fsubmit-need` (or register equivalent)
+   - LoginPage → after mock login → `navigate("/submit-need")` → access granted by ProtectedRoute
+
+**Verified:**
+- Logged-out user → clicks Homepage "Submit Requirement" → lands on LoginRequired screen ✅
+- Logged-out user → direct URL `/submit-need` → LoginRequired screen ✅
+- Logged-out user → direct URL `/submit-requirement` → LoginRequired screen, destination preserved as `/submit-need` ✅
+- Intended destination round-trips through LoginRequired → Login → Submit wizard ✅
+- All 4 CTA entry points (Navbar, Footer, Homepage, RequesterDashboard) auto-protected via route guard ✅
+- Logged-in user → submission wizard renders normally ✅
+- No visual changes to existing Stitch desktop UI ✅
+- `npm run build` in `client/` → exit code 0, 0 errors ✅
 
 ## Key Files Created in Phase 2H-2L
 ### Phase 2H
@@ -103,12 +143,14 @@ Update this file after each major milestone, structural change, or resolved bug.
 - `client/src/pages/admin/AdminReview.jsx` — Full review workflow, signal details, approve/flag/hide
 
 ## Important Implementation Decisions
-1. **Requirement lifecycle**: Under Review → Active → Partially Supported → Fulfilled (or Expired). Visual timeline in `RequirementStatus.jsx`.
-2. **Dual confirmation**: Both donor and requester must confirm before fulfillment. Implemented in `SupportDetails.jsx` and `ConfirmSupportCompletion.jsx`.
-3. **Fraud signals**: Shown as review indicators with prominent disclaimer. Never auto-accusatory. Human admin decides.
-4. **Document upload**: Drag-and-drop upload UI in `InstitutionProfile.jsx` — files are local state only, no Cloudinary integration yet.
-5. **Notifications**: Local mock state. Mark-as-read and category filter work in browser. No backend.
-6. **Admin actions**: Approve/Flag/Hide are local UI interactions only. No backend persistence.
+1. **Auth guard for submission**: ProtectedRoute wraps both `/submit-need` and `/submit-requirement`. All CTA entry points are auto-protected via route-level guard (no per-button checks needed). Redirect chain: ProtectedRoute → `/login-required` (state.from preserved) → Login/Register (redirect= query param) → post-login navigate to intended destination.
+2. **Mock auth, Firebase-ready**: AuthContext exposes `{ isAuthenticated, user, login(), logout() }` — exact same shape that Firebase Auth SDK will populate in Phase 5. Phase 5 integration will be drop-in replacement of mock `login()`/`logout()` with real Firebase calls, no consumer changes required.
+3. **Requirement lifecycle**: Under Review → Active → Partially Supported → Fulfilled (or Expired). Visual timeline in `RequirementStatus.jsx`.
+4. **Dual confirmation**: Both donor and requester must confirm before fulfillment. Implemented in `SupportDetails.jsx` and `ConfirmSupportCompletion.jsx`.
+5. **Fraud signals**: Shown as review indicators with prominent disclaimer. Never auto-accusatory. Human admin decides.
+6. **Document upload**: Drag-and-drop upload UI in `InstitutionProfile.jsx` — files are local state only, no Cloudinary integration yet.
+7. **Notifications**: Local mock state. Mark-as-read and category filter work in browser. No backend.
+8. **Admin actions**: Approve/Flag/Hide are local UI interactions only. No backend persistence.
 
 ## Pending Integrations (NOT YET IMPLEMENTED)
 - Firebase Authentication (login, registration, token verification)
@@ -122,9 +164,10 @@ Update this file after each major milestone, structural change, or resolved bug.
 - Mobile-responsive UI (out of scope until a dedicated mobile phase)
 
 ## Verification Performed
-- `npm run build` in `client/` → ✅ exit code 0, 0 errors, 446ms
-- All new routes added to `App.jsx`
-- No backend/API/auth integration accidentally added
+- `npm run build` in `client/` → ✅ exit code 0, 0 errors, 621ms, 506.27 KB JS bundle, 54.53 KB CSS bundle
+- All new routes added to `App.jsx` (protected submission routes via ProtectedRoute)
+- No backend/API/auth/Firebase integration accidentally added
+- Submission auth guard: logged-out CTA click → LoginRequired ✅; direct URL → LoginRequired ✅; redirect preserved ✅; logged-in → wizard access ✅
 
 ## Known Issues & Quirks
 - Bundle size warning (>500 kB) — expected for an SPA this size; can be addressed with code-splitting later.

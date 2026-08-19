@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Key, ArrowRight, AlertCircle } from 'lucide-react';
+import useAuth from '../../hooks/useAuth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirect = new URLSearchParams(location.search).get('redirect') || '/dashboard';
+  const { login } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +32,7 @@ export default function LoginPage() {
     }
     setErrors({});
     setSubmitted(true);
-    // UI-only: navigate to redirect destination after brief delay
+    login({ email, role: 'donor' });
     setTimeout(() => navigate(redirect), 600);
   };
 
