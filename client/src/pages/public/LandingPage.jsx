@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import geminiImg from '../../assets/gemini.png';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -75,7 +76,7 @@ export default function LandingPage() {
           {/* Right Hero Image */}
           <div className="relative h-[360px] lg:h-[460px] rounded-2xl overflow-hidden border border-[#304355]/10 shadow-md">
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfsVnqnrwpFodcjNIdpht-hnriOZPn2YaRSx78Y8Sc_jgWQwCI_F9oKuVf9deAij6ANgzAheycf-74TuidvncH0XOAK3sLhux2HrbG1vhwhH7nH9sUo-sLLTowO9hYdXUw4ZDaKxTR4tLPfykXfUWRGfopPDdlN3uzdkY63bGrldRlIma6hy5yIbszViLMALYLqKDB9IdwLrVvaGptPK6bMDxKhVnpJkpDqa_YORtL9KiG9nGfvRgA"
+              src={geminiImg}
               alt="Community food distribution in Maharashtra"
               className="w-full h-full object-cover"
             />
