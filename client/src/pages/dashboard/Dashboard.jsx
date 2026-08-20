@@ -1,64 +1,60 @@
-import React from 'react';
-import PageContainer from '../../components/layout/PageContainer';
-import SectionHeader from '../../components/common/SectionHeader';
-import Card, { CardBody } from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
-import EmptyState from '../../components/common/EmptyState';
-import { LayoutDashboard, HeartHandshake, ClipboardList, CheckCircle2 } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import { getDashboardForRole } from '../../context/AuthContext';
 
 export default function Dashboard() {
-  return (
-    <PageContainer>
-      <SectionHeader
-        title="Donor Dashboard"
-        subtitle="Track your active support offers, pending confirmations, and completed donations."
-        badge={<Badge variant="primary" icon={LayoutDashboard}>Dashboard Overview</Badge>}
-      />
+  const { user, isAuthenticated, loading, isProfileLoaded } = useAuth();
+  const navigate = useNavigate();
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="p-3 bg-blue-50 text-blue-700 rounded-xl">
-              <HeartHandshake className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs text-[#64707A] font-medium">Active Supports</span>
-              <span className="block text-2xl font-extrabold text-[#1F2933]">0</span>
-            </div>
-          </CardBody>
-        </Card>
+  useEffect(() => {
+    if (loading || !isAuthenticated) return;
+    if (isProfileLoaded && user) {
+      const target = getDashboardForRole(user.role);
+      if (target) {
+        navigate(target, { replace: true });
+      }
+    }
+  }, [loading, isAuthenticated, isProfileLoaded, user, navigate]);
 
-        <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="p-3 bg-amber-50 text-amber-800 rounded-xl">
-              <ClipboardList className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs text-[#64707A] font-medium">Pending Confirmations</span>
-              <span className="block text-2xl font-extrabold text-[#1F2933]">0</span>
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardBody className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs text-[#64707A] font-medium">Completed Donations</span>
-              <span className="block text-2xl font-extrabold text-[#1F2933]">0</span>
-            </div>
-          </CardBody>
-        </Card>
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#E8E8E2]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#304355]"></div>
+          <p className="text-sm font-medium text-[#304355]">Loading dashboard…</p>
+        </div>
       </div>
+    );
+  }
 
-      <EmptyState
-        title="No active support activities yet"
-        description="You have not offered support to any local requirements yet. Explore requirements across Maharashtra to get started."
-        actionText="Explore Requirements"
-        onAction={() => {}}
-      />
-    </PageContainer>
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isProfileLoaded || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const target = getDashboardForRole(user.role);
+  if (target) {
+    return <Navigate to={target} replace />;
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#E8E8E2] p-6">
+      <div className="bg-white rounded-2xl shadow-md border border-[#304355]/10 max-w-md w-full p-8 text-center">
+        <h2 className="text-xl font-extrabold text-[#304355] mb-2">Account role not recognized</h2>
+        <p className="text-sm text-[#64707A] mb-4">
+          Your account role ({user.role || 'none'}) is not valid. Please contact support or create a new account.
+        </p>
+        <button
+          onClick={() => navigate('/')}
+          className="bg-[#304355] text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors"
+        >
+          Return Home
+        </button>
+      </div>
+    </div>
   );
 }

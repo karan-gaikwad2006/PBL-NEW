@@ -1,13 +1,28 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import { getDashboardForRole } from '../../context/AuthContext';
 
 export default function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const isActive = (path) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
+  const getDashboardPath = () => {
+    if (!user) return '/login';
+    const dashboard = getDashboardForRole(user.role);
+    return dashboard || '/dashboard';
   };
 
   return (
@@ -68,14 +83,33 @@ export default function Navbar() {
 
         {/* Right CTA Actions */}
         <div className="flex items-center gap-4">
-          <Link to="/login" className="text-[#304355] font-medium text-sm hover:underline">
-            Login
-          </Link>
-          <Link to="/register">
-            <button className="bg-[#304355] text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors shadow-xs">
-              Get Started
-            </button>
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <Link 
+                to={getDashboardPath()} 
+                className="text-[#304355] font-bold text-sm hover:underline"
+              >
+                Dashboard
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="bg-[#304355] text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors shadow-xs"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-[#304355] font-medium text-sm hover:underline">
+                Login
+              </Link>
+              <Link to="/register">
+                <button className="bg-[#304355] text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors shadow-xs">
+                  Get Started
+                </button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>

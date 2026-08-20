@@ -98,24 +98,103 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* Phase 2H — Donor */}
-            <Route path="/donor/dashboard" element={<DonorDashboard />} />
-            <Route path="/donor/supports/:supportId" element={<SupportDetails />} />
+            <Route
+              path="/donor/dashboard"
+              element={
+                <ProtectedRoute
+                  element={<DonorDashboard />}
+                  allowedRoles={['donor', 'admin']}
+                />
+              }
+            />
+            <Route
+              path="/donor/supports/:supportId"
+              element={
+                <ProtectedRoute
+                  element={<SupportDetails />}
+                  allowedRoles={['donor', 'admin']}
+                />
+              }
+            />
 
             {/* Phase 2I — Requester */}
-            <Route path="/requester/dashboard" element={<RequesterDashboard />} />
-            <Route path="/requester/requirements/:id" element={<RequirementManagement />} />
-            <Route path="/requester/requirements/:id/status" element={<RequirementStatus />} />
+            <Route
+              path="/requester/dashboard"
+              element={
+                <ProtectedRoute
+                  element={<RequesterDashboard />}
+                  allowedRoles={['requester', 'admin']}
+                />
+              }
+            />
+            <Route
+              path="/requester/requirements/:id"
+              element={
+                <ProtectedRoute
+                  element={<RequirementManagement />}
+                  allowedRoles={['requester', 'admin']}
+                />
+              }
+            />
+            <Route
+              path="/requester/requirements/:id/status"
+              element={
+                <ProtectedRoute
+                  element={<RequirementStatus />}
+                  allowedRoles={['requester', 'admin']}
+                />
+              }
+            />
 
             {/* Phase 2J — Institution Profile */}
-            <Route path="/institution-profile" element={<InstitutionProfile />} />
+            <Route
+              path="/institution-profile"
+              element={
+                <ProtectedRoute
+                  element={<InstitutionProfile />}
+                  allowedRoles={['institution', 'admin']}
+                />
+              }
+            />
 
             {/* Phase 2K — Notifications */}
-            <Route path="/notifications" element={<NotificationCenter />} />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute
+                  element={<NotificationCenter />}
+                />
+              }
+            />
 
             {/* Phase 2L — Admin */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/review/:id" element={<AdminReview />} />
-            <Route path="/admin/institution-review/:id" element={<AdminReview />} />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedRoute
+                  element={<AdminDashboard />}
+                  allowedRoles={['admin']}
+                />
+              }
+            />
+            <Route
+              path="/admin/review/:id"
+              element={
+                <ProtectedRoute
+                  element={<AdminReview />}
+                  allowedRoles={['admin']}
+                />
+              }
+            />
+            <Route
+              path="/admin/institution-review/:id"
+              element={
+                <ProtectedRoute
+                  element={<AdminReview />}
+                  allowedRoles={['admin']}
+                />
+              }
+            />
           </Routes>
         </main>
         <Footer />

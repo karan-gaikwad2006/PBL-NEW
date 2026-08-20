@@ -2,6 +2,29 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Key, ArrowRight, AlertCircle } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
+import { getDashboardForRole } from '../../context/AuthContext';
+
+const ROLE_PREFIXES = Object.freeze({
+  donor: ['/donor/'],
+  requester: ['/requester/'],
+  institution: ['/institution-profile'],
+  admin: ['/admin/'],
+});
+
+function isRedirectAuthorizedForRole(redirectPath, role) {
+  if (!redirectPath || !role) return true;
+  if (redirectPath === '/dashboard' || redirectPath === '/') return true;
+
+  for (const [roleKey, prefixes] of Object.entries(ROLE_PREFIXES)) {
+    for (const prefix of prefixes) {
+      if (redirectPath.startsWith(prefix)) {
+        if (roleKey === role || role === 'admin') return true;
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -23,7 +46,7 @@ export default function LoginPage() {
     return errs;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
@@ -32,19 +55,43 @@ export default function LoginPage() {
     }
     setErrors({});
     setSubmitted(true);
-    login({ email, role: 'donor' });
-    setTimeout(() => navigate(redirect), 600);
+    
+    try {
+      const { profile } = await login(email, password);
+
+      if (!profile) {
+        setErrors({
+          form: 'Your account sign-in completed, but your profile could not be loaded. Please try again or contact support.'
+        });
+        setSubmitted(false);
+        return;
+      }
+
+      const roleDashboard = getDashboardForRole(profile.role);
+      if (!roleDashboard) {
+        setErrors({
+          form: `Your account has an unrecognized role (${profile.role || 'none'}). Please contact support.`
+        });
+        setSubmitted(false);
+        return;
+      }
+
+      const redirectIsAuthorized = isRedirectAuthorizedForRole(redirect, profile.role);
+      const useRedirect = redirect !== '/dashboard' && redirectIsAuthorized;
+      const finalRedirect = useRedirect ? redirect : roleDashboard;
+      navigate(finalRedirect);
+    } catch (err) {
+      setErrors({ form: err.message });
+      setSubmitted(false);
+    }
   };
 
   return (
     <div className="min-h-[calc(100vh-140px)] bg-[#E8E8E2] flex items-center justify-center p-6">
-      {/* Decorative blurs */}
       <div className="absolute top-0 left-0 w-[40vw] h-[40vw] rounded-full bg-[#e3c19a]/20 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[30vw] h-[30vw] rounded-full bg-[#b5c9df]/20 blur-[80px] pointer-events-none" />
 
-      {/* Login Card */}
       <div className="bg-white rounded-2xl shadow-md border border-[#304355]/10 w-full max-w-md p-8 relative z-10">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#304355]/10 text-[#304355] mb-3">
             <Key className="w-6 h-6" />
@@ -55,15 +102,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Success Banner */}
-        {submitted && (
+        {submitted && !errors.form && (
           <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-semibold text-center">
             Signing you in…
           </div>
         )}
 
+        {errors.form && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-semibold text-center flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4" /> {errors.form}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {/* Email */}
           <div className="space-y-1.5">
             <label htmlFor="login-email" className="block text-xs font-bold text-[#64707A]">
               Email Address
@@ -86,7 +137,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Password */}
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
               <label htmlFor="login-password" className="block text-xs font-bold text-[#64707A]">
@@ -114,7 +164,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Submit */}
           <button
             type="submit"
             className="w-full mt-2 bg-[#304355] text-white py-3 px-4 rounded-xl font-bold text-sm hover:bg-[#243342] active:scale-[0.98] transition-all flex justify-center items-center gap-2 shadow-xs"
@@ -123,7 +172,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Register Link */}
         <div className="mt-6 text-center">
           <p className="text-xs text-[#64707A]">
             New to PoshanSetu?{' '}
