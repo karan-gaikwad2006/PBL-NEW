@@ -9,9 +9,14 @@ import Step5Urgency from '../../components/domain/requirement-submit/Step5Urgenc
 import Step6Details from '../../components/domain/requirement-submit/Step6Details';
 import Step7Review from '../../components/domain/requirement-submit/Step7Review';
 import Step8Success from '../../components/domain/requirement-submit/Step8Success';
+import { useAuth } from '../../hooks/useAuth';
+import { requirementService } from '../../services/api';
 
 export default function RequirementSubmit() {
+  const { token } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const totalSteps = 7;
 
   const [formData, setFormData] = useState({
@@ -41,12 +46,19 @@ export default function RequirementSubmit() {
     setFormData((prev) => ({ ...prev, ...newData }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep === 7) {
-      // Simulate submission
-      setTimeout(() => {
-        setCurrentStep(8); // Success step
-      }, 800);
+      if (isSubmitting) return;
+      setIsSubmitting(true);
+      setSubmitError(null);
+      try {
+        await requirementService.create(token, formData);
+        setCurrentStep(8);
+      } catch (err) {
+        setSubmitError(err.message || 'Failed to submit requirement. Please try again.');
+      } finally {
+        setIsSubmitting(false);
+      }
     } else {
       setCurrentStep((prev) => Math.min(prev + 1, 8));
     }
@@ -71,7 +83,16 @@ export default function RequirementSubmit() {
       case 6:
         return <Step6Details formData={formData} updateData={updateData} onNext={handleNext} onBack={handleBack} />;
       case 7:
-        return <Step7Review formData={formData} onNext={handleNext} onBack={handleBack} setStep={setCurrentStep} />;
+        return (
+          <Step7Review
+            formData={formData}
+            onNext={handleNext}
+            onBack={handleBack}
+            setStep={setCurrentStep}
+            isSubmitting={isSubmitting}
+            error={submitError}
+          />
+        );
       case 8:
         return <Step8Success />;
       default:

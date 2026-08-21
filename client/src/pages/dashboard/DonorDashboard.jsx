@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import useAuth from '../../hooks/useAuth';
 import {
   Heart,
   Clock,
@@ -199,7 +200,11 @@ function SupportCard({ support, showAction = false }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DonorDashboard() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('active');
+
+  const displayName = user?.full_name || 'Donor';
+  const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   return (
     <PageContainer>
@@ -208,7 +213,7 @@ export default function DonorDashboard() {
         <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">
-              Good afternoon, Karan
+              Good afternoon, {displayName.split(' ')[0]}
             </h1>
             <p className="text-sm text-[#64707A]">Track your support and discover where you can help next.</p>
           </div>

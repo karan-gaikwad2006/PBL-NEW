@@ -3,9 +3,19 @@
 Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
-**Current Phase:** Phase 5 — Firebase Authentication + User Roles + Access Control COMPLETE
-**Next Recommended Phase:** Phase 6 — Profiles/Institutions (Institution verification workflow)
-**Current Task:** Replaced mock auth with real Firebase Authentication, implemented user synchronization with PostgreSQL, and enforced Role-Based Access Control (RBAC) on frontend and backend.
+**Current Phase:** Phase 7 — NFHS-5 import and district nutrition APIs COMPLETE
+**Next Recommended Phase:** Phase 8 — connect district detail UI to live nutrition indicators
+**Current Task:** Imported NFHS-5 Maharashtra district indicators and connected the existing Leaflet map to read-only district API data.
+
+### 2026-08-21 — Phase 6 Profile & Institution Gap-Fill
+- Existing user `GET/PATCH /api/v1/users/me` and institution `GET/PATCH /api/v1/institutions/me` flows verified; institution reads/updates now require `institution` or `admin` roles and PATCH fields are explicitly allowlisted.
+- No schema, auth, map, NFHS, or unrelated UI changes. Server syntax/startup, unauthenticated 401 checks, and client build passed.
+
+### 2026-08-21 — Phase 7 Data Import Foundation
+- Added `server/src/db/importNfhs5.js` and `npm run import:nfhs5`; source is `client/public/data/NFHS_5_India_Districts_Factsheet_Data.xlsx`.
+- Added read-only `GET /api/v1/districts` and `GET /api/v1/districts/:id` data access with source/reporting metadata.
+- Normalization covers Maharastra, Ahmadnagar/Ahmednagar/Ahilyanagar, Aurangabad/Chhatrapati Sambhajinagar, Osmanabad/Dharashiv, Mumbai, Bid/Beed, Buldana/Buldhana, Gondiya/Gondia, and Raigarh/Raigad.
+- Verification: workbook parser found exactly 36 Maharashtra rows; import completed with 251 indicator values; both district APIs returned real data and required name mappings; client build and server syntax checks pass. A later repeat import encountered a transient Neon connection timeout.
 
 ## Architectural Decisions
 - 2026-08-19 - **Mock AuthContext + ProtectedRoute pattern**: Created `AuthContext.jsx` (isAuthenticated, login(), logout(), user state) + `useAuth.js` hook + `ProtectedRoute.jsx` wrapper. Structured to be a drop-in replacement target for Firebase Auth in Phase 5 (same API shape: login/logout/user/isAuthenticated). No Firebase calls.
@@ -130,6 +140,7 @@ Update this file after each major milestone, structural change, or resolved bug.
 - [x] Phase 5 Firebase Authentication + User Roles + Access Control
 - [x] Bug Fix: Cannot read properties of null (reading 'role') in auth flow
 - [x] Bug Fix 2026-08-20: Role-based login redirect (requester → donor dashboard)
+- [x] Admin Setup 2026-08-21: Added primary admin account (admin@gmail.com)
 
 ## Bug Fixes
 ### 2026-08-20 — Role-Based Login Redirect Bug (Requester → Donor Dashboard)
@@ -198,6 +209,13 @@ unknown     → null (caller must handle as error)
   9. **Profile null (sync failed):** Login returns `profile === null` → `errors.form` set to message → no `navigate()` → user stays on LoginPage with inline error + can try again ✅. Never silently sent to donor dashboard. ✅
   10. **Unknown role value in PostgreSQL:** profile.role='ghost' → `getDashboardForRole('ghost') === null` → LoginPage shows inline "unrecognized role" error, no navigate ✅. If they reached `/dashboard` somehow, Dashboard.jsx shows explicit role error with Return Home ✅. ProtectedRoute also shows error screen ✅. Never donor fallback. ✅
 
+## Development Credentials
+### Admin Account (2026-08-21)
+- **Email:** `admin@gmail.com`
+- **Password:** `12345678`
+- **Role:** `admin`
+- **Status:** `active`
+
 ### 2026-08-19 — Requirement Submission Auth Guard Enforced
 **Bug:** Unauthenticated users could access the 7-step requirement submission wizard via all 6 entry points (Navbar CTA, Footer CTA, Homepage Path 2 CTA, RequesterDashboard submit CTA, direct URLs `/submit-need` and `/submit-requirement`).
 
@@ -210,6 +228,14 @@ unknown     → null (caller must handle as error)
    - `client/src/components/auth/ProtectedRoute.jsx` — Route-level guard: if `!isAuthenticated`, `<Navigate replace to="/login-required" state={{ from: preserveAs || pathname, context }} />`.
 2. **Protected both submission routes in `App.jsx`:**
    - Wrapped `/submit-need` and `/submit-requirement` routes in `<ProtectedRoute>` with `context="submit a requirement"` and `preserveAs="/submit-need"` (canonical destination).
+
+## Phase 6 — User & Institution Profile APIs
+- Added the required authenticated `/api/v1/users/me` fetch and patch contract while keeping the older `/api/v1/users/profile` routes as compatibility aliases.
+- Hardened user profile update validation to block protected fields such as `role`, `email`, ids, and timestamps, allowing only `full_name` changes.
+- Wired the frontend user service to the correct `/v1/users/me` endpoints and left the existing UI structure intact.
+- Reused the existing institution profile API at `/api/v1/institutions/me` for the institution profile flow already supported by the Phase 4 schema.
+- Kept role protection and Firebase auth checks aligned with the existing middleware and response format without introducing duplicate auth logic.
+- Verified the client build succeeds with `cd client && npm run build` and confirmed the backend profile route modules load without startup errors.
    - Wrapped entire app in `<AuthProvider>` above `<Router>` so all routes/pages can access auth state.
 3. **Wired mock login state into existing auth pages:**
    - `LoginPage.jsx`: Imported `useAuth`, called `login({ email, role: 'donor' })` before `navigate(redirect)`.

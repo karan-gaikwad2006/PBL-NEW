@@ -1,8 +1,8 @@
 import React from 'react';
 import Button from '../../common/Button';
-import { User, MapPin, Users, Package, Info, Edit2 } from 'lucide-react';
+import { User, MapPin, Users, Package, Info, Edit2, AlertCircle, Loader2 } from 'lucide-react';
 
-export default function Step7Review({ formData, onNext, onBack, setStep }) {
+export default function Step7Review({ formData, onNext, onBack, setStep, isSubmitting, error }) {
   const getUrgencyBadge = (urgency) => {
     switch (urgency) {
       case 'critical':
@@ -114,16 +114,30 @@ export default function Step7Review({ formData, onNext, onBack, setStep }) {
 
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-3 animate-in fade-in duration-300">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-200">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} disabled={isSubmitting}>
           Back
         </Button>
         <Button
           onClick={onNext}
           variant="primary"
-          className="px-8 shadow-sm"
+          className="px-8 shadow-sm min-w-[180px]"
+          disabled={isSubmitting}
         >
-          Submit Requirement
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...
+            </>
+          ) : (
+            'Submit Requirement'
+          )}
         </Button>
       </div>
     </div>

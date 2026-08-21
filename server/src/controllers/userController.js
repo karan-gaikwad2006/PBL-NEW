@@ -1,6 +1,34 @@
 const { query } = require('../config/db');
 const { successResponse, AppError } = require('../utils/response');
 
+const ALLOWED_USER_UPDATE_FIELDS = ['full_name'];
+
+const sanitizeProfileUpdate = (payload = {}) => {
+  const disallowedKeys = ['id', 'firebase_uid', 'email', 'role', 'status', 'created_at', 'updated_at'];
+  const entries = Object.entries(payload || {});
+
+  const invalidKeys = entries
+    .map(([key]) => key)
+    .filter((key) => disallowedKeys.includes(key) || !ALLOWED_USER_UPDATE_FIELDS.includes(key));
+
+  if (invalidKeys.length > 0) {
+    throw new AppError('Only full_name may be updated on the user profile', 422);
+  }
+
+  const nextData = {};
+  for (const [key, value] of entries) {
+    if (ALLOWED_USER_UPDATE_FIELDS.includes(key) && value !== undefined && value !== null) {
+      nextData[key] = String(value).trim();
+    }
+  }
+
+  if (Object.keys(nextData).length === 0) {
+    throw new AppError('No valid profile fields supplied for update', 422);
+  }
+
+  return nextData;
+};
+
 /**
  * Synchronize Firebase user with PostgreSQL database
  */
@@ -68,7 +96,48 @@ const getProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Update user profile
+ */
+const updateProfile = async (req, res, next) => {
+  try {
+    const nextData = sanitizeProfileUpdate(req.body);
+
+    const updates = [];
+    const values = [];
+    let index = 1;
+
+    if (Object.prototype.hasOwnProperty.call(nextData, 'full_name')) {
+      updates.push(`full_name = $${index}`);
+      values.push(nextData.full_name);
+      index += 1;
+    }
+
+    if (updates.length === 0) {
+      throw new AppError('No valid profile fields supplied for update', 422);
+    }
+
+    values.push(req.user.id);
+    const { rows } = await query(
+      `UPDATE users 
+       SET ${updates.join(', ')}, updated_at = NOW()
+       WHERE id = $${index}
+       RETURNING id, firebase_uid, email, full_name, role, status`,
+      values
+    );
+
+    if (rows.length === 0) {
+      throw new AppError('User profile not found', 404);
+    }
+
+    return successResponse(res, 'Profile updated successfully', rows[0]);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   syncUser,
   getProfile,
+  updateProfile,
 };

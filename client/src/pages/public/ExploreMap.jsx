@@ -13,6 +13,7 @@ import {
   Database
 } from 'lucide-react';
 import Badge from '../../components/common/Badge';
+import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 
 export default function ExploreMap() {
   const navigate = useNavigate();
@@ -70,7 +71,14 @@ export default function ExploreMap() {
         </p>
 
         {/* Search Bar */}
-        <div className="w-full max-w-2xl mx-auto pt-2 relative">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const district = searchQuery.trim();
+            if (district) setSelectedDistrict(district);
+          }}
+          className="w-full max-w-2xl mx-auto pt-2 relative"
+        >
           <div className="relative">
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#64707A]" />
             <input
@@ -81,13 +89,13 @@ export default function ExploreMap() {
               className="w-full bg-white border border-[#304355]/20 rounded-full py-3.5 pl-12 pr-28 text-sm text-[#1F2933] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#304355]"
             />
             <button
-              onClick={() => searchQuery && setSelectedDistrict(searchQuery)}
+              type="submit"
               className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#304355] text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-[#243342] transition"
             >
               Search
             </button>
           </div>
-        </div>
+        </form>
       </section>
 
       {/* Section 1: Map & Selection Panel Bento */}
@@ -95,58 +103,10 @@ export default function ExploreMap() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Map Visualization Area (Left 2 cols) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-[#304355]/10 shadow-sm overflow-hidden flex flex-col relative h-[560px]">
-            {/* Interactive Map Visual Surface */}
-            <div className="absolute inset-0 bg-[#f4f3ef] flex items-center justify-center">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAekNdHpO0q9q4A3YBq-P6eSAKrUEvMWbQoG33euptLtuKP3Bc5SU-RZgEUXZ4yfLZYGhOXvBmpMNu7jrisST-KzKjkuxop1WCwbNFlmx3Jgczg0ONw-U-SJrJ49LA3YH0mUuJIajUlDC8M6DIRmW4tBigZSFfuIcO4guYrFS1p4rst-KXrzkIFh_YUUIPuLbQ2rpKYuPDSGw4FwCfpyKphjKsIF2C6-Xg6fdRvRBsFhoxGi2SBWpFu"
-                alt="Maharashtra District Map"
-                className="w-full h-full object-cover opacity-90"
-              />
-            </div>
-
-            {/* Overlay Risk Legend */}
-            <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-xs p-4 rounded-xl border border-[#304355]/10 shadow-sm space-y-2 z-10">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
-                Nutrition Risk Levels
-              </span>
-              <div className="flex flex-wrap items-center gap-4 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-[#D32F2F]" />
-                  <span className="font-medium text-[#1F2933]">Higher Attention</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-[#FBC02D]" />
-                  <span className="font-medium text-[#1F2933]">Moderate Attention</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-[#388E3C]" />
-                  <span className="font-medium text-[#1F2933]">Lower Attention</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Interactive District Pins */}
-            <button
-              onClick={() => setSelectedDistrict('Nashik')}
-              className="absolute top-[48%] left-[45%] bg-amber-500 text-white p-2 rounded-full shadow-lg animate-bounce z-20 flex items-center gap-1 text-xs font-bold"
-              title="Click to select Nashik District"
-            >
-              <MapPin className="w-4 h-4" /> Nashik
-            </button>
-            <button
-              onClick={() => setSelectedDistrict('Nandurbar')}
-              className="absolute top-[28%] left-[35%] bg-red-600 text-white p-2 rounded-full shadow-lg z-20 flex items-center gap-1 text-xs font-bold"
-              title="Click to select Nandurbar District"
-            >
-              <MapPin className="w-4 h-4" /> Nandurbar
-            </button>
-            <button
-              onClick={() => setSelectedDistrict('Gadchiroli')}
-              className="absolute top-[65%] left-[75%] bg-emerald-600 text-white p-2 rounded-full shadow-lg z-20 flex items-center gap-1 text-xs font-bold"
-              title="Click to select Gadchiroli District"
-            >
-              <MapPin className="w-4 h-4" /> Gadchiroli
-            </button>
+            <MaharashtraDistrictMap
+              selectedDistrict={selectedDistrict}
+              onDistrictSelect={setSelectedDistrict}
+            />
           </div>
 
           {/* Selection Panel (Right 1 col) */}
@@ -256,6 +216,7 @@ export default function ExploreMap() {
 
                 <div>
                   <h4 className="text-xl font-bold text-[#304355]">{req.title}</h4>
+
                   <div className="flex items-baseline gap-1.5 mt-1">
                     <span className="text-3xl font-extrabold text-[#304355]">{req.amount}</span>
                     <span className="text-xs text-[#64707A]">{req.unit}</span>
@@ -294,6 +255,7 @@ export default function ExploreMap() {
           </button>
         </div>
       </section>
+
     </div>
   );
 }

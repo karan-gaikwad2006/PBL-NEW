@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import { AuthProvider } from './context/AuthContext';
@@ -46,10 +46,21 @@ import NotificationCenter from './pages/dashboard/NotificationCenter';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminReview from './pages/admin/AdminReview';
 
+function ScrollToTop() {
+  const { pathname, search } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname, search]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop />
         <div className="min-h-screen bg-[#E8E8E2] text-[#1F2933] flex flex-col justify-between font-sans">
           <Navbar />
           <main className="flex-grow">

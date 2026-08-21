@@ -6,7 +6,6 @@ import {
   HeartHandshake,
   ClipboardPlus,
   Utensils,
-  MapPin,
   ArrowRight,
   Database,
   Clock,
@@ -14,6 +13,7 @@ import {
   TrendingUp,
   Activity
 } from 'lucide-react';
+import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -248,36 +248,17 @@ export default function LandingPage() {
             </div>
 
             {/* Right Interactive Map Preview */}
-            <div className="lg:w-1/2 w-full h-[380px] bg-white rounded-2xl border border-[#304355]/10 shadow-sm flex items-center justify-center relative overflow-hidden">
-              <div className="z-10 text-center space-y-2 p-6">
-                <div className="w-16 h-16 rounded-full bg-[#304355]/10 text-[#304355] flex items-center justify-center mx-auto mb-3">
-                  <MapPin className="w-8 h-8" />
-                </div>
-                <h4 className="text-lg font-bold text-[#304355]">Interactive Maharashtra Map</h4>
-                <p className="text-xs text-[#64707A] max-w-sm mx-auto">
-                  Click any district to view official nutrition indicators alongside active local food requests.
-                </p>
-                <Link to="/explore" className="inline-block pt-2">
-                  <button className="bg-[#304355] text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-[#243342] transition">
-                    Explore Interactive Map
-                  </button>
-                </Link>
+            <Link
+              to="/explore"
+              className="lg:w-1/2 w-full h-[380px] bg-white rounded-2xl border border-[#304355]/10 shadow-sm block relative z-0 isolate overflow-hidden"
+              aria-label="Explore the interactive Maharashtra district map"
+            >
+              <MaharashtraDistrictMap preview selectedDistrict="Nashik" onDistrictSelect={() => {}} />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[400] bg-white/90 px-4 py-3 text-center backdrop-blur-xs">
+                <h4 className="text-base font-bold text-[#304355]">Interactive Maharashtra Map</h4>
+                <p className="text-xs text-[#64707A]">Select a district to explore the full map.</p>
               </div>
-
-              {/* Simulated interactive map markers */}
-              <div
-                className="absolute top-[32%] left-[38%] w-4 h-4 bg-red-600 rounded-full animate-pulse shadow-md cursor-pointer"
-                title="Nandurbar - High Need Area"
-              />
-              <div
-                className="absolute top-[52%] left-[58%] w-4 h-4 bg-amber-500 rounded-full animate-pulse shadow-md cursor-pointer"
-                title="Nashik - Medium Need Area"
-              />
-              <div
-                className="absolute top-[68%] left-[72%] w-4 h-4 bg-emerald-600 rounded-full animate-pulse shadow-md cursor-pointer"
-                title="Gadchiroli - Active Need Area"
-              />
-            </div>
+            </Link>
           </div>
         </div>
       </section>

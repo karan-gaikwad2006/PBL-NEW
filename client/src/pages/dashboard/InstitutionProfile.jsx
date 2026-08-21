@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import useAuth from '../../hooks/useAuth';
+import { institutionService, districtService } from '../../services/api';
 import {
   Building2,
   MapPin,
@@ -21,50 +23,10 @@ import {
   ChevronRight,
   Lock,
   User,
+  Save,
+  X,
+  Loader2,
 } from 'lucide-react';
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const INSTITUTION = {
-  name: 'Trimbakeshwar Ashram Shala',
-  type: 'Residential School',
-  registrationNumber: 'MH-EDU-2008-4521',
-  district: 'Nashik',
-  taluka: 'Trimbak',
-  address: 'Near Trimbakeshwar Temple Road, Trimbak, Nashik — 422212',
-  phone: '+91 02594 232xxx',
-  email: 'trimbak.ashramshala@example.com',
-  website: '',
-  primaryContact: 'Sanjay Bhosale (Principal)',
-  verificationStatus: 'pending', // 'verified' | 'pending' | 'rejected'
-  profileComplete: 75,
-};
-
-const INITIAL_DOCUMENTS = [
-  {
-    id: 'doc-1',
-    name: 'School Registration Certificate',
-    type: 'PDF',
-    uploadedOn: '2026-08-05',
-    status: 'reviewed', // 'pending' | 'reviewed' | 'rejected'
-    notes: 'Reviewed and accepted.',
-  },
-  {
-    id: 'doc-2',
-    name: 'Government Authorization Letter',
-    type: 'PDF',
-    uploadedOn: '2026-08-05',
-    status: 'pending',
-    notes: '',
-  },
-  {
-    id: 'doc-3',
-    name: 'Beneficiary Count Certificate',
-    type: 'JPG',
-    uploadedOn: '2026-08-06',
-    status: 'rejected',
-    notes: 'Document is not legible. Please re-upload a clear copy.',
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const DOC_STATUS = {
@@ -77,6 +39,7 @@ const VERIFICATION_STATUS = {
   verified: { label: 'Verified', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300', icon: ShieldCheck },
   pending: { label: 'Verification Pending', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', icon: Clock },
   rejected: { label: 'Verification Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: AlertCircle },
+  under_review: { label: 'Under Review', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: Clock },
 };
 
 function DocStatusChip({ status }) {
@@ -129,9 +92,87 @@ function DocumentCard({ doc, onDelete }) {
 }
 
 export default function InstitutionProfile() {
-  const [documents, setDocuments] = useState(INITIAL_DOCUMENTS);
+  const { firebaseUser, user: currentUser } = useAuth();
+  const [institution, setInstitution] = useState(null);
+  const [districts, setDistricts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    organization_type: '',
+    description: '',
+    district_id: '',
+    address: '',
+    contact_email: '',
+    contact_phone: '',
+  });
+
+  const [documents, setDocuments] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!firebaseUser) return;
+      try {
+        setLoading(true);
+        const token = await firebaseUser.getIdToken();
+        const [instRes, distRes] = await Promise.all([
+          institutionService.getMine(token),
+          districtService.getAll()
+        ]);
+        
+        if (instRes.data) {
+          setInstitution(instRes.data);
+          setFormData({
+            name: instRes.data.name || '',
+            organization_type: instRes.data.organization_type || '',
+            description: instRes.data.description || '',
+            district_id: instRes.data.district_id || '',
+            address: instRes.data.address || '',
+            contact_email: instRes.data.contact_email || '',
+            contact_phone: instRes.data.contact_phone || '',
+          });
+        }
+        setDistricts(distRes.data || []);
+      } catch (err) {
+        console.error('Failed to fetch institution profile:', err);
+        setError('Failed to load profile data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [firebaseUser]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!firebaseUser) return;
+
+    try {
+      setSaving(true);
+      setError(null);
+      const token = await firebaseUser.getIdToken();
+      
+      let res;
+      if (institution) {
+        res = await institutionService.updateMine(token, formData);
+      } else {
+        res = await institutionService.create(token, formData);
+      }
+      
+      setInstitution(res.data);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Failed to save institution profile:', err);
+      setError(err.message || 'Failed to save changes.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = (id) => {
     setDocuments((prev) => prev.filter((d) => d.id !== id));
@@ -149,8 +190,31 @@ export default function InstitutionProfile() {
     setDocuments((prev) => [...prev, ...newDocs]);
   };
 
-  const vs = VERIFICATION_STATUS[INSTITUTION.verificationStatus];
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-[#304355] animate-spin" />
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const vs = VERIFICATION_STATUS[institution?.verification_status || 'pending'];
   const VsIcon = vs.icon;
+
+  // Calculate completeness
+  const profileComplete = institution ? Math.round(
+    ([
+      institution.name,
+      institution.organization_type,
+      institution.description,
+      institution.district_id,
+      institution.address,
+      institution.contact_email,
+      institution.contact_phone
+    ].filter(Boolean).length / 7) * 100
+  ) : 0;
 
   return (
     <PageContainer>
@@ -161,82 +225,181 @@ export default function InstitutionProfile() {
             <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">Institution Profile</h1>
             <p className="text-sm text-[#64707A]">Manage your organization's information and verification documents.</p>
           </div>
-          <Button variant="outline" icon={Edit3}>Edit Profile</Button>
+          {!isEditing && (
+            <Button variant="outline" icon={Edit3} onClick={() => setIsEditing(true)}>
+              {institution ? 'Edit Profile' : 'Create Profile'}
+            </Button>
+          )}
         </div>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
           {/* Left Column */}
           <div className="space-y-6">
             {/* Profile Card */}
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
-              <div className="flex items-start gap-5 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-[#304355] text-white flex items-center justify-center text-2xl font-extrabold shrink-0">
-                  TS
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <h2 className="text-xl font-bold text-[#304355]">{INSTITUTION.name}</h2>
-                    {INSTITUTION.verificationStatus === 'verified' && (
-                      <ShieldCheck className="w-5 h-5 text-emerald-500" title="Verified" />
-                    )}
-                  </div>
-                  <p className="text-sm text-[#64707A] mb-0.5">{INSTITUTION.type}</p>
-                  <p className="text-xs text-[#64707A]">Reg. No: {INSTITUTION.registrationNumber}</p>
-                </div>
-              </div>
-
-              {/* Verification Status Banner */}
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border mb-6 ${vs.bg} ${vs.border}`}>
-                <VsIcon className={`w-5 h-5 ${vs.text} shrink-0`} />
-                <div>
-                  <p className={`font-semibold text-sm ${vs.text}`}>{vs.label}</p>
-                  {INSTITUTION.verificationStatus === 'pending' && (
-                    <p className="text-xs text-blue-600">Your profile and documents are under review. You will be notified once the review is complete.</p>
-                  )}
-                  {INSTITUTION.verificationStatus === 'rejected' && (
-                    <p className="text-xs text-red-600">Your verification was not approved. Please review the feedback and resubmit corrected documents.</p>
-                  )}
-                  {INSTITUTION.verificationStatus === 'verified' && (
-                    <p className="text-xs text-emerald-700">Your institution has been verified by PoshanSetu.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Info Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                {[
-                  { icon: MapPin, label: 'Address', value: INSTITUTION.address },
-                  { icon: User, label: 'Primary Contact', value: INSTITUTION.primaryContact },
-                  { icon: Phone, label: 'Phone', value: INSTITUTION.phone },
-                  { icon: Mail, label: 'Email', value: INSTITUTION.email },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-start gap-3">
-                    <item.icon className="w-4 h-4 text-[#304355] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold">{item.label}</p>
-                      <p className="text-[#1F2933] mt-0.5">{item.value}</p>
+              {isEditing ? (
+                <form onSubmit={handleSave} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#64707A] uppercase">Institution Name</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#64707A] uppercase">Organization Type</label>
+                      <input
+                        type="text"
+                        value={formData.organization_type}
+                        onChange={(e) => setFormData({ ...formData, organization_type: e.target.value })}
+                        placeholder="e.g. NGO, School, Ashram Shala"
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#64707A] uppercase">District</label>
+                      <select
+                        value={formData.district_id}
+                        onChange={(e) => setFormData({ ...formData, district_id: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none"
+                      >
+                        <option value="">Select District</option>
+                        {districts.map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#64707A] uppercase">Contact Phone</label>
+                      <input
+                        type="text"
+                        value={formData.contact_phone}
+                        onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#64707A] uppercase">Contact Email</label>
+                      <input
+                        type="email"
+                        value={formData.contact_email}
+                        onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none"
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#64707A] uppercase">Full Address</label>
+                    <textarea
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none h-20"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#64707A] uppercase">Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#304355] outline-none h-24"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 pt-4">
+                    <Button variant="outline" icon={X} onClick={() => setIsEditing(false)} disabled={saving}>Cancel</Button>
+                    <Button variant="primary" icon={saving ? Loader2 : Save} type="submit" loading={saving}>
+                      {institution ? 'Save Changes' : 'Create Profile'}
+                    </Button>
+                  </div>
+                </form>
+              ) : institution ? (
+                <>
+                  <div className="flex items-start gap-5 mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-[#304355] text-white flex items-center justify-center text-2xl font-extrabold shrink-0">
+                      {institution.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h2 className="text-xl font-bold text-[#304355]">{institution.name}</h2>
+                        {institution.verification_status === 'verified' && (
+                          <ShieldCheck className="w-5 h-5 text-emerald-500" title="Verified" />
+                        )}
+                      </div>
+                      <p className="text-sm text-[#64707A] mb-0.5">{institution.organization_type}</p>
+                      <p className="text-xs text-[#64707A]">{institution.description}</p>
+                    </div>
+                  </div>
 
-              {/* Profile Completeness */}
-              <div className="mt-5 pt-5 border-t border-slate-100">
-                <div className="flex justify-between text-xs mb-1.5">
-                  <span className="font-semibold text-[#64707A]">Profile Completeness</span>
-                  <span className="font-bold text-[#304355]">{INSTITUTION.profileComplete}%</span>
+                  {/* Verification Status Banner */}
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border mb-6 ${vs.bg} ${vs.border}`}>
+                    <VsIcon className={`w-5 h-5 ${vs.text} shrink-0`} />
+                    <div>
+                      <p className={`font-semibold text-sm ${vs.text}`}>{vs.label}</p>
+                      {institution.verification_status === 'pending' && (
+                        <p className="text-xs text-blue-600">Your profile and documents are under review. You will be notified once the review is complete.</p>
+                      )}
+                      {institution.verification_status === 'rejected' && (
+                        <p className="text-xs text-red-600">Your verification was not approved. Please review the feedback and resubmit corrected documents.</p>
+                      )}
+                      {institution.verification_status === 'verified' && (
+                        <p className="text-xs text-emerald-700">Your institution has been verified by PoshanSetu.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Info Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    {[
+                      { icon: MapPin, label: 'Address', value: `${institution.address || ''} ${institution.district_name ? `, ${institution.district_name}` : ''}` },
+                      { icon: Phone, label: 'Phone', value: institution.contact_phone },
+                      { icon: Mail, label: 'Email', value: institution.contact_email },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-start gap-3">
+                        <item.icon className="w-4 h-4 text-[#304355] shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold">{item.label}</p>
+                          <p className={`text-[#1F2933] mt-0.5 ${!item.value && 'italic text-slate-400'}`}>{item.value || 'Not provided'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Profile Completeness */}
+                  <div className="mt-5 pt-5 border-t border-slate-100">
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="font-semibold text-[#64707A]">Profile Completeness</span>
+                      <span className="font-bold text-[#304355]">{profileComplete}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-2">
+                      <div
+                        className="bg-[#304355] h-2 rounded-full"
+                        style={{ width: `${profileComplete}%` }}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-10">
+                  <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-[#304355] mb-2">No Institution Profile Found</h3>
+                  <p className="text-sm text-[#64707A] mb-6">Create a profile to represent your organization and submit requirements.</p>
+                  <Button variant="primary" onClick={() => setIsEditing(true)}>Create Institution Profile</Button>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-2">
-                  <div
-                    className="bg-[#304355] h-2 rounded-full"
-                    style={{ width: `${INSTITUTION.profileComplete}%` }}
-                  />
-                </div>
-                <p className="text-xs text-[#64707A] mt-1.5">Add a website and all document types to reach 100%.</p>
-              </div>
+              )}
             </div>
 
-            {/* Documents Section */}
+            {/* Documents Section (UI Only for now as per prompt) */}
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="font-bold text-[#304355] text-lg">Verification Documents</h2>
@@ -300,9 +463,9 @@ export default function InstitutionProfile() {
               </h3>
               <div className="space-y-3 text-xs text-[#64707A]">
                 {[
-                  { label: 'Registration Certificate', done: true },
-                  { label: 'Government Authorization', done: false, inProgress: true },
-                  { label: 'Beneficiary Count Proof', done: false, rejected: true },
+                  { label: 'Registration Certificate', done: documents.length > 0 },
+                  { label: 'Government Authorization', done: false, inProgress: documents.length > 0 },
+                  { label: 'Beneficiary Count Proof', done: false },
                   { label: 'Organization Letterhead (optional)', done: false },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-2">

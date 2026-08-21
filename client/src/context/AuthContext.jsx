@@ -148,6 +148,23 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (data) => {
+    if (!firebaseUser) return null;
+    setIsProfileLoading(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await userService.updateProfile(token, data);
+      setUser(response.data);
+      return response.data;
+    } catch (err) {
+      console.error('[AUTH] Profile update failed:', err.message);
+      setError(err.message);
+      throw err;
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [firebaseUser]);
+
   const value = {
     firebaseUser,
     user,
@@ -159,6 +176,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     resetPassword,
+    updateProfile,
     getDashboardForRole,
   };
 
