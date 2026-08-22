@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import PageContainer from '../../components/layout/PageContainer';
 import FormLayout from '../../components/common/FormLayout';
 import Step1Requester from '../../components/domain/requirement-submit/Step1Requester';
@@ -9,14 +9,15 @@ import Step5Urgency from '../../components/domain/requirement-submit/Step5Urgenc
 import Step6Details from '../../components/domain/requirement-submit/Step6Details';
 import Step7Review from '../../components/domain/requirement-submit/Step7Review';
 import Step8Success from '../../components/domain/requirement-submit/Step8Success';
-import { useAuth } from '../../hooks/useAuth';
+import useAuth from '../../hooks/useAuth';
 import { requirementService } from '../../services/api';
 
 export default function RequirementSubmit() {
-  const { token } = useAuth();
+  const { firebaseUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const submittingRef = useRef(false);
   const totalSteps = 7;
 
   const [formData, setFormData] = useState({
@@ -48,13 +49,16 @@ export default function RequirementSubmit() {
 
   const handleNext = async () => {
     if (currentStep === 7) {
-      if (isSubmitting) return;
+      if (submittingRef.current || isSubmitting) return;
+      submittingRef.current = true;
       setIsSubmitting(true);
       setSubmitError(null);
       try {
+        const token = await firebaseUser.getIdToken();
         await requirementService.create(token, formData);
         setCurrentStep(8);
       } catch (err) {
+        submittingRef.current = false;
         setSubmitError(err.message || 'Failed to submit requirement. Please try again.');
       } finally {
         setIsSubmitting(false);
@@ -65,6 +69,7 @@ export default function RequirementSubmit() {
   };
 
   const handleBack = () => {
+    if (isSubmitting) return;
     setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 

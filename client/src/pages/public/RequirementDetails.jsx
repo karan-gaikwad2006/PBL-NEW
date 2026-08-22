@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ChevronRight,
@@ -13,16 +13,61 @@ import {
   Users,
   Heart,
   Share2,
-  ShieldCheck,
-  Check
+  Check,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
-import Badge from '../../components/common/Badge';
+import { requirementService } from '../../services/api';
+
+function formatExpiry(expiresAt) {
+  if (!expiresAt) return '—';
+  const date = new Date(expiresAt);
+  const daysLeft = Math.max(0, Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+  return `${date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })} (${daysLeft} days left)`;
+}
+
+function urgencyLabel(urgency) {
+  const key = String(urgency || '').toLowerCase();
+  if (key === 'critical') return 'Critical Urgency';
+  if (key === 'high') return 'High Urgency';
+  if (key === 'low') return 'Low Urgency';
+  return 'Medium Urgency';
+}
 
 export default function RequirementDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [copied, setCopied] = useState(false);
+  const [requirement, setRequirement] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await requirementService.getById(id);
+        if (!cancelled) setRequirement(response.data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load requirement');
+          setRequirement(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -34,10 +79,40 @@ export default function RequirementDetails() {
     navigate(`/requirements/${id}/support`);
   };
 
+  const items = Array.isArray(requirement?.items) ? requirement.items.filter(Boolean) : [];
+  const totalRequired = items.reduce((sum, item) => sum + Number(item.quantityRequired || 0), 0);
+  const totalRemaining = items.reduce((sum, item) => sum + Number(item.quantityRemaining || 0), 0);
+  const totalSupported = Math.max(0, totalRequired - totalRemaining);
+
+  if (loading) {
+    return (
+      <div className="bg-[#E8E8E2] min-h-screen flex items-center justify-center text-[#64707A]">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#304355] mx-auto" />
+          <p className="text-sm">Loading requirement…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !requirement) {
+    return (
+      <div className="bg-[#E8E8E2] min-h-screen flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl border border-red-200 p-10 max-w-md text-center space-y-4">
+          <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
+          <h1 className="text-xl font-bold text-[#304355]">Requirement not available</h1>
+          <p className="text-sm text-[#64707A]">{error || 'This requirement was not found or is not publicly visible.'}</p>
+          <Button variant="primary" onClick={() => navigate('/requirements')}>
+            Back to Catalog
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 space-y-10">
-        {/* Breadcrumb & Header */}
         <div className="space-y-4">
           <nav className="flex items-center gap-2 text-xs font-semibold text-[#64707A]">
             <Link to="/" className="hover:text-[#304355] transition">Home</Link>
@@ -50,106 +125,82 @@ export default function RequirementDetails() {
           <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
             <div className="space-y-3">
               <h1 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-[#304355] tracking-tight">
-                Food Support Needed for 120 Students
+                {requirement.title}
               </h1>
 
-              {/* Status Badges */}
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> Active
-                </span>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" /> High Confidence
+                  <span className="w-2 h-2 rounded-full bg-emerald-600" />{' '}
+                  {requirement.status === 'active' ? 'Active' : requirement.status}
                 </span>
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-700" /> High Urgency
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-700" /> {urgencyLabel(requirement.urgency)}
                 </span>
               </div>
 
-              {/* Location & Expiry Metadata */}
               <div className="flex items-center gap-6 text-xs text-[#64707A] pt-1">
                 <span className="inline-flex items-center gap-1 font-medium">
-                  <MapPin className="w-4 h-4 text-[#304355]" /> Nashik, Maharashtra
+                  <MapPin className="w-4 h-4 text-[#304355]" />{' '}
+                  {[requirement.city, requirement.district, 'Maharashtra'].filter(Boolean).join(', ')}
                 </span>
                 <span className="inline-flex items-center gap-1 font-medium">
-                  <Calendar className="w-4 h-4 text-[#304355]" /> Valid until: 15 Oct 2024 (12 days left)
+                  <Calendar className="w-4 h-4 text-[#304355]" /> Valid until: {formatExpiry(requirement.expiresAt)}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Main Grid: Content (8 cols) + Sticky Sidebar (4 cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Main Left Content */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Section 1: What is needed? */}
             <section className="bg-white rounded-2xl p-6 md:p-8 shadow-xs border border-[#304355]/10 space-y-6">
               <h2 className="text-xl font-bold text-[#304355] flex items-center gap-2">
                 <ShoppingBag className="w-6 h-6 text-[#304355]" /> What is needed?
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Item Card 1: Rice */}
-                <div className="border border-slate-200/80 rounded-xl p-4 bg-[#FBF9FA] space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1F2933]">Rice</h3>
-                      <p className="text-xs text-[#64707A]">100kg required</p>
-                    </div>
-                    <span className="bg-[#304355]/10 text-[#304355] px-2.5 py-1 rounded-md text-xs font-bold">
-                      60kg remaining
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div className="bg-[#304355] h-2 rounded-full" style={{ width: '40%' }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-[#64707A]">
-                    <span>40% supported</span>
-                  </div>
-                </div>
-
-                {/* Item Card 2: Moong Dal */}
-                <div className="border border-slate-200/80 rounded-xl p-4 bg-[#FBF9FA] space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1F2933]">Moong Dal</h3>
-                      <p className="text-xs text-[#64707A]">50kg required</p>
-                    </div>
-                    <span className="bg-[#304355]/10 text-[#304355] px-2.5 py-1 rounded-md text-xs font-bold">
-                      30kg remaining
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div className="bg-[#304355] h-2 rounded-full" style={{ width: '40%' }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-[#64707A]">
-                    <span>40% supported</span>
-                  </div>
-                </div>
-
-                {/* Item Card 3: Chana */}
-                <div className="border border-slate-200/80 rounded-xl p-4 bg-[#FBF9FA] space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-sm text-[#1F2933]">Chana</h3>
-                      <p className="text-xs text-[#64707A]">25kg required</p>
-                    </div>
-                    <span className="bg-red-50 text-red-700 px-2.5 py-1 rounded-md text-xs font-bold border border-red-200">
-                      25kg remaining
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div className="bg-[#304355] h-2 rounded-full" style={{ width: '0%' }} />
-                  </div>
-                  <div className="flex justify-between text-xs text-[#64707A]">
-                    <span>0% supported</span>
-                  </div>
-                </div>
+                {items.length === 0 ? (
+                  <p className="text-sm text-[#64707A]">No items listed for this requirement.</p>
+                ) : (
+                  items.map((item) => {
+                    const required = Number(item.quantityRequired || 0);
+                    const remaining = Number(item.quantityRemaining || 0);
+                    const supportedPct =
+                      required > 0 ? Math.round(((required - remaining) / required) * 100) : 0;
+                    return (
+                      <div
+                        key={item.id || item.name}
+                        className="border border-slate-200/80 rounded-xl p-4 bg-[#FBF9FA] space-y-3"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-bold text-sm text-[#1F2933]">{item.name}</h3>
+                            <p className="text-xs text-[#64707A]">
+                              {required}
+                              {item.unit} required
+                            </p>
+                          </div>
+                          <span className="bg-[#304355]/10 text-[#304355] px-2.5 py-1 rounded-md text-xs font-bold">
+                            {remaining}
+                            {item.unit} remaining
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2">
+                          <div
+                            className="bg-[#304355] h-2 rounded-full"
+                            style={{ width: `${supportedPct}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-[#64707A]">
+                          <span>{supportedPct}% supported</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </section>
 
-            {/* Section 2: Who is requesting? */}
             <section className="bg-white rounded-2xl p-6 md:p-8 shadow-xs border border-[#304355]/10 space-y-6 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#304355]/5 rounded-bl-full pointer-events-none" />
               <h2 className="text-xl font-bold text-[#304355] flex items-center gap-2">
@@ -161,61 +212,59 @@ export default function RequirementDetails() {
                   <School className="w-10 h-10" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-[#1F2933]">Trimbakeshwar Ashram Shala</h3>
-                  <p className="text-sm text-[#64707A]">Residential School for Tribal Students</p>
-                  
+                  <h3 className="text-xl font-bold text-[#1F2933]">
+                    Food support for {requirement.beneficiaryCount} beneficiaries
+                  </h3>
+                  <p className="text-sm text-[#64707A]">
+                    {requirement.beneficiaryDescription || 'Local food requirement'}
+                  </p>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 text-xs">
                     <div className="flex items-center gap-1.5 text-[#1F2933]">
-                      <MapPin className="w-4 h-4 text-[#64707A]" /> Trimbak Block, Nashik
-                    </div>
-                    <div className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md w-fit font-semibold border border-blue-200">
-                      <ShieldCheck className="w-4 h-4 text-blue-600" /> Verified by District Administration
+                      <MapPin className="w-4 h-4 text-[#64707A]" />{' '}
+                      {[requirement.city, requirement.district].filter(Boolean).join(', ')}
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Section 3: Why is this required? */}
             <section className="bg-white rounded-2xl p-6 md:p-8 shadow-xs border border-[#304355]/10 space-y-4">
               <h2 className="text-xl font-bold text-[#304355] flex items-center gap-2">
                 <Info className="w-6 h-6 text-[#304355]" /> Why is this required?
               </h2>
               <p className="text-sm text-[#1F2933] leading-relaxed">
-                We are seeing a temporary gap in our monthly grain supply. This support will ensure 120 students have consistent access to nutritious meals for the next 30 days.
+                {requirement.description || 'No additional description provided.'}
               </p>
             </section>
           </div>
 
-          {/* Right Sidebar / Sticky Action */}
           <div className="lg:col-span-4">
             <div className="sticky top-24 bg-white rounded-2xl p-6 shadow-sm border border-[#304355]/10 space-y-6">
-              {/* Support History Summary */}
               <div className="space-y-4 border-b border-[#304355]/10 pb-6">
                 <h3 className="text-lg font-bold text-[#304355]">Support Summary</h3>
                 <div className="space-y-3 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-[#64707A] flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-[#304355]" /> Donors
+                      <Users className="w-4 h-4 text-[#304355]" /> Beneficiaries
                     </span>
-                    <span className="font-bold text-[#1F2933]">4</span>
+                    <span className="font-bold text-[#1F2933]">{requirement.beneficiaryCount}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[#64707A] flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Supported
                     </span>
-                    <span className="font-bold text-[#304355]">115kg</span>
+                    <span className="font-bold text-[#304355]">{totalSupported}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[#64707A] flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-red-600" /> Remaining
                     </span>
-                    <span className="font-bold text-red-600">115kg</span>
+                    <span className="font-bold text-red-600">{totalRemaining}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="space-y-3">
                 <Button
                   variant="primary"
@@ -235,7 +284,6 @@ export default function RequirementDetails() {
                 </Button>
               </div>
 
-              {/* Platform Notice */}
               <div className="bg-[#FBF9FA] rounded-xl p-3.5 border border-[#304355]/10 flex items-start gap-2 text-xs text-[#64707A]">
                 <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#304355]" />
                 <p className="leading-tight">

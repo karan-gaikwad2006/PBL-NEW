@@ -1,138 +1,139 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
-  Filter,
   MapPin,
   Clock,
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
   RefreshCw,
-  ShoppingBag,
   PackageOpen,
-  ChevronRight,
   Handshake,
   PhoneCall,
   Star,
   Info,
   Egg,
-  Utensils
+  Utensils,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
-import Badge from '../../components/common/Badge';
+import { requirementService } from '../../services/api';
+
+const URGENCY_STYLES = {
+  CRITICAL: {
+    label: 'Critical Urgency',
+    color: 'bg-red-50 text-red-700 border-red-200',
+  },
+  HIGH: {
+    label: 'High Urgency',
+    color: 'bg-amber-50 text-amber-800 border-amber-200',
+  },
+  MEDIUM: {
+    label: 'Medium Urgency',
+    color: 'bg-blue-50 text-blue-700 border-blue-200',
+  },
+  LOW: {
+    label: 'Low Urgency',
+    color: 'bg-slate-100 text-slate-700 border-slate-200',
+  },
+};
+
+function daysUntil(expiresAt) {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+function mapRequirementCard(req) {
+  const items = Array.isArray(req.items) ? req.items.filter(Boolean) : [];
+  const totalQty = items.reduce((sum, item) => sum + Number(item.quantityRequired || 0), 0);
+  const remainingQty = items.reduce((sum, item) => sum + Number(item.quantityRemaining || 0), 0);
+  const fulfilledPercent =
+    totalQty > 0 ? Math.round(((totalQty - remainingQty) / totalQty) * 100) : 0;
+  const primaryItem = items[0];
+  const urgencyKey = String(req.urgency || 'medium').toUpperCase();
+  const urgencyMeta = URGENCY_STYLES[urgencyKey] || URGENCY_STYLES.MEDIUM;
+  const unit = primaryItem?.unit || 'kg';
+
+  return {
+    id: req.id,
+    title: req.title,
+    requester: req.beneficiaryDescription || 'Local requester',
+    category: primaryItem?.category || primaryItem?.name || 'Food',
+    district: req.district,
+    urgency: urgencyKey,
+    urgencyLabel: urgencyMeta.label,
+    urgencyColor: urgencyMeta.color,
+    daysLeft: daysUntil(req.expiresAt),
+    totalQty: `${totalQty} ${unit}`,
+    remainingQty: `${remainingQty} ${unit}`,
+    fulfilledPercent,
+    beneficiaries: req.beneficiaryCount,
+    verified: req.status === 'active',
+  };
+}
 
 export default function RequirementsCatalog() {
   const navigate = useNavigate();
 
-  // Filters State
   const [searchQuery, setSearchQuery] = useState('');
   const [districtFilter, setDistrictFilter] = useState('ALL');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [urgencyFilter, setUrgencyFilter] = useState('ALL');
-  const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' | 'respond'
+  const [activeTab, setActiveTab] = useState('catalog');
   const [selectedMethod, setSelectedMethod] = useState('platform');
 
-  // Realistic Local Mock Dataset
-  const mockRequirements = [
-    {
-      id: 'req-1',
-      title: 'Moong Dal & Grains for Residential Students',
-      requester: 'Trimbakeshwar Ashram Shala',
-      category: 'Pulses',
-      district: 'Nashik',
-      urgency: 'HIGH',
-      urgencyLabel: 'High Urgency',
-      urgencyColor: 'bg-amber-50 text-amber-800 border-amber-200',
-      daysLeft: 12,
-      totalQty: '100 kg',
-      remainingQty: '60 kg',
-      fulfilledPercent: 40,
-      beneficiaries: 120,
-      verified: true,
-    },
-    {
-      id: 'req-2',
-      title: 'Fortified Rice for Maternal Nutrition',
-      requester: 'Community Health Care Center',
-      category: 'Fortified Foods',
-      district: 'Nandurbar',
-      urgency: 'CRITICAL',
-      urgencyLabel: 'Critical Urgency',
-      urgencyColor: 'bg-red-50 text-red-700 border-red-200',
-      daysLeft: 8,
-      totalQty: '120 kg',
-      remainingQty: '120 kg',
-      fulfilledPercent: 0,
-      beneficiaries: 200,
-      verified: true,
-    },
-    {
-      id: 'req-3',
-      title: 'Jaggery & Groundnuts Supplying Local Care',
-      requester: 'Gadchiroli Bal Anganwadi',
-      category: 'Produce',
-      district: 'Gadchiroli',
-      urgency: 'MEDIUM',
-      urgencyLabel: 'Medium Urgency',
-      urgencyColor: 'bg-blue-50 text-blue-700 border-blue-200',
-      daysLeft: 21,
-      totalQty: '40 kg',
-      remainingQty: '25 kg',
-      fulfilledPercent: 37,
-      beneficiaries: 85,
-      verified: true,
-    },
-    {
-      id: 'req-4',
-      title: 'Wheat Flour & Pulses for Meal Program',
-      requester: 'Amravati Shishu Ashram',
-      category: 'Grains',
-      district: 'Amravati',
-      urgency: 'HIGH',
-      urgencyLabel: 'High Urgency',
-      urgencyColor: 'bg-amber-50 text-amber-800 border-amber-200',
-      daysLeft: 15,
-      totalQty: '150 kg',
-      remainingQty: '80 kg',
-      fulfilledPercent: 46,
-      beneficiaries: 150,
-      verified: true,
-    },
-    {
-      id: 'req-5',
-      title: 'Chana & Cooking Oil Requirements',
-      requester: 'Pune Seva Trust Hostel',
-      category: 'Pulses',
-      district: 'Pune',
-      urgency: 'LOW',
-      urgencyLabel: 'Low Urgency',
-      urgencyColor: 'bg-slate-100 text-slate-700 border-slate-200',
-      daysLeft: 30,
-      totalQty: '80 kg',
-      remainingQty: '50 kg',
-      fulfilledPercent: 37,
-      beneficiaries: 95,
-      verified: true,
-    },
-  ];
+  const [requirements, setRequirements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Filtering Logic
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await requirementService.getAll({ limit: 100 });
+        const rows = Array.isArray(response.data) ? response.data : [];
+        if (!cancelled) setRequirements(rows.map(mapRequirementCard));
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load requirements');
+          setRequirements([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const districtOptions = useMemo(() => {
+    const names = [...new Set(requirements.map((req) => req.district).filter(Boolean))];
+    return names.sort((a, b) => a.localeCompare(b));
+  }, [requirements]);
+
   const filteredRequirements = useMemo(() => {
-    return mockRequirements.filter((req) => {
+    return requirements.filter((req) => {
       const matchesSearch =
         searchQuery === '' ||
         req.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         req.requester.toLowerCase().includes(searchQuery.toLowerCase()) ||
         req.district.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesDistrict = districtFilter === 'ALL' || req.district.toUpperCase() === districtFilter;
-      const matchesCategory = categoryFilter === 'ALL' || req.category.toUpperCase() === categoryFilter;
+      const matchesDistrict =
+        districtFilter === 'ALL' || req.district.toUpperCase() === districtFilter;
+      const matchesCategory =
+        categoryFilter === 'ALL' ||
+        String(req.category || '').toUpperCase().includes(categoryFilter);
       const matchesUrgency = urgencyFilter === 'ALL' || req.urgency === urgencyFilter;
 
       return matchesSearch && matchesDistrict && matchesCategory && matchesUrgency;
     });
-  }, [searchQuery, districtFilter, categoryFilter, urgencyFilter]);
+  }, [requirements, searchQuery, districtFilter, categoryFilter, urgencyFilter]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -144,7 +145,6 @@ export default function RequirementsCatalog() {
   return (
     <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 space-y-8">
-        {/* Header Title */}
         <header className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -156,7 +156,6 @@ export default function RequirementsCatalog() {
               </p>
             </div>
 
-            {/* View Mode Toggle (Catalog vs Stitch Response Method Flow) */}
             <div className="flex bg-white rounded-xl p-1 border border-[#304355]/15 shrink-0 self-start md:self-auto">
               <button
                 onClick={() => setActiveTab('catalog')}
@@ -180,10 +179,8 @@ export default function RequirementsCatalog() {
 
         {activeTab === 'catalog' ? (
           <>
-            {/* Filter Control Bar */}
             <div className="bg-white rounded-2xl p-6 border border-[#304355]/10 shadow-xs space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Search Input */}
                 <div className="relative">
                   <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64707A]" />
                   <input
@@ -195,21 +192,19 @@ export default function RequirementsCatalog() {
                   />
                 </div>
 
-                {/* District Filter */}
                 <select
                   value={districtFilter}
                   onChange={(e) => setDistrictFilter(e.target.value)}
                   className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
                 >
                   <option value="ALL">All Districts</option>
-                  <option value="NASHIK">Nashik</option>
-                  <option value="NANDURBAR">Nandurbar</option>
-                  <option value="GADCHIROLI">Gadchiroli</option>
-                  <option value="AMRAVATI">Amravati</option>
-                  <option value="PUNE">Pune</option>
+                  {districtOptions.map((name) => (
+                    <option key={name} value={name.toUpperCase()}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
 
-                {/* Food Category Filter */}
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
@@ -222,7 +217,6 @@ export default function RequirementsCatalog() {
                   <option value="PRODUCE">Fresh Produce</option>
                 </select>
 
-                {/* Urgency Filter */}
                 <select
                   value={urgencyFilter}
                   onChange={(e) => setUrgencyFilter(e.target.value)}
@@ -236,7 +230,6 @@ export default function RequirementsCatalog() {
                 </select>
               </div>
 
-              {/* Summary & Clear Filters Bar */}
               <div className="flex justify-between items-center pt-2 border-t border-[#304355]/10 text-xs text-[#64707A]">
                 <span>
                   Showing <strong>{filteredRequirements.length}</strong> requirements matching your criteria
@@ -252,8 +245,18 @@ export default function RequirementsCatalog() {
               </div>
             </div>
 
-            {/* Catalog Grid */}
-            {filteredRequirements.length > 0 ? (
+            {loading ? (
+              <div className="bg-white rounded-2xl border border-[#304355]/10 p-12 text-center space-y-3">
+                <Loader2 className="w-8 h-8 animate-spin text-[#304355] mx-auto" />
+                <p className="text-sm text-[#64707A]">Loading requirements…</p>
+              </div>
+            ) : error ? (
+              <div className="bg-white rounded-2xl border border-red-200 p-12 text-center space-y-4">
+                <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
+                <h3 className="text-lg font-bold text-[#1F2933]">Could not load requirements</h3>
+                <p className="text-xs text-[#64707A] max-w-sm mx-auto">{error}</p>
+              </div>
+            ) : filteredRequirements.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredRequirements.map((req) => (
                   <div
@@ -266,7 +269,8 @@ export default function RequirementsCatalog() {
                           {req.urgencyLabel}
                         </span>
                         <span className="text-xs text-[#64707A] flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> {req.daysLeft} days left
+                          <Clock className="w-3.5 h-3.5" />{' '}
+                          {req.daysLeft == null ? '—' : `${req.daysLeft} days left`}
                         </span>
                       </div>
 
@@ -275,7 +279,6 @@ export default function RequirementsCatalog() {
                         <p className="text-xs text-[#64707A] font-medium">{req.requester}</p>
                       </div>
 
-                      {/* Progress Bar */}
                       <div className="space-y-1 bg-[#FBF9FA] p-3 rounded-xl border border-[#304355]/10">
                         <div className="flex justify-between text-xs font-bold text-[#1F2933]">
                           <span>{req.category}</span>
@@ -297,9 +300,11 @@ export default function RequirementsCatalog() {
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5 text-[#304355]" /> {req.district}
                         </span>
-                        <span className="flex items-center gap-1 text-emerald-700 font-semibold">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Verified
-                        </span>
+                        {req.verified && (
+                          <span className="flex items-center gap-1 text-emerald-700 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Active
+                          </span>
+                        )}
                       </div>
                     </div>
 
@@ -314,7 +319,6 @@ export default function RequirementsCatalog() {
                 ))}
               </div>
             ) : (
-              /* Empty State */
               <div className="bg-white rounded-2xl border border-[#304355]/10 p-12 text-center space-y-4">
                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-[#304355] mx-auto">
                   <PackageOpen className="w-7 h-7" />
@@ -330,7 +334,6 @@ export default function RequirementsCatalog() {
             )}
           </>
         ) : (
-          /* Stitch Screen 090f78df - Response Method Selection Guide */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <aside className="lg:col-span-4 order-2 lg:order-1">
               <div className="bg-white border border-[#304355]/15 rounded-2xl p-6 shadow-xs sticky top-[100px] space-y-6">

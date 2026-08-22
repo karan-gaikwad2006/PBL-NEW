@@ -117,7 +117,7 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
   const values = [];
   const conditions = ["r.status = 'active'", 'r.expires_at > NOW()'];
   if (district) {
-    values.push(district);
+    values.push(normalizeDistrictName(district));
     conditions.push(`(lower(d.name) = $${values.length} OR lower(d.slug) = $${values.length})`);
   }
   values.push(Math.min(Math.max(Number(limit) || 50, 1), 100));

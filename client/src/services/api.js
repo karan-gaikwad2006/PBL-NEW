@@ -94,7 +94,9 @@ export const requirementService = {
 
   getAll: (filters = {}) => {
     const params = new URLSearchParams();
-    if (filters.district && filters.district !== 'ALL') params.append('district', filters.district);
+    if (filters.district && filters.district !== 'ALL') {
+      params.append('district', filters.district);
+    }
     if (filters.limit) params.append('limit', filters.limit);
     if (filters.offset) params.append('offset', filters.offset);
 

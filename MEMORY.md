@@ -3,9 +3,14 @@
 Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
-**Current Phase:** Phase 7 — NFHS-5 import and district nutrition APIs COMPLETE
-**Next Recommended Phase:** Phase 8 — connect district detail UI to live nutrition indicators
-**Current Task:** Imported NFHS-5 Maharashtra district indicators and connected the existing Leaflet map to read-only district API data.
+**Current Phase:** Phase 8 — Real Requirements Integration COMPLETE
+**Next Recommended Phase:** Support offers / admin requirement approval (out of Phase 8 scope)
+**Current Task:** Authenticated POST creates requirements in PostgreSQL; public GET list/detail drive catalog and details UI.
+
+### 2026-08-22 — Phase 8 Requirements Integration
+- Backend already had `POST/GET /api/v1/requirements` (+ `GET /:id`) with Firebase auth, role checks, validation, and atomic items insert (`under_review`).
+- Wizard final submit posts to the real API with a one-shot submit guard (no auto-retry/resubmit); Explore Needs catalog and Requirement Details read live GET data (active/non-expired only).
+- Leaflet/GeoJSON/NFHS left untouched. Client build passes; GET list/detail and unauthenticated POST verified; authenticated POST needs manual token/browser check.
 
 ### 2026-08-21 — Phase 6 Profile & Institution Gap-Fill
 - Existing user `GET/PATCH /api/v1/users/me` and institution `GET/PATCH /api/v1/institutions/me` flows verified; institution reads/updates now require `institution` or `admin` roles and PATCH fields are explicitly allowlisted.
