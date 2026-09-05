@@ -64,12 +64,16 @@ export default function Navbar() {
           >
             Explore Needs
           </Link>
-          <a
-            href="#how-it-works"
-            className="font-medium text-base text-[#43474C] hover:text-[#304355] transition"
+          <Link
+            to="/how-it-works"
+            className={`font-medium text-base ${
+              isActive('/how-it-works')
+                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
+                : 'text-[#43474C] hover:text-[#304355]'
+            }`}
           >
             How It Works
-          </a>
+          </Link>
           <Link
             to="/submit-requirement"
             className={`font-medium text-base ${
@@ -80,12 +84,16 @@ export default function Navbar() {
           >
             Submit a Requirement
           </Link>
-          <a
-            href="#transparency"
-            className="font-medium text-base text-[#43474C] hover:text-[#304355] transition"
+          <Link
+            to="/about"
+            className={`font-medium text-base ${
+              isActive('/about')
+                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
+                : 'text-[#43474C] hover:text-[#304355]'
+            }`}
           >
             About
-          </a>
+          </Link>
         </nav>
 
         {/* Right CTA Actions */}

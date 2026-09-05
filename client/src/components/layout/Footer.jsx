@@ -28,7 +28,7 @@ export default function Footer() {
           <ul className="space-y-2.5 text-xs text-slate-300">
             <li><Link to="/" className="hover:text-white transition">Home</Link></li>
             <li><Link to="/explore" className="hover:text-white transition">Explore Needs</Link></li>
-            <li><a href="#how-it-works" className="hover:text-white transition">How It Works</a></li>
+            <li><Link to="/how-it-works" className="hover:text-white transition">How It Works</Link></li>
             <li><Link to="/submit-requirement" className="hover:text-white transition">Submit a Requirement</Link></li>
           </ul>
         </div>
@@ -37,8 +37,8 @@ export default function Footer() {
         <div>
           <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wider">About</h4>
           <ul className="space-y-2.5 text-xs text-slate-300">
-            <li><a href="#transparency" className="hover:text-white transition">Our Mission</a></li>
-            <li><a href="#transparency" className="hover:text-white transition">Data Methodology</a></li>
+            <li><Link to="/about" className="hover:text-white transition">Our Mission</Link></li>
+            <li><Link to="/about" className="hover:text-white transition">Data Methodology</Link></li>
             <li><Link to="/explore" className="hover:text-white transition">Contact Us</Link></li>
           </ul>
         </div>

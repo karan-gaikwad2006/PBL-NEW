@@ -16,6 +16,8 @@ import FoodMatching from './pages/public/FoodMatching';
 import SendSupportOffer from './pages/public/SendSupportOffer';
 import SupportOfferSuccess from './pages/public/SupportOfferSuccess';
 import ConfirmSupportCompletion from './pages/public/ConfirmSupportCompletion';
+import About from './pages/public/About';
+import HowItWorks from './pages/public/HowItWorks';
 
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
@@ -73,6 +75,8 @@ export default function App() {
               <Route path="/requirements" element={<RequirementsCatalog />} />
               <Route path="/requirements/:id" element={<RequirementDetails />} />
               <Route path="/food-match" element={<FoodMatching />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
               <Route
                 path="/submit-need"
                 element={
