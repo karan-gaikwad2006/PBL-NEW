@@ -20,8 +20,9 @@ const offerCreateLimiter = createRateLimiter({
 });
 
 // ─── Donor / Admin ────────────────────────────────────────────────────────────
-// NOTE: /mine must come before /:id to avoid id capture
+// NOTE: /mine routes must come before /:id to avoid id capture
 router.get('/mine', ...authChain, requireRole(['donor', 'admin']), offerController.getMyOffers);
+router.get('/mine/impact', ...authChain, requireRole(['donor', 'admin']), offerController.getMyImpact);
 router.get('/:id', ...authChain, offerController.getOfferById);
 
 // ─── Dual Confirmation Routes ───────────────────────────────────────────────

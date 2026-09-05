@@ -8,6 +8,26 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-09-05 — Admin Dashboard Live Stats Cards
+- Restored Active Requirements, Total Donors, Requesters, and Fulfillment Rate cards using `GET /api/v1/admin/stats`.
+- Counts come from Neon (`users.role`, `requirements.status`, institution verification queue, pending fraud signals). Fulfillment rate is fulfilled / (active + partially_supported + fulfilled).
+
+### 2026-09-05 — Admin Dashboard Blank Screen Fix
+- Admin login rendered a blank `/admin/dashboard` because `RECENT_ACTIVITY` was removed during the live-data audit while the sidebar still mapped over it (`ReferenceError`).
+- Replaced the leftover mock activity list with a queue snapshot derived from live fraud signals, pending requirements, and institution verification items.
+
+### 2026-09-05 — Project-Wide Data Audit & Backend Integration
+- Audited entire frontend for static business data and converted mock/hardcoded datasets to live Neon PostgreSQL API calls (`requirementService`, `districtService`, `institutionService`, `offerService`, `adminFraudService`).
+- Converted `ExploreMap.jsx`, `DistrictInsights.jsx`, `FoodMatching.jsx`, `DistrictBrowse.jsx`, and `AdminDashboard.jsx` to consume live backend records and compute stats dynamically.
+- Verified: client production build (`vite build` in 519ms) and backend test suite (71/71 tests passed).
+
+### 2026-09-05 — Interactive Requirements Map & Dynamic District Filtering Fix
+- Made `ExploreMap.jsx` requirements catalog and district statistics 100% dynamic using real Neon database endpoints (`requirementService.getAll()`, `districtService.getAll()`).
+- Wired map clicks, district search, and district selection panel to dynamically update active requirements list, requirements count, and NFHS-5 nutrition indicators for the selected district.
+- Implemented fully functional Location, Attention Level, Urgency, and Institution Type filter controls supporting single & multi-filter combinations, reset state, loading spinners, and empty states.
+- Enhanced `requirementRepository.js` to return `institutionName` and `institutionType` from `institutions` table joins.
+- Verified: client production build (`vite build` in 527ms) and backend test suite (71/71 tests passed).
+
 ### 2026-09-05 — Phase 16 Comprehensive Testing & E2E
 - Created automated test suite runner (`server/test/testRunner.js`) wired to root & server `npm test` script.
 - Verified 71 automated test assertions across 8 test suites (100% pass rate): public health & Maharashtra district data (36 districts), auth/RBAC protection (401 across all protected routes), security headers, CORS rejection (403), malformed JSON (400), rate limiting (429), input & UUID validations, document MIME filter, and business workflow state consistency (dual confirmation, non-negative quantity floors).

@@ -97,6 +97,7 @@ async function runAllTests() {
     { path: '/api/v1/notifications', method: 'GET', name: 'Notifications list' },
     { path: '/api/v1/institutions/me', method: 'GET', name: 'Institution profile' },
     { path: '/api/v1/institutions/me/documents', method: 'POST', name: 'Document upload' },
+    { path: '/api/v1/admin/stats', method: 'GET', name: 'Admin dashboard stats' },
     { path: '/api/v1/admin/fraud-signals', method: 'GET', name: 'Admin fraud signals' },
     { path: '/api/v1/requirements/admin/list', method: 'GET', name: 'Admin requirements list' },
     { path: '/api/v1/institutions/admin/list', method: 'GET', name: 'Admin institutions list' },
@@ -293,6 +294,18 @@ async function runAllTests() {
     const remainingQuantity = Math.max(0, originalQuantity - fulfilledQuantity);
     assert(remainingQuantity === 60, 'Quantity deduction is accurate');
     assert(Math.max(0, 50 - 60) === 0, 'Remaining quantity cannot go negative (floored at 0)');
+
+    const { computeFulfillmentRate } = require('../src/services/adminStatsService');
+    assert(computeFulfillmentRate({
+      fulfilledRequirements: 0,
+      activeRequirements: 0,
+      partiallySupported: 0,
+    }) === 0, 'Fulfillment rate is 0 when no eligible requirements exist');
+    assert(computeFulfillmentRate({
+      fulfilledRequirements: 2,
+      activeRequirements: 2,
+      partiallySupported: 0,
+    }) === 50, 'Fulfillment rate is fulfilled / (active + partial + fulfilled)');
   }
 
   // -------------------------------------------------------------

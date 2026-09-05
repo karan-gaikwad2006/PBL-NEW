@@ -44,7 +44,7 @@ const URGENCY_CONFIG = {
 function computeStats(reqs) {
   return {
     totalSubmitted: reqs.length,
-    activeRequirements: reqs.filter((r) => r.status === 'active').length,
+    activeRequirements: reqs.filter((r) => r.status === 'active' || r.status === 'partially_supported').length,
     partialCount: reqs.filter((r) => r.status === 'partially_supported').length,
     fulfilled: reqs.filter((r) => r.status === 'fulfilled').length,
     expired: reqs.filter((r) => r.status === 'expired').length,
@@ -169,6 +169,8 @@ export default function RequesterDashboard() {
 
   const filteredReqs = filter === 'all'
     ? requirements
+    : filter === 'active'
+    ? requirements.filter((r) => r.status === 'active' || r.status === 'partially_supported')
     : requirements.filter((r) => r.status === filter);
 
   const stats = computeStats(requirements);

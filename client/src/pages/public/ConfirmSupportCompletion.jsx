@@ -54,17 +54,28 @@ export default function ConfirmSupportCompletion() {
     return () => { cancelled = true; };
   }, [firebaseUser, id]);
 
-  const handleConfirmReceipt = async () => {
-    if (!firebaseUser || !id) return;
+  const handleConfirmAction = async () => {
+    if (!firebaseUser || !id || !offer) return;
     setSubmitting(true);
     setError(null);
     try {
       const token = await firebaseUser.getIdToken();
-      const res = await offerService.confirmRequester(token, id);
+      const isDonor = offer.donorUserId === user.id;
+      const isRequester = offer.requesterUserId === user.id;
+      
+      let res;
+      if (isDonor) {
+        res = await offerService.confirmDonor(token, id);
+      } else if (isRequester) {
+        res = await offerService.confirmRequester(token, id);
+      } else {
+        throw new Error('Unauthorized action');
+      }
+      
       setOffer(res.data);
       setNotReceived(false);
     } catch (err) {
-      setError(err.message || 'Failed to confirm receipt');
+      setError(err.message || 'Failed to confirm action');
     } finally {
       setSubmitting(false);
     }
@@ -91,8 +102,26 @@ export default function ConfirmSupportCompletion() {
         <div className="max-w-lg mx-auto px-6 py-20 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
           <p className="font-semibold text-red-700 mb-4">{error}</p>
-          <Button variant="outline" onClick={() => navigate('/requester/dashboard')}>
+          <Button variant="outline" onClick={() => navigate(user?.role === 'donor' ? '/donor/dashboard' : '/requester/dashboard')}>
             Back to Dashboard
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const isDonor = offer.donorUserId === user?.id;
+  const isRequester = offer.requesterUserId === user?.id;
+  const isAdmin = user?.role === 'admin';
+
+  if (!isDonor && !isRequester && !isAdmin) {
+    return (
+      <PageContainer>
+        <div className="max-w-lg mx-auto px-6 py-20 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-700 mb-4">You are not authorized to view this offer.</p>
+          <Button variant="outline" onClick={() => navigate('/')}>
+            Back to Home
           </Button>
         </div>
       </PageContainer>
@@ -102,6 +131,10 @@ export default function ConfirmSupportCompletion() {
   const confirmedByDonor = offer.confirmedByDonor;
   const confirmedByRequester = offer.confirmedByRequester;
   const isFullyCompleted = offer.status === 'completed';
+
+  const needsDonorAction = isDonor && !confirmedByDonor;
+  const needsRequesterAction = isRequester && !confirmedByRequester;
+  const actionDone = (isDonor && confirmedByDonor) || (isRequester && confirmedByRequester);
 
   return (
     <PageContainer>
@@ -113,7 +146,7 @@ export default function ConfirmSupportCompletion() {
             {/* Header & Summary Card */}
             <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-[#304355]/10 space-y-6">
               <h1 className="text-2xl md:text-3xl font-extrabold text-[#304355] tracking-tight">
-                Confirm Support Completion
+                {isDonor ? 'Confirm Delivery' : 'Confirm Receipt'}
               </h1>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FBF9FA] p-6 rounded-xl border border-slate-100">
@@ -231,7 +264,7 @@ export default function ConfirmSupportCompletion() {
                       : 'text-amber-700'
                   }`}>
                     {confirmedByRequester 
-                      ? '✓ Confirmed completed' 
+                      ? '✓ Confirmed received' 
                       : notReceived
                       ? 'Reported as not yet received'
                       : 'Waiting for receipt confirmation'}
@@ -245,10 +278,16 @@ export default function ConfirmSupportCompletion() {
               <div className="max-w-md mx-auto space-y-2">
                 <Utensils className="w-10 h-10 text-[#304355] mx-auto mb-2" />
                 <h2 className="text-lg font-bold text-[#304355]">
-                  Did you receive the {offer.quantityOffered} {offer.unit} of {offer.item} from {offer.donorName}?
+                  {isDonor 
+                    ? `Have you delivered the ${offer.quantityOffered} ${offer.unit} of ${offer.item}?`
+                    : `Did you receive the ${offer.quantityOffered} ${offer.unit} of ${offer.item} from ${offer.donorName}?`
+                  }
                 </h2>
                 <p className="text-xs text-[#64707A]">
-                  Please confirm receipt to finalize this support offer and update your requirement progress.
+                  {isDonor
+                    ? "Confirming delivery lets the requester know the food is provided. The requester must then confirm receipt to finalize this support."
+                    : "Please confirm receipt to finalize this support offer and update your requirement progress."
+                  }
                 </p>
               </div>
 
@@ -258,9 +297,12 @@ export default function ConfirmSupportCompletion() {
                 </div>
               )}
 
-              {confirmedByRequester ? (
+              {actionDone ? (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-800 text-sm font-semibold max-w-md mx-auto">
-                  Thank you! You have confirmed the receipt of this support offer.
+                  {isDonor 
+                    ? "Thank you! You have confirmed the delivery. We'll notify the requester to confirm receipt."
+                    : "Thank you! You have confirmed the receipt of this support offer."
+                  }
                 </div>
               ) : notReceived ? (
                 <div className="space-y-4">
@@ -273,16 +315,18 @@ export default function ConfirmSupportCompletion() {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  {isRequester && (
+                    <button
+                      onClick={handleNotReceived}
+                      disabled={submitting}
+                      className="bg-[#E8E8E2] border border-[#304355] text-[#304355] font-bold text-sm px-6 py-3 rounded-lg hover:bg-slate-200 transition-colors w-full sm:w-auto flex justify-center items-center gap-2 disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4" />
+                      Not yet received
+                    </button>
+                  )}
                   <button
-                    onClick={handleNotReceived}
-                    disabled={submitting}
-                    className="bg-[#E8E8E2] border border-[#304355] text-[#304355] font-bold text-sm px-6 py-3 rounded-lg hover:bg-slate-200 transition-colors w-full sm:w-auto flex justify-center items-center gap-2 disabled:opacity-50"
-                  >
-                    <X className="w-4 h-4" />
-                    Not yet received
-                  </button>
-                  <button
-                    onClick={handleConfirmReceipt}
+                    onClick={handleConfirmAction}
                     disabled={submitting}
                     className="bg-[#304355] text-white font-bold text-sm px-6 py-3 rounded-lg hover:bg-[#243342] transition-colors w-full sm:w-auto flex justify-center items-center gap-2 shadow-sm disabled:opacity-50"
                   >
@@ -291,7 +335,7 @@ export default function ConfirmSupportCompletion() {
                     ) : (
                       <Check className="w-4 h-4" />
                     )}
-                    Yes, I have received it
+                    {isDonor ? 'Yes, I have delivered it' : 'Yes, I have received it'}
                   </button>
                 </div>
               )}

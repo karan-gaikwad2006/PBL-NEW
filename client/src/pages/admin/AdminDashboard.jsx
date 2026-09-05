@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { requirementService, institutionService, adminFraudService } from '../../services/api';
+import { requirementService, institutionService, adminFraudService, adminStatsService } from '../../services/api';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import {
@@ -24,25 +24,6 @@ import {
   Check,
   X,
 } from 'lucide-react';
-
-// ─── Mock Admin Data ──────────────────────────────────────────────────────────
-const ADMIN_STATS = {
-  totalRequirements: 47,
-  pendingReview: 5,
-  verificationQueue: 3,
-  flaggedItems: 2,
-  activeRequirements: 28,
-  totalDonors: 120,
-  totalRequesters: 34,
-  fulfillmentRate: 68,
-};
-
-const RECENT_ACTIVITY = [
-  { action: 'Approved', target: 'Dal for Anganwadi Children', by: 'Admin (Meena)', at: '2026-08-18T14:00:00' },
-  { action: 'Document Reviewed', target: 'Trimbakeshwar Ashram Shala — Registration Certificate', by: 'Admin (Meena)', at: '2026-08-17T09:15:00' },
-  { action: 'Document Rejected', target: 'Trimbakeshwar Ashram Shala — Beneficiary Certificate', by: 'Admin (Rahul)', at: '2026-08-16T11:00:00' },
-  { action: 'Requirement Flagged', target: 'Monthly Food Requirement — School', by: 'System (Pattern Detection)', at: '2026-08-17T08:00:00' },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const URGENCY_CONFIG = {
@@ -73,6 +54,8 @@ export default function AdminDashboard() {
   const [instLoading, setInstLoading] = useState(true);
   const [fraudSignals, setFraudSignals] = useState([]);
   const [fraudLoading, setFraudLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -81,12 +64,14 @@ export default function AdminDashboard() {
       setPendingLoading(true);
       setInstLoading(true);
       setFraudLoading(true);
+      setStatsLoading(true);
       try {
         const token = await firebaseUser.getIdToken();
-        const [reqRes, instRes, fraudRes] = await Promise.allSettled([
+        const [reqRes, instRes, fraudRes, statsRes] = await Promise.allSettled([
           requirementService.adminGetAll(token, { status: 'under_review', limit: 20 }),
           institutionService.adminGetAll(token, { limit: 20 }),
           adminFraudService.getFraudSignals(token, { status: 'pending', limit: 20 }),
+          adminStatsService.getDashboardStats(token),
         ]);
 
         if (!cancelled && reqRes.status === 'fulfilled') {
@@ -98,6 +83,9 @@ export default function AdminDashboard() {
         if (!cancelled && fraudRes.status === 'fulfilled') {
           setFraudSignals(fraudRes.value.data || []);
         }
+        if (!cancelled && statsRes.status === 'fulfilled') {
+          setStats(statsRes.value.data || null);
+        }
       } catch (err) {
         console.error('[AdminDashboard] Failed to load dashboard data:', err.message);
       } finally {
@@ -105,6 +93,7 @@ export default function AdminDashboard() {
           setPendingLoading(false);
           setInstLoading(false);
           setFraudLoading(false);
+          setStatsLoading(false);
         }
       }
     }
@@ -123,6 +112,27 @@ export default function AdminDashboard() {
     }
   };
 
+  const recentActivity = [
+    ...fraudSignals.slice(0, 3).map((item) => ({
+      id: `fraud-${item.id}`,
+      action: 'Review signal',
+      target: item.entityName || item.signalType?.replace(/_/g, ' ') || 'Flagged item',
+      dot: 'bg-amber-500',
+    })),
+    ...pendingRequirements.slice(0, 3).map((req) => ({
+      id: `req-${req.id}`,
+      action: 'Awaiting review',
+      target: req.title,
+      dot: 'bg-blue-400',
+    })),
+    ...institutionQueue.slice(0, 3).map((inst) => ({
+      id: `inst-${inst.id}`,
+      action: 'Verification queue',
+      target: inst.name,
+      dot: inst.verificationStatus === 'rejected' ? 'bg-red-500' : 'bg-emerald-500',
+    })),
+  ].slice(0, 6);
+
   return (
     <PageContainer>
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-10">
@@ -138,16 +148,16 @@ export default function AdminDashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={ClipboardList} value={ADMIN_STATS.totalRequirements} label="Total Requirements" />
-          <StatCard icon={Clock} value={ADMIN_STATS.pendingReview} label="Pending Review" color="text-amber-500" />
-          <StatCard icon={Building2} value={ADMIN_STATS.verificationQueue} label="Verification Queue" color="text-blue-500" />
-          <StatCard icon={AlertTriangle} value={fraudSignals.length} label="Flagged Signals" color="text-red-500" />
+          <StatCard icon={ClipboardList} value={statsLoading ? '…' : (stats?.totalRequirements ?? 0)} label="Total Requirements" />
+          <StatCard icon={Clock} value={statsLoading ? '…' : (stats?.pendingReview ?? pendingRequirements.length)} label="Pending Review" color="text-amber-500" />
+          <StatCard icon={Building2} value={statsLoading ? '…' : (stats?.verificationQueue ?? institutionQueue.length)} label="Verification Queue" color="text-blue-500" />
+          <StatCard icon={AlertTriangle} value={statsLoading ? '…' : (stats?.flaggedSignals ?? fraudSignals.length)} label="Flagged Signals" color="text-red-500" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <StatCard icon={CheckCircle2} value={ADMIN_STATS.activeRequirements} label="Active Requirements" color="text-emerald-500" />
-          <StatCard icon={Users} value={ADMIN_STATS.totalDonors} label="Total Donors" />
-          <StatCard icon={Users} value={ADMIN_STATS.totalRequesters} label="Requesters" />
-          <StatCard icon={TrendingUp} value={ADMIN_STATS.fulfillmentRate} label="Fulfillment Rate" unit="%" color="text-purple-500" />
+          <StatCard icon={CheckCircle2} value={statsLoading ? '…' : (stats?.activeRequirements ?? 0)} label="Active Requirements" color="text-emerald-500" />
+          <StatCard icon={Users} value={statsLoading ? '…' : (stats?.totalDonors ?? 0)} label="Total Donors" />
+          <StatCard icon={Users} value={statsLoading ? '…' : (stats?.totalRequesters ?? 0)} label="Requesters" />
+          <StatCard icon={TrendingUp} value={statsLoading ? '…' : (stats?.fulfillmentRate ?? 0)} label="Fulfillment Rate" unit={statsLoading ? '' : '%'} color="text-purple-500" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -373,26 +383,29 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            {/* Recent Activity */}
+            {/* Recent queue snapshot from live data */}
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-5">
-              <h3 className="font-bold text-[#304355] mb-4">Recent Activity</h3>
-              <div className="space-y-3">
-                {RECENT_ACTIVITY.map((activity, i) => (
-                  <div key={i} className="flex items-start gap-2 text-xs">
-                    <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${
-                      activity.action.includes('Approved') ? 'bg-emerald-500'
-                      : activity.action.includes('Flagged') ? 'bg-amber-500'
-                      : activity.action.includes('Rejected') ? 'bg-red-500'
-                      : 'bg-blue-400'
-                    }`} />
-                    <div>
-                      <span className="font-semibold text-[#1F2933]">{activity.action}: </span>
-                      <span className="text-[#64707A]">{activity.target}</span>
-                      <p className="text-[#64707A] mt-0.5">by {activity.by}</p>
+              <h3 className="font-bold text-[#304355] mb-4">Queue snapshot</h3>
+              {pendingLoading && instLoading && fraudLoading ? (
+                <div className="flex items-center gap-2 text-xs text-[#64707A] py-3">
+                  <span className="w-3.5 h-3.5 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+                  Loading activity…
+                </div>
+              ) : recentActivity.length === 0 ? (
+                <p className="text-xs text-[#64707A]">No pending queue items right now.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivity.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-2 text-xs">
+                      <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${activity.dot}`} />
+                      <div>
+                        <span className="font-semibold text-[#1F2933]">{activity.action}: </span>
+                        <span className="text-[#64707A]">{activity.target}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

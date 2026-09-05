@@ -51,26 +51,29 @@ function mapRequirementCard(req) {
   const remainingQty = items.reduce((sum, item) => sum + Number(item.quantityRemaining || 0), 0);
   const fulfilledPercent =
     totalQty > 0 ? Math.round(((totalQty - remainingQty) / totalQty) * 100) : 0;
-  const primaryItem = items[0];
   const urgencyKey = String(req.urgency || 'medium').toUpperCase();
   const urgencyMeta = URGENCY_STYLES[urgencyKey] || URGENCY_STYLES.MEDIUM;
-  const unit = primaryItem?.unit || 'kg';
 
   return {
     id: req.id,
     title: req.title,
     requester: req.beneficiaryDescription || 'Local requester',
-    category: primaryItem?.category || primaryItem?.name || 'Food',
+    items: items.map(item => ({
+      ...item,
+      fulfilledPercent: item.quantityRequired > 0 
+        ? Math.round(((item.quantityRequired - item.quantityRemaining) / item.quantityRequired) * 100) 
+        : 0
+    })),
     district: req.district,
     urgency: urgencyKey,
     urgencyLabel: urgencyMeta.label,
     urgencyColor: urgencyMeta.color,
     daysLeft: daysUntil(req.expiresAt),
-    totalQty: `${totalQty} ${unit}`,
-    remainingQty: `${remainingQty} ${unit}`,
+    totalQty,
+    remainingQty,
     fulfilledPercent,
     beneficiaries: req.beneficiaryCount,
-    verified: req.status === 'active',
+    verified: req.status === 'active' || req.status === 'partially_supported',
   };
 }
 
@@ -128,7 +131,7 @@ export default function RequirementsCatalog() {
         districtFilter === 'ALL' || req.district.toUpperCase() === districtFilter;
       const matchesCategory =
         categoryFilter === 'ALL' ||
-        String(req.category || '').toUpperCase().includes(categoryFilter);
+        req.items.some(item => String(item.category || '').toUpperCase().includes(categoryFilter));
       const matchesUrgency = urgencyFilter === 'ALL' || req.urgency === urgencyFilter;
 
       return matchesSearch && matchesDistrict && matchesCategory && matchesUrgency;
@@ -279,21 +282,25 @@ export default function RequirementsCatalog() {
                         <p className="text-xs text-[#64707A] font-medium">{req.requester}</p>
                       </div>
 
-                      <div className="space-y-1 bg-[#FBF9FA] p-3 rounded-xl border border-[#304355]/10">
-                        <div className="flex justify-between text-xs font-bold text-[#1F2933]">
-                          <span>{req.category}</span>
-                          <span>{req.remainingQty} remaining</span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2">
-                          <div
-                            className="bg-[#304355] h-2 rounded-full"
-                            style={{ width: `${req.fulfilledPercent}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-[11px] text-[#64707A]">
-                          <span>{req.fulfilledPercent}% fulfilled</span>
-                          <span>Total: {req.totalQty}</span>
-                        </div>
+                      <div className="space-y-2 bg-[#FBF9FA] p-3 rounded-xl border border-[#304355]/10 max-h-36 overflow-y-auto custom-scrollbar">
+                        {req.items.map((item, idx) => (
+                          <div key={item.id || idx} className="space-y-1 pb-2 last:pb-0 border-b border-[#304355]/5 last:border-0">
+                            <div className="flex justify-between text-[11px] font-bold text-[#1F2933]">
+                              <span>{item.name}</span>
+                              <span className="text-[#64707A]">{item.quantityRemaining}{item.unit} left</span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-1.5">
+                              <div
+                                className="bg-[#304355] h-1.5 rounded-full"
+                                style={{ width: `${item.fulfilledPercent}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[9px] text-[#64707A]">
+                              <span>{item.fulfilledPercent}% fulfilled</span>
+                              <span>Total: {item.quantityRequired}{item.unit}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="flex items-center justify-between text-xs text-[#64707A] pt-1">

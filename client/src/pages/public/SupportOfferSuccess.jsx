@@ -9,11 +9,8 @@ export default function SupportOfferSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const offer = location.state?.offer || {
-    item: 'Moong Dal',
-    quantity: '20',
-    unit: 'kg'
-  };
+  const items = location.state?.items || [];
+  const message = location.state?.message;
 
   return (
     <PageContainer>
@@ -34,15 +31,29 @@ export default function SupportOfferSuccess() {
         </div>
 
         {/* Offer Summary Card */}
-        <div className="bg-white border border-[#304355]/10 rounded-xl p-4 text-left max-w-md mx-auto flex items-center justify-between">
-          <div>
-            <span className="text-xs text-[#64707A] block">Offered Item</span>
-            <span className="font-bold text-sm text-[#1F2933]">{offer.item}</span>
+        <div className="bg-white border border-[#304355]/10 rounded-2xl overflow-hidden text-left max-w-md mx-auto shadow-sm">
+          <div className="bg-[#FBF9FA] px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+            <span className="text-xs font-bold text-[#304355] uppercase tracking-wider">Offered Items</span>
+            <span className="text-xs text-[#64707A]">{items.length} item{items.length !== 1 ? 's' : ''}</span>
           </div>
-          <div className="text-right">
-            <span className="text-xs text-[#64707A] block">Quantity Offered</span>
-            <span className="font-bold text-sm text-[#304355]">{offer.quantity} {offer.unit}</span>
+          <div className="divide-y divide-slate-100">
+            {items.map((item, idx) => (
+              <div key={idx} className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-sm text-[#1F2933]">{item.name}</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-bold text-sm text-[#304355]">{item.quantity} {item.unit}</span>
+                </div>
+              </div>
+            ))}
           </div>
+          {message && (
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-100">
+              <span className="text-[10px] font-bold text-[#64707A] uppercase tracking-wider block mb-1">Your Message</span>
+              <p className="text-xs text-[#1F2933] italic">"{message}"</p>
+            </div>
+          )}
         </div>
 
         {/* Next Steps Card */}

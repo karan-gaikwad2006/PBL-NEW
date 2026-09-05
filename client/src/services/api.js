@@ -205,6 +205,9 @@ export const offerService = {
 
   confirmRequester: (token, id) =>
     apiRequest(`/v1/offers/${id}/confirm-requester`, { method: 'PATCH' }, token),
+
+  getImpact: (token) =>
+    apiRequest('/v1/offers/mine/impact', { method: 'GET' }, token),
 };
 
 export const notificationService = {
@@ -221,6 +224,11 @@ export const notificationService = {
 
   markAllRead: (token) =>
     apiRequest('/v1/notifications/read-all', { method: 'PATCH' }, token),
+};
+
+export const adminStatsService = {
+  getDashboardStats: (token) =>
+    apiRequest('/v1/admin/stats', { method: 'GET' }, token),
 };
 
 export const adminFraudService = {

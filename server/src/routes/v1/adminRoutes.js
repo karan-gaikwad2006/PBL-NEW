@@ -1,5 +1,6 @@
 const express = require('express');
 const fraudSignalController = require('../../controllers/fraudSignalController');
+const adminStatsController = require('../../controllers/adminStatsController');
 const {
   verifyFirebaseToken,
   attachUser,
@@ -15,6 +16,8 @@ const adminOnly = [
   requireAuthenticatedUser,
   requireRole(['admin']),
 ];
+
+router.get('/stats', ...adminOnly, adminStatsController.getDashboardStats);
 
 // Fraud Review Signals
 router.get('/fraud-signals', ...adminOnly, fraudSignalController.getFraudSignals);

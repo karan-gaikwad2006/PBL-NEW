@@ -101,7 +101,7 @@ function SupportCard({ support, showAction = false }) {
               variant="danger"
               onClick={() => navigate(`/confirm-completion/${support.id}`)}
             >
-              Confirm Completion
+              Confirm Delivery
             </Button>
           )}
           <Link
@@ -122,6 +122,9 @@ export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState('active');
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [impact, setImpact] = useState(null);
+  const [impactLoading, setImpactLoading] = useState(true);
+  const [impactError, setImpactError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,6 +141,27 @@ export default function DonorDashboard() {
       }
     }
     fetchOffers();
+    return () => { cancelled = true; };
+  }, [firebaseUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchImpact() {
+      if (!firebaseUser) return;
+      setImpactLoading(true);
+      setImpactError(null);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await offerService.getImpact(token);
+        if (!cancelled) setImpact(res.data);
+      } catch (err) {
+        console.error("Failed to fetch donor impact", err);
+        if (!cancelled) setImpactError(err.message || 'Unable to load impact data');
+      } finally {
+        if (!cancelled) setImpactLoading(false);
+      }
+    }
+    fetchImpact();
     return () => { cancelled = true; };
   }, [firebaseUser]);
 
@@ -306,18 +330,39 @@ export default function DonorDashboard() {
                 <h3 className="font-bold text-sm">Your Impact</h3>
               </div>
               <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-white/80">Total food donated</span>
-                  <span className="font-bold">~200 kg</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/80">Beneficiaries reached</span>
-                  <span className="font-bold">~350</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-white/80">Districts supported</span>
-                  <span className="font-bold">Nashik</span>
-                </div>
+                {impactLoading ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Total food donated</span>
+                      <span className="font-bold animate-pulse bg-white/10 rounded px-3 py-0.5 min-w-[70px]">&nbsp;</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Beneficiaries reached</span>
+                      <span className="font-bold animate-pulse bg-white/10 rounded px-3 py-0.5 min-w-[40px]">&nbsp;</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Districts supported</span>
+                      <span className="font-bold animate-pulse bg-white/10 rounded px-3 py-0.5 min-w-[40px]">&nbsp;</span>
+                    </div>
+                  </div>
+                ) : impactError ? (
+                  <p className="text-xs text-amber-300/90 italic">Impact data temporarily unavailable.</p>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Total food donated</span>
+                      <span className="font-bold">{impact?.totalFoodDonatedKg ?? 0} kg</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Beneficiaries reached</span>
+                      <span className="font-bold">{impact?.beneficiariesReached ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-white/80">Districts supported</span>
+                      <span className="font-bold">{impact?.districtsSupported ?? 0}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

@@ -74,11 +74,77 @@ async function createOffer(donorId, requirementId, item) {
   return offer;
 }
 
+/**
+ * Create multiple offers for a single requirement in one transaction.
+ *
+ * @param {string} donorId - authenticated donor user id
+ * @param {string} requirementId - requirement being supported
+ * @param {Array<{name: string, quantity: number, unit: string}>} items - items being offered
+ * @param {string} message - optional donor message
+ */
+async function createMultiOffer(donorId, requirementId, items, message) {
+  const pool = getPool();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const createdOffers = [];
+
+    for (const item of items) {
+      const { rows } = await client.query(
+        `INSERT INTO support_offers
+         (requirement_id, donor_user_id, item_name, quantity_offered, unit, donor_message, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+         RETURNING *`,
+        [requirementId, donorId, item.name, item.quantity, item.unit, message]
+      );
+      createdOffers.push(rows[0]);
+    }
+
+    await client.query('COMMIT');
+
+    // Asynchronous safety & notifications (outside transaction)
+    try {
+      // 1. Audit Log (log the entire batch)
+      const { logAudit } = require('../utils/auditLogger');
+      await logAudit({
+        userId: donorId,
+        action: 'multi_offer_created',
+        entityType: 'requirement',
+        entityId: requirementId,
+        details: { itemsCount: items.length, offerIds: createdOffers.map(o => o.id) },
+      });
+
+      // 2. Notify requester with one aggregated message
+      const notificationRepository = require('./notificationRepository');
+      const { rows: reqRows } = await query(`SELECT requester_user_id FROM requirements WHERE id = $1`, [requirementId]);
+      if (reqRows[0]) {
+        const itemSummary = items.map(i => `${i.quantity} ${i.unit} of ${i.name}`).join(', ');
+        await notificationRepository.createNotification(reqRows[0].requester_user_id, {
+          type: 'offer_received',
+          title: 'Multiple Support Offers Received',
+          message: `A donor has offered ${items.length} items (${itemSummary}) for your requirement.`,
+          relatedEntityType: 'requirement',
+          relatedEntityId: requirementId,
+        });
+      }
+    } catch (e) {
+      console.error('Post-multi-offer actions failed', e);
+    }
+
+    return createdOffers;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function findByDonorId(donorId, { limit = 50, offset = 0 } = {}) {
   const values = [donorId, Math.min(Math.max(Number(limit) || 50, 1), 100), Math.max(Number(offset) || 0, 0)];
   
   const { rows } = await query(
-    `SELECT so.id, so.requirement_id, r.title AS requirement_title,
+    `SELECT so.id, so.requirement_id, 'Food support for ' || r.beneficiary_count || ' beneficiaries' AS requirement_title,
             so.item_name, so.quantity_offered, so.unit, so.donor_message, so.status, so.created_at,
             u.full_name AS requester_name, d.name AS district, r.taluka
      FROM support_offers so
@@ -110,7 +176,7 @@ async function findByIdWithDetails(id) {
   const { rows } = await query(
     `SELECT so.id, so.requirement_id, so.donor_user_id, so.item_name, so.quantity_offered, so.unit,
             so.donor_message, so.status, so.created_at,
-            r.title AS requirement_title, r.requester_user_id,
+            'Food support for ' || r.beneficiary_count || ' beneficiaries' AS requirement_title, r.requester_user_id,
             u_req.full_name AS requester_name, d.name AS district, r.taluka,
             u_donor.full_name AS donor_name,
             sc.confirmed_by_donor, sc.donor_confirmed_at,
@@ -327,8 +393,65 @@ async function findById(id) {
   return rows[0] || null;
 }
 
+/**
+ * Calculate impact statistics for a specific donor.
+ * Only counts offers with status='completed' (dual confirmation lifecycle).
+ * Ownership is enforced by donor_user_id filter.
+ *
+ * @param {string} donorId - authenticated donor user id (from backend auth context)
+ * @returns {{ totalFoodDonatedKg: number, beneficiariesReached: number, districtsSupported: number, districtNames: string[] }}
+ */
+async function getDonorImpact(donorId) {
+  // 1. Total food donated: sum of quantity_offered from completed offers by this donor
+  const { rows: foodRows } = await query(
+    `SELECT COALESCE(SUM(so.quantity_offered), 0)::numeric AS total_food
+     FROM support_offers so
+     WHERE so.donor_user_id = $1
+       AND so.status = 'completed'`,
+    [donorId]
+  );
+
+  // 2. Beneficiaries reached: SUM of beneficiary_count from DISTINCT requirements
+  //    that this donor has at least one completed offer for.
+  //    Prevents double-counting when donor has multiple completed offers on same requirement.
+  const { rows: benRows } = await query(
+    `SELECT COALESCE(SUM(r.beneficiary_count), 0)::bigint AS beneficiaries
+     FROM requirements r
+     WHERE r.id IN (
+       SELECT DISTINCT so.requirement_id
+       FROM support_offers so
+       WHERE so.donor_user_id = $1
+         AND so.status = 'completed'
+     )`,
+    [donorId]
+  );
+
+  // 3. Districts supported: distinct districts from requirements with completed offers
+  const { rows: districtRows } = await query(
+    `SELECT DISTINCT d.name AS district
+     FROM support_offers so
+     JOIN requirements r ON r.id = so.requirement_id
+     LEFT JOIN districts d ON d.id = r.district_id
+     WHERE so.donor_user_id = $1
+       AND so.status = 'completed'
+       AND d.name IS NOT NULL
+     ORDER BY d.name ASC`,
+    [donorId]
+  );
+
+  const districtNames = districtRows.map(r => r.district);
+
+  return {
+    totalFoodDonatedKg: Number(foodRows[0]?.total_food || 0),
+    beneficiariesReached: Number(benRows[0]?.beneficiaries || 0),
+    districtsSupported: districtNames.length,
+    districtNames,
+  };
+}
+
 module.exports = {
   createOffer,
+  createMultiOffer,
   findByDonorId,
   findById,
   findByIdWithDetails,
@@ -336,6 +459,7 @@ module.exports = {
   confirmByRequester,
   hasActiveOffer,
   getItemRemaining,
+  getDonorImpact,
 };
 
 

@@ -5,15 +5,10 @@ const { logAudit } = require('../utils/auditLogger');
 
 async function createOffer(req, res, next) {
   try {
-    const { requirementId, item } = req.body;
+    const { requirementId, item, items } = req.body;
 
-    if (!requirementId || !item || !item.name || item.quantity === undefined || !item.unit) {
-      throw new AppError('Missing required offer data (requirementId, item name, quantity, unit)', 400);
-    }
-
-    const offeredQty = Number(item.quantity);
-    if (isNaN(offeredQty) || offeredQty <= 0) {
-      throw new AppError('Offered quantity must be a positive number greater than 0', 400);
+    if (!requirementId) {
+      throw new AppError('Missing requirementId', 400);
     }
 
     const requirement = await requirementRepository.findByIdUnrestricted(requirementId);
@@ -21,7 +16,6 @@ async function createOffer(req, res, next) {
       throw new AppError('Requirement not found', 404);
     }
 
-    // 1. Check status and expiry
     if (requirement.status !== 'active' && requirement.status !== 'partially_supported') {
       throw new AppError(`Cannot support this requirement, it is currently ${requirement.status.replace('_', ' ')}`, 400);
     }
@@ -30,35 +24,78 @@ async function createOffer(req, res, next) {
       throw new AppError('Cannot support this requirement, it has expired', 400);
     }
 
-    // 2. Prevent requester from offering to their own requirement
     const isOwner = await requirementRepository.isOwner(requirementId, req.user.id);
     if (isOwner) {
       throw new AppError('You cannot create a support offer for your own requirement', 400);
     }
 
-    // 3. Prevent duplicate active offers by the same donor on the same item
-    const existingActiveOffer = await offerRepository.hasActiveOffer(req.user.id, requirementId, item.name);
-    if (existingActiveOffer) {
-      throw new AppError('You already have an active or pending offer for this item on this requirement.', 409);
+    // Support both single item (legacy) and multi-item (new)
+    const itemsToProcess = items || (item ? [item] : []);
+
+    if (itemsToProcess.length === 0) {
+      throw new AppError('At least one item must be selected', 400);
     }
 
-    // 4. Validate quantity against remaining requirement quantity
-    const itemRemainingInfo = await offerRepository.getItemRemaining(requirementId, item.name);
-    if (itemRemainingInfo && offeredQty > itemRemainingInfo.quantityRemaining) {
-      throw new AppError(
-        `Offered quantity (${offeredQty} ${item.unit}) exceeds remaining requirement (${itemRemainingInfo.quantityRemaining} ${itemRemainingInfo.unit})`,
-        400
-      );
+    // Validate each item independently
+    const validatedItems = [];
+    const itemNames = new Set();
+
+    for (const itm of itemsToProcess) {
+      if (!itm.name || itm.quantity === undefined || !itm.unit) {
+        throw new AppError('Each item must have a name, quantity, and unit', 400);
+      }
+
+      const offeredQty = Number(itm.quantity);
+      if (isNaN(offeredQty) || offeredQty <= 0) {
+        throw new AppError(`Offered quantity for ${itm.name} must be greater than 0`, 400);
+      }
+
+      if (itemNames.has(itm.name.toLowerCase())) {
+        throw new AppError(`Duplicate item selection: ${itm.name}`, 400);
+      }
+      itemNames.add(itm.name.toLowerCase());
+
+      // Check for existing active offer for THIS donor on THIS item
+      const existingActiveOffer = await offerRepository.hasActiveOffer(req.user.id, requirementId, itm.name);
+      if (existingActiveOffer) {
+        throw new AppError(`You already have an active or pending offer for ${itm.name} on this requirement.`, 409);
+      }
+
+      // Validate against current database remaining quantity
+      const itemRemainingInfo = await offerRepository.getItemRemaining(requirementId, itm.name);
+      if (!itemRemainingInfo) {
+        throw new AppError(`Item "${itm.name}" is not part of this requirement`, 400);
+      }
+
+      if (offeredQty > itemRemainingInfo.quantityRemaining) {
+        throw new AppError(
+          `Offered quantity for ${itm.name} (${offeredQty} ${itm.unit}) exceeds remaining requirement (${itemRemainingInfo.quantityRemaining} ${itemRemainingInfo.unit})`,
+          400
+        );
+      }
+
+      validatedItems.push({
+        name: String(itm.name).trim(),
+        quantity: offeredQty,
+        unit: String(itm.unit).trim(),
+      });
     }
 
-    const offer = await offerRepository.createOffer(req.user.id, requirementId, {
-      name: String(item.name).trim(),
-      quantity: offeredQty,
-      unit: String(item.unit).trim(),
-      message: item.message ? String(item.message).trim() : null,
-    });
+    const donorMessage = req.body.message || (item?.message ? String(item.message).trim() : null);
 
-    return successResponse(res, 'Offer created successfully', offer, 201);
+    const result = await offerRepository.createMultiOffer(
+      req.user.id,
+      requirementId,
+      validatedItems,
+      donorMessage
+    );
+
+    return successResponse(
+      res,
+      itemsToProcess.length > 1 ? 'Support offers created successfully' : 'Offer created successfully',
+      itemsToProcess.length > 1 ? result : result[0],
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -170,12 +207,22 @@ async function confirmRequester(req, res, next) {
   }
 }
 
+async function getMyImpact(req, res, next) {
+  try {
+    const impact = await offerRepository.getDonorImpact(req.user.id);
+    return successResponse(res, 'Donor impact calculated successfully', impact);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   createOffer,
   getMyOffers,
   getOfferById,
   confirmDonor,
   confirmRequester,
+  getMyImpact,
 };
 
 

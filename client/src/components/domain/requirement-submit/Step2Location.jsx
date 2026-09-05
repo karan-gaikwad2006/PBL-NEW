@@ -1,13 +1,80 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Input from '../../common/Input';
 import Select from '../../common/Select';
 import TextArea from '../../common/TextArea';
 import Button from '../../common/Button';
-import { ArrowRight, MapPin, Search, Navigation } from 'lucide-react';
+import { ArrowRight, Search, Navigation, Loader2 } from 'lucide-react';
+import { getDistrictFromCoords, getLocalityFromCoords } from '../../../utils/geoUtils';
 
 export default function Step2Location({ formData, updateData, onNext, onBack }) {
+  const [locating, setLocating] = useState(false);
+  const [error, setError] = useState('');
+
   const handleChange = (e) => {
     updateData({ [e.target.name]: e.target.value });
+  };
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setLocating(true);
+    setError('');
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+
+          // 1. Determine District from GeoJSON
+          const geoResponse = await fetch('/data/maharashtra-districts.geojson');
+          if (!geoResponse.ok) throw new Error('Failed to load district data.');
+          const geoJson = await geoResponse.json();
+          const district = getDistrictFromCoords(latitude, longitude, geoJson);
+
+          // 2. Determine City/Village via Reverse Geocoding
+          const locality = await getLocalityFromCoords(latitude, longitude);
+
+          if (district || locality) {
+            updateData({
+              state: 'maharashtra',
+              district: district || formData.district,
+              city: locality || formData.city,
+            });
+
+            if (!district) {
+              setError('Locality detected, but could not confirm Maharashtra district. Please verify.');
+            }
+          } else {
+            setError('Could not determine location details. Please enter manually.');
+          }
+        } catch (err) {
+          setError('Failed to identify location details.');
+          console.error(err);
+        } finally {
+          setLocating(false);
+        }
+      },
+      (err) => {
+        setLocating(false);
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setError('Location access was denied. Please allow location access or select a district manually.');
+            break;
+          case err.POSITION_UNAVAILABLE:
+            setError('Location information is unavailable.');
+            break;
+          case err.TIMEOUT:
+            setError('The request to get user location timed out.');
+            break;
+          default:
+            setError('An unknown error occurred while detecting location.');
+        }
+      },
+      { timeout: 10000 }
+    );
   };
 
   const validate = () => {
@@ -78,12 +145,23 @@ export default function Step2Location({ formData, updateData, onNext, onBack }) 
               ></div>
               <button 
                 type="button"
-                className="relative z-10 bg-white/90 px-4 py-2 rounded-full shadow-sm border border-slate-200 text-sm font-medium text-[#304355] flex items-center gap-2 hover:bg-white transition-colors"
+                onClick={handleUseLocation}
+                disabled={locating}
+                className="relative z-10 bg-white/90 px-4 py-2 rounded-full shadow-sm border border-slate-200 text-sm font-medium text-[#304355] flex items-center gap-2 hover:bg-white transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Navigation className="w-4 h-4" />
-                Use current location
+                {locating ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Navigation className="w-4 h-4" />
+                )}
+                {locating ? 'Detecting...' : 'Use current location'}
               </button>
             </div>
+            {error && (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <Navigation className="w-3 h-3" /> {error}
+              </p>
+            )}
           </div>
         </div>
 

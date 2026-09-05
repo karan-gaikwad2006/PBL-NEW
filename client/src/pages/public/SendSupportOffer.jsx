@@ -15,9 +15,8 @@ export default function SendSupportOffer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [selectedItem, setSelectedItem] = useState('');
-  const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('kg');
+  // New multi-item state: Map of itemName -> { selected: boolean, quantity: string }
+  const [itemSelections, setItemSelections] = useState({});
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -31,10 +30,12 @@ export default function SendSupportOffer() {
         const res = await requirementService.getById(id);
         if (!cancelled) {
           setRequirement(res.data);
-          if (res.data.items?.length > 0) {
-            setSelectedItem(res.data.items[0].name);
-            setUnit(res.data.items[0].unit);
-          }
+          // Initialize selections with all items unselected
+          const initial = {};
+          res.data.items?.forEach(item => {
+            initial[item.name] = { selected: false, quantity: '' };
+          });
+          setItemSelections(initial);
         }
       } catch (err) {
         if (!cancelled) setError(err.message || 'Failed to load requirement');
@@ -46,12 +47,57 @@ export default function SendSupportOffer() {
     return () => { cancelled = true; };
   }, [id]);
 
-  const currentItem = requirement?.items?.find(i => i.name === selectedItem) || requirement?.items?.[0] || {};
-  const remainingAfter = Math.max(0, currentItem.quantityRemaining - parseFloat(quantity || 0));
+  const handleToggleItem = (itemName) => {
+    setItemSelections(prev => ({
+      ...prev,
+      [itemName]: {
+        ...prev[itemName],
+        selected: !prev[itemName].selected,
+        // Reset quantity if unselected
+        quantity: !prev[itemName].selected ? '' : prev[itemName].quantity
+      }
+    }));
+  };
+
+  const handleQuantityChange = (itemName, val) => {
+    setItemSelections(prev => ({
+      ...prev,
+      [itemName]: { ...prev[itemName], quantity: val }
+    }));
+  };
+
+  const selectedItemsList = requirement?.items?.filter(item => itemSelections[item.name]?.selected) || [];
+  const totalSelected = selectedItemsList.length;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!firebaseUser) return;
+
+    if (totalSelected === 0) {
+      setSubmitError('Please select at least one item to provide.');
+      return;
+    }
+
+    // Validate quantities
+    const itemsToSubmit = [];
+    for (const item of selectedItemsList) {
+      const selection = itemSelections[item.name];
+      const qty = parseFloat(selection.quantity);
+      if (isNaN(qty) || qty <= 0) {
+        setSubmitError(`Please enter a valid quantity for ${item.name}.`);
+        return;
+      }
+      if (qty > item.quantityRemaining) {
+        setSubmitError(`Quantity for ${item.name} cannot exceed remaining ${item.quantityRemaining} ${item.unit}.`);
+        return;
+      }
+      itemsToSubmit.push({
+        name: item.name,
+        quantity: qty,
+        unit: item.unit
+      });
+    }
+
     setSubmitting(true);
     setSubmitError(null);
 
@@ -59,22 +105,14 @@ export default function SendSupportOffer() {
       const token = await firebaseUser.getIdToken();
       const offerData = {
         requirementId: id,
-        item: {
-          name: selectedItem,
-          quantity: parseFloat(quantity),
-          unit,
-          message
-        }
+        items: itemsToSubmit,
+        message
       };
       await offerService.create(token, offerData);
       navigate(`/requirements/${id}/support-success`, {
         state: {
-          offer: {
-            item: selectedItem,
-            quantity,
-            unit,
-            message
-          }
+          items: itemsToSubmit,
+          message
         }
       });
     } catch (err) {
@@ -128,61 +166,84 @@ export default function SendSupportOffer() {
 
             <form
               onSubmit={handleSubmit}
-              className="bg-white border border-[#304355]/10 rounded-2xl shadow-sm p-6 md:p-8 space-y-6"
+              className="bg-white border border-[#304355]/10 rounded-2xl shadow-sm p-6 md:p-8 space-y-8"
             >
-              {/* Item selection */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-[#1F2933]" htmlFor="item-select">
-                  Item you want to provide *
-                </label>
-                <select
-                  id="item-select"
-                  value={selectedItem}
-                  onChange={(e) => setSelectedItem(e.target.value)}
-                  className="w-full bg-[#FBF9FA] border border-slate-300 rounded-lg px-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors"
-                  required
-                >
-                  {requirement.items.map((item) => (
-                    <option key={item.name} value={item.name}>
-                      {item.name} ({item.quantityRemaining} {item.unit} remaining)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Quantity and Unit */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-[#1F2933]" htmlFor="quantity">
-                    Approximate quantity *
+              {/* Multi-Item Selection */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-bold text-[#1F2933]">
+                    Select items you want to provide *
                   </label>
-                  <input
-                    type="number"
-                    id="quantity"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    placeholder="e.g. 20"
-                    className="w-full bg-[#FBF9FA] border border-slate-300 rounded-lg px-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors"
-                    required
-                    min="1"
-                  />
+                  <span className="text-xs text-[#64707A]">{totalSelected} items selected</span>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-semibold text-[#1F2933]" htmlFor="unit">
-                    Unit *
-                  </label>
-                  <select
-                    id="unit"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full bg-[#FBF9FA] border border-slate-300 rounded-lg px-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors"
-                    required
-                  >
-                    <option value="kg">Kilograms (kg)</option>
-                    <option value="grams">Grams (g)</option>
-                    <option value="packets">Packets</option>
-                    <option value="liters">Liters (L)</option>
-                  </select>
+                
+                <div className="space-y-3">
+                  {requirement.items.map((item) => {
+                    const isSelected = itemSelections[item.name]?.selected;
+                    const quantityValue = itemSelections[item.name]?.quantity || '';
+                    
+                    return (
+                      <div 
+                        key={item.name}
+                        className={`border rounded-xl p-4 transition-all ${
+                          isSelected 
+                            ? 'border-[#304355] bg-[#304355]/5 shadow-sm' 
+                            : 'border-slate-200 hover:border-slate-300 bg-[#FBF9FA]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="flex items-center h-5 mt-1">
+                            <input
+                              type="checkbox"
+                              checked={!!isSelected}
+                              onChange={() => handleToggleItem(item.name)}
+                              className="w-5 h-5 rounded border-slate-300 text-[#304355] focus:ring-[#304355] cursor-pointer"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start gap-2">
+                              <div>
+                                <p className="font-bold text-[#1F2933] text-sm">{item.name}</p>
+                                <p className="text-xs text-[#64707A] mt-0.5">
+                                  {item.quantityRemaining} {item.unit} remaining
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700 uppercase tracking-tight">
+                                {item.unit}
+                              </span>
+                            </div>
+
+                            {isSelected && (
+                              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <label className="text-[10px] font-bold text-[#304355] uppercase tracking-wider mb-1.5 block">
+                                  Quantity to provide
+                                </label>
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="number"
+                                    value={quantityValue}
+                                    onChange={(e) => handleQuantityChange(item.name, e.target.value)}
+                                    placeholder={`e.g. ${Math.min(20, item.quantityRemaining)}`}
+                                    className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] transition-colors"
+                                    min="0.1"
+                                    step="any"
+                                    max={item.quantityRemaining}
+                                    required
+                                  />
+                                  <span className="text-sm font-semibold text-[#64707A]">{item.unit}</span>
+                                </div>
+                                {parseFloat(quantityValue) > item.quantityRemaining && (
+                                  <p className="text-[10px] text-red-600 font-bold mt-1">
+                                    Cannot exceed remaining quantity
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -270,27 +331,38 @@ export default function SendSupportOffer() {
 
                 <hr className="border-slate-100" />
 
-                {/* Target item */}
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-[#64707A] uppercase tracking-wider">Item Needed</p>
-                  <p className="text-xl font-extrabold text-[#304355]">{currentItem.name}</p>
-                </div>
-
-                {/* Progress bar */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-end text-xs">
-                    <div>
-                      <span className="font-bold text-sm text-orange-600">{currentItem.quantityRemaining} {currentItem.unit}</span>
-                      <span className="text-[#64707A]"> remaining</span>
+                {/* Target items summary */}
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold text-[#64707A] uppercase tracking-wider">Support Summary</p>
+                  {selectedItemsList.length === 0 ? (
+                    <p className="text-xs text-[#64707A] italic">No items selected yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedItemsList.map(item => {
+                        const selection = itemSelections[item.name];
+                        const qty = parseFloat(selection.quantity || 0);
+                        const progress = ((item.quantityRequired - item.quantityRemaining + qty) / item.quantityRequired) * 100;
+                        
+                        return (
+                          <div key={item.name} className="space-y-1.5">
+                            <div className="flex justify-between items-end text-xs">
+                              <span className="font-bold text-[#304355]">{item.name}</span>
+                              <div className="text-right">
+                                <span className="font-bold text-[#304355]">{qty}</span>
+                                <span className="text-[#64707A]"> / {item.quantityRemaining} {item.unit}</span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div 
+                                className="bg-[#304355] h-1.5 rounded-full transition-all duration-500" 
+                                style={{ width: `${Math.min(100, progress)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <span className="font-semibold text-[#64707A]">Target: {currentItem.quantityRequired} {currentItem.unit}</span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="bg-[#304355] h-2 rounded-full transition-all duration-500" 
-                      style={{ width: `${((currentItem.quantityRequired - currentItem.quantityRemaining) / currentItem.quantityRequired) * 100}%` }}
-                    />
-                  </div>
+                  )}
                 </div>
 
                 {/* Impact Preview */}
@@ -299,7 +371,9 @@ export default function SendSupportOffer() {
                   <div>
                     <h4 className="font-semibold text-xs text-[#304355] mb-1">Impact Preview</h4>
                     <p className="text-xs text-[#64707A] leading-relaxed">
-                      Your offer of <strong className="text-[#1F2933]">{quantity || 0} {unit}</strong> will partially support this requirement, leaving {remainingAfter} {currentItem.unit} remaining for others to fulfill. Every bit helps!
+                      {totalSelected === 0 
+                        ? "Select items to see how your contribution helps."
+                        : `Your offer of ${totalSelected} item${totalSelected > 1 ? 's' : ''} will directly support this requirement. Thank you for your generosity!`}
                     </p>
                   </div>
                 </div>

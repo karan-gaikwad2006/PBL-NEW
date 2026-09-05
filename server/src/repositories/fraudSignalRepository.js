@@ -48,7 +48,7 @@ async function findAll({ status = null, limit = 50, offset = 0 } = {}) {
             fs.description, fs.status, fs.created_at, fs.resolved_at,
             u.full_name AS reviewed_by_name,
             CASE
-              WHEN fs.entity_type = 'requirement' THEN r.title
+              WHEN fs.entity_type = 'requirement' THEN 'Food support for ' || r.beneficiary_count || ' beneficiaries'
               WHEN fs.entity_type = 'institution' THEN i.name
               ELSE NULL
             END AS entity_name,

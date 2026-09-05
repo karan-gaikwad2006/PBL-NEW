@@ -43,6 +43,8 @@ function mapRequirement(row) {
     description: row.description,
     expiresAt: row.expires_at,
     submittedAt: row.submitted_at,
+    institutionName: row.institution_name || row.beneficiary_description || 'Local Institution',
+    institutionType: row.institution_type || 'Ashram Shala',
     items: Array.isArray(row.items) ? row.items.filter(Boolean).map(mapItem) : [],
   };
 }
@@ -51,6 +53,7 @@ const requirementSelect = `
   SELECT r.id, d.name AS district, r.taluka, r.address,
          r.beneficiary_count, r.beneficiary_description, r.urgency,
          r.status, r.description, r.expires_at, r.submitted_at,
+         i.name AS institution_name, i.organization_type AS institution_type,
          json_agg(json_build_object(
            'id', ri.id, 'item_name', ri.item_name, 'category', ri.category,
            'quantity_required', ri.quantity_required,
@@ -58,6 +61,7 @@ const requirementSelect = `
          ) ORDER BY ri.created_at) AS items
   FROM requirements r
   JOIN districts d ON d.id = r.district_id
+  LEFT JOIN institutions i ON i.id = r.institution_id
   LEFT JOIN requirement_items ri ON ri.requirement_id = r.id
 `;
 
@@ -72,7 +76,7 @@ async function findDistrictId(name) {
 async function findDuplicateRequirement(userId, districtId, itemNames = []) {
   if (!itemNames || itemNames.length === 0) return null;
   const { rows } = await query(
-    `SELECT r.id, r.title, r.status, r.submitted_at, ri.item_name
+    `SELECT r.id, r.status, r.submitted_at, r.beneficiary_count, ri.item_name
      FROM requirements r
      JOIN requirement_items ri ON ri.requirement_id = r.id
      WHERE r.requester_user_id = $1
@@ -83,7 +87,12 @@ async function findDuplicateRequirement(userId, districtId, itemNames = []) {
      LIMIT 1`,
     [userId, districtId, itemNames.map((n) => String(n).trim().toLowerCase())]
   );
-  return rows[0] || null;
+  if (!rows[0]) return null;
+  const row = rows[0];
+  return {
+    ...row,
+    title: `Food support for ${row.beneficiary_count} beneficiaries`
+  };
 }
 
 async function countRecentRequirements(userId, hours = 24) {
@@ -190,10 +199,10 @@ async function create(userId, payload, expiresAt) {
 }
 
 
-/** Public catalog — only active, non-expired */
+/** Public catalog — only active/partially_supported, non-expired */
 async function findAll({ district, limit = 50, offset = 0 } = {}) {
   const values = [];
-  const conditions = ["r.status = 'active'", 'r.expires_at > NOW()'];
+  const conditions = ["r.status IN ('active', 'partially_supported')", 'r.expires_at > NOW()'];
   if (district) {
     values.push(normalizeDistrictName(district));
     conditions.push(`(lower(d.name) = $${values.length} OR lower(d.slug) = $${values.length})`);
@@ -205,7 +214,7 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
   const { rows } = await query(
     `${requirementSelect}
      WHERE ${conditions.join(' AND ')}
-     GROUP BY r.id, d.name
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
      ORDER BY r.submitted_at DESC
      LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
@@ -213,14 +222,14 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
   return rows.map(mapRequirement);
 }
 
-/** Public single requirement — only active, non-expired */
+/** Public single requirement — only active/partially_supported, non-expired */
 async function findById(id, publicOnly = true) {
   const conditions = ['r.id = $1'];
-  if (publicOnly) conditions.push("r.status = 'active'", 'r.expires_at > NOW()');
+  if (publicOnly) conditions.push("r.status IN ('active', 'partially_supported')", 'r.expires_at > NOW()');
   const { rows } = await query(
     `${requirementSelect}
      WHERE ${conditions.join(' AND ')}
-     GROUP BY r.id, d.name
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
      LIMIT 1`,
     [id]
   );
@@ -232,7 +241,7 @@ async function findByIdUnrestricted(id) {
   const { rows } = await query(
     `${requirementSelect}
      WHERE r.id = $1
-     GROUP BY r.id, d.name
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
      LIMIT 1`,
     [id]
   );
@@ -249,7 +258,7 @@ async function findByUserId(userId, { limit = 50, offset = 0 } = {}) {
   const { rows } = await query(
     `${requirementSelect}
      WHERE r.requester_user_id = $1
-     GROUP BY r.id, d.name
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
      ORDER BY r.submitted_at DESC
      LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
@@ -308,7 +317,7 @@ async function findByIdForAdmin(id) {
   const { rows: reqRows } = await query(
     `${requirementSelect}
      WHERE r.id = $1
-     GROUP BY r.id, d.name
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
      LIMIT 1`,
     [id]
   );
