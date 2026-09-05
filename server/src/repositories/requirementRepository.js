@@ -43,7 +43,7 @@ function mapRequirement(row) {
     description: row.description,
     expiresAt: row.expires_at,
     submittedAt: row.submitted_at,
-    items: Array.isArray(row.items) ? row.items.map(mapItem) : [],
+    items: Array.isArray(row.items) ? row.items.filter(Boolean).map(mapItem) : [],
   };
 }
 
@@ -67,6 +67,34 @@ async function findDistrictId(name) {
     [normalizeDistrictName(name)]
   );
   return rows[0]?.id || null;
+}
+
+async function findDuplicateRequirement(userId, districtId, itemNames = []) {
+  if (!itemNames || itemNames.length === 0) return null;
+  const { rows } = await query(
+    `SELECT r.id, r.title, r.status, r.submitted_at, ri.item_name
+     FROM requirements r
+     JOIN requirement_items ri ON ri.requirement_id = r.id
+     WHERE r.requester_user_id = $1
+       AND r.district_id = $2
+       AND r.status IN ('under_review', 'active', 'partially_supported')
+       AND r.expires_at > NOW()
+       AND lower(ri.item_name) = ANY($3)
+     LIMIT 1`,
+    [userId, districtId, itemNames.map((n) => String(n).trim().toLowerCase())]
+  );
+  return rows[0] || null;
+}
+
+async function countRecentRequirements(userId, hours = 24) {
+  const { rows } = await query(
+    `SELECT COUNT(*) AS count
+     FROM requirements
+     WHERE requester_user_id = $1
+       AND submitted_at > (NOW() - ($2 || ' hours')::INTERVAL)`,
+    [userId, String(hours)]
+  );
+  return parseInt(rows[0]?.count || 0, 10);
 }
 
 async function create(userId, payload, expiresAt) {
@@ -104,6 +132,54 @@ async function create(userId, payload, expiresAt) {
       );
     }
     await client.query('COMMIT');
+
+    // Asynchronous safety & fraud controls
+    // 1. Audit Log
+    try {
+      const { logAudit } = require('../utils/auditLogger');
+      await logAudit({
+        userId,
+        action: 'requirement_created',
+        entityType: 'requirement',
+        entityId: requirementId,
+        details: { district: payload.district, beneficiaryCount: payload.beneficiary_count, itemsCount: payload.items?.length },
+      });
+    } catch (e) {
+      console.error('[Safety] Audit logging failed', e.message);
+    }
+
+    // 2. High-quantity / high-beneficiary fraud signal
+    try {
+      const beneficiaryCount = Number(payload.beneficiary_count || 0);
+      const hasLargeQuantity = payload.items?.some((itm) => Number(itm.quantity) > 10000);
+      if (beneficiaryCount > 5000 || hasLargeQuantity) {
+        const fraudSignalRepo = require('./fraudSignalRepository');
+        await fraudSignalRepo.createFraudSignal({
+          entityType: 'requirement',
+          entityId: requirementId,
+          signalType: beneficiaryCount > 5000 ? 'high_beneficiary_count' : 'high_quantity',
+          severity: beneficiaryCount > 10000 ? 'high' : 'medium',
+          description: `Requirement submitted with ${beneficiaryCount} beneficiaries and large item quantities. Manual verification suggested.`,
+        });
+      }
+    } catch (e) {
+      console.error('[Safety] Fraud signal creation failed', e.message);
+    }
+
+    // 3. Notification for requester
+    try {
+      const notificationRepository = require('./notificationRepository');
+      await notificationRepository.createNotification(userId, {
+        type: 'requirement_submitted',
+        title: 'Requirement Submitted',
+        message: `Your requirement has been submitted and is under review.`,
+        relatedEntityType: 'requirement',
+        relatedEntityId: requirementId,
+      });
+    } catch (e) {
+      console.error('Failed to create notification for requirement submission', e);
+    }
+
     return findById(requirementId, false);
   } catch (error) {
     await client.query('ROLLBACK');
@@ -113,6 +189,8 @@ async function create(userId, payload, expiresAt) {
   }
 }
 
+
+/** Public catalog — only active, non-expired */
 async function findAll({ district, limit = 50, offset = 0 } = {}) {
   const values = [];
   const conditions = ["r.status = 'active'", 'r.expires_at > NOW()'];
@@ -135,6 +213,7 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
   return rows.map(mapRequirement);
 }
 
+/** Public single requirement — only active, non-expired */
 async function findById(id, publicOnly = true) {
   const conditions = ['r.id = $1'];
   if (publicOnly) conditions.push("r.status = 'active'", 'r.expires_at > NOW()');
@@ -148,4 +227,164 @@ async function findById(id, publicOnly = true) {
   return rows[0] ? mapRequirement(rows[0]) : null;
 }
 
-module.exports = { findAll, findById, create, findDistrictId };
+/** Owner/admin single requirement — no status/expiry filter */
+async function findByIdUnrestricted(id) {
+  const { rows } = await query(
+    `${requirementSelect}
+     WHERE r.id = $1
+     GROUP BY r.id, d.name
+     LIMIT 1`,
+    [id]
+  );
+  return rows[0] ? mapRequirement(rows[0]) : null;
+}
+
+/** Requester's own requirements — all statuses */
+async function findByUserId(userId, { limit = 50, offset = 0 } = {}) {
+  const values = [userId];
+  values.push(Math.min(Math.max(Number(limit) || 50, 1), 100));
+  const limitIndex = values.length;
+  values.push(Math.max(Number(offset) || 0, 0));
+  const offsetIndex = values.length;
+  const { rows } = await query(
+    `${requirementSelect}
+     WHERE r.requester_user_id = $1
+     GROUP BY r.id, d.name
+     ORDER BY r.submitted_at DESC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    values
+  );
+  return rows.map(mapRequirement);
+}
+
+/**
+ * Admin: all requirements with optional status filter, with requester info
+ * Returns lightweight list for admin dashboard
+ */
+async function findAllForAdmin({ status, limit = 100, offset = 0 } = {}) {
+  const values = [];
+  const conditions = [];
+  if (status) {
+    values.push(status);
+    conditions.push(`r.status = $${values.length}`);
+  }
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  values.push(Math.min(Math.max(Number(limit) || 100, 1), 200));
+  const limitIndex = values.length;
+  values.push(Math.max(Number(offset) || 0, 0));
+  const offsetIndex = values.length;
+
+  const { rows } = await query(
+    `SELECT r.id, d.name AS district, r.taluka, r.beneficiary_count,
+            r.urgency, r.status, r.submitted_at, r.expires_at,
+            u.full_name AS requester_name, u.email AS requester_email
+     FROM requirements r
+     JOIN districts d ON d.id = r.district_id
+     JOIN users u ON u.id = r.requester_user_id
+     ${whereClause}
+     ORDER BY r.submitted_at DESC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    values
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    title: `Food support for ${row.beneficiary_count} beneficiaries`,
+    district: row.district,
+    city: row.taluka,
+    urgency: row.urgency,
+    status: row.status,
+    submittedAt: row.submitted_at,
+    expiresAt: row.expires_at,
+    requesterName: row.requester_name,
+    requesterEmail: row.requester_email,
+    beneficiaryCount: row.beneficiary_count,
+  }));
+}
+
+/**
+ * Admin: get single requirement with requester info (no status filter)
+ */
+async function findByIdForAdmin(id) {
+  const { rows: reqRows } = await query(
+    `${requirementSelect}
+     WHERE r.id = $1
+     GROUP BY r.id, d.name
+     LIMIT 1`,
+    [id]
+  );
+  if (!reqRows[0]) return null;
+  const req = mapRequirement(reqRows[0]);
+
+  // Attach requester info
+  const { rows: userRows } = await query(
+    `SELECT u.full_name, u.email, r.taluka, r.address, r.contact_name, r.contact_phone
+     FROM requirements r
+     JOIN users u ON u.id = r.requester_user_id
+     WHERE r.id = $1`,
+    [id]
+  );
+  if (userRows[0]) {
+    req.requesterName = userRows[0].full_name;
+    req.requesterEmail = userRows[0].email;
+    req.contactName = userRows[0].contact_name;
+    req.contactPhone = userRows[0].contact_phone;
+  }
+  return req;
+}
+
+/**
+ * Update requirement status — admin only (called from service layer)
+ * Allowed transitions enforced in service.
+ */
+async function updateStatus(id, newStatus) {
+  const { rows } = await query(
+    `UPDATE requirements SET status = $1 WHERE id = $2 RETURNING id, status, requester_user_id, beneficiary_count`,
+    [newStatus, id]
+  );
+  const updated = rows[0] || null;
+  if (updated && (newStatus === 'active' || newStatus === 'rejected')) {
+    try {
+      const notificationRepository = require('./notificationRepository');
+      const isApproved = newStatus === 'active';
+      await notificationRepository.createNotification(updated.requester_user_id, {
+        type: isApproved ? 'requirement_approved' : 'requirement_rejected',
+        title: isApproved ? 'Requirement Approved' : 'Requirement Rejected',
+        message: isApproved
+          ? `Your requirement for ${updated.beneficiary_count} beneficiaries has been approved and is now active.`
+          : `Your requirement for ${updated.beneficiary_count} beneficiaries was not approved.`,
+        relatedEntityType: 'requirement',
+        relatedEntityId: updated.id,
+      });
+    } catch (e) {
+      console.error('Failed to create notification for status update', e);
+    }
+  }
+  return updated;
+}
+
+
+/**
+ * Check if a requirement belongs to a user
+ */
+async function isOwner(requirementId, userId) {
+  const { rows } = await query(
+    `SELECT 1 FROM requirements WHERE id = $1 AND requester_user_id = $2 LIMIT 1`,
+    [requirementId, userId]
+  );
+  return rows.length > 0;
+}
+
+module.exports = {
+  findAll,
+  findById,
+  findByIdUnrestricted,
+  findByUserId,
+  findAllForAdmin,
+  findByIdForAdmin,
+  updateStatus,
+  isOwner,
+  create,
+  findDistrictId,
+  findDuplicateRequirement,
+  countRecentRequirements,
+};

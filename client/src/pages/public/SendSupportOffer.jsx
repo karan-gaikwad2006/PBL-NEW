@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import AuthContext from '../../context/AuthContext';
+import { requirementService, offerService } from '../../services/api';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import { ArrowLeft, Send, ClipboardList, ShieldCheck, Info, User, HelpCircle } from 'lucide-react';
@@ -8,39 +10,95 @@ export default function SendSupportOffer() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Mock data for the specific requirement
-  const requirement = {
-    title: 'Food Support Needed for 120 Students',
-    requester: 'Trimbakeshwar Ashram Shala',
-    description: 'Residential School for Tribal Students providing daily meals to 120+ individuals in Trimbak, Nashik.',
-    items: [
-      { name: 'Rice', target: 100, remaining: 60, unit: 'kg' },
-      { name: 'Moong Dal', target: 50, remaining: 30, unit: 'kg' },
-      { name: 'Chana', target: 25, remaining: 25, unit: 'kg' }
-    ]
-  };
+  const { firebaseUser, user } = useContext(AuthContext);
+  const [requirement, setRequirement] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [selectedItem, setSelectedItem] = useState(requirement.items[0].name);
-  const [quantity, setQuantity] = useState('20');
+  const [selectedItem, setSelectedItem] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [unit, setUnit] = useState('kg');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
-  const currentItem = requirement.items.find(i => i.name === selectedItem) || requirement.items[0];
-  const remainingAfter = Math.max(0, currentItem.remaining - parseFloat(quantity || 0));
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await requirementService.getById(id);
+        if (!cancelled) {
+          setRequirement(res.data);
+          if (res.data.items?.length > 0) {
+            setSelectedItem(res.data.items[0].name);
+            setUnit(res.data.items[0].unit);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load requirement');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
 
-  const handleSubmit = (e) => {
+  const currentItem = requirement?.items?.find(i => i.name === selectedItem) || requirement?.items?.[0] || {};
+  const remainingAfter = Math.max(0, currentItem.quantityRemaining - parseFloat(quantity || 0));
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate(`/requirements/${id}/support-success`, {
-      state: {
-        offer: {
-          item: selectedItem,
-          quantity,
+    if (!firebaseUser) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const token = await firebaseUser.getIdToken();
+      const offerData = {
+        requirementId: id,
+        item: {
+          name: selectedItem,
+          quantity: parseFloat(quantity),
           unit,
           message
         }
-      }
-    });
+      };
+      await offerService.create(token, offerData);
+      navigate(`/requirements/${id}/support-success`, {
+        state: {
+          offer: {
+            item: selectedItem,
+            quantity,
+            unit,
+            message
+          }
+        }
+      });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to submit offer');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-32 text-[#64707A]">Loading requirement...</div>
+      </PageContainer>
+    );
+  }
+
+  if (error || !requirement) {
+    return (
+      <PageContainer>
+        <div className="text-center py-32 text-red-600 font-bold">{error || 'Requirement not found'}</div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -86,7 +144,7 @@ export default function SendSupportOffer() {
                 >
                   {requirement.items.map((item) => (
                     <option key={item.name} value={item.name}>
-                      {item.name} ({item.remaining} {item.unit} remaining)
+                      {item.name} ({item.quantityRemaining} {item.unit} remaining)
                     </option>
                   ))}
                 </select>
@@ -160,8 +218,8 @@ export default function SendSupportOffer() {
                       KS
                     </div>
                     <div>
-                      <p className="font-semibold text-sm text-[#1F2933]">Karan S.</p>
-                      <p className="text-xs text-[#64707A]">+91 98765 43210 • karan.s@example.com</p>
+                      <p className="font-semibold text-sm text-[#1F2933]">{user?.full_name}</p>
+                      <p className="text-xs text-[#64707A]">{user?.email}</p>
                     </div>
                   </div>
                   <button type="button" className="text-[#304355] font-semibold text-sm hover:underline self-start sm:self-center">
@@ -170,6 +228,11 @@ export default function SendSupportOffer() {
                 </div>
               </div>
 
+              {submitError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4">
+                  {submitError}
+                </div>
+              )}
               {/* Submit CTA */}
               <div className="pt-4 border-t border-slate-100 flex justify-end">
                 <Button
@@ -177,8 +240,9 @@ export default function SendSupportOffer() {
                   variant="primary"
                   className="w-full sm:w-auto px-8 py-3"
                   icon={Send}
+                  disabled={submitting}
                 >
-                  Send Support Offer
+                  {submitting ? 'Sending...' : 'Send Support Offer'}
                 </Button>
               </div>
             </form>
@@ -199,8 +263,8 @@ export default function SendSupportOffer() {
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#64707A] uppercase tracking-wider mb-0.5">Requested By</p>
-                    <p className="font-semibold text-sm text-[#304355]">{requirement.requester}</p>
-                    <p className="text-xs text-[#64707A] mt-1">{requirement.description}</p>
+                    <p className="font-semibold text-sm text-[#304355]">{requirement.institution || requirement.title}</p>
+                    <p className="text-xs text-[#64707A] mt-1 line-clamp-3">{requirement.description}</p>
                   </div>
                 </div>
 
@@ -216,15 +280,15 @@ export default function SendSupportOffer() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-end text-xs">
                     <div>
-                      <span className="font-bold text-sm text-orange-600">{currentItem.remaining} {currentItem.unit}</span>
+                      <span className="font-bold text-sm text-orange-600">{currentItem.quantityRemaining} {currentItem.unit}</span>
                       <span className="text-[#64707A]"> remaining</span>
                     </div>
-                    <span className="font-semibold text-[#64707A]">Target: {currentItem.target} {currentItem.unit}</span>
+                    <span className="font-semibold text-[#64707A]">Target: {currentItem.quantityRequired} {currentItem.unit}</span>
                   </div>
                   <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                     <div 
                       className="bg-[#304355] h-2 rounded-full transition-all duration-500" 
-                      style={{ width: `${((currentItem.target - currentItem.remaining) / currentItem.target) * 100}%` }}
+                      style={{ width: `${((currentItem.quantityRequired - currentItem.quantityRemaining) / currentItem.quantityRequired) * 100}%` }}
                     />
                   </div>
                 </div>

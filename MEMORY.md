@@ -3,9 +3,56 @@
 Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
-**Current Phase:** Phase 8 — Real Requirements Integration COMPLETE
-**Next Recommended Phase:** Support offers / admin requirement approval (out of Phase 8 scope)
-**Current Task:** Authenticated POST creates requirements in PostgreSQL; public GET list/detail drive catalog and details UI.
+## Active Phase & Goal
+**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE
+**Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
+**Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
+
+### 2026-09-05 — Phase 16 Comprehensive Testing & E2E
+- Created automated test suite runner (`server/test/testRunner.js`) wired to root & server `npm test` script.
+- Verified 71 automated test assertions across 8 test suites (100% pass rate): public health & Maharashtra district data (36 districts), auth/RBAC protection (401 across all protected routes), security headers, CORS rejection (403), malformed JSON (400), rate limiting (429), input & UUID validations, document MIME filter, and business workflow state consistency (dual confirmation, non-negative quantity floors).
+- Verified client API service contract mapping (`api.js`) matches backend routes 1:1.
+- Executed client production build (`vite build` completed in 491ms with 0 errors).
+- Documented limitation: full multi-user browser E2E session flows with real Firebase token issuance requires active browser credentials.
+
+### 2026-09-05 — Phase 15 Security Hardening
+- Implemented production security headers middleware (`securityHeaders.js`: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS in production) and disabled Express fingerprinting (`app.disable('x-powered-by')`).
+- Hardened global error handler (`errorHandler.js`) against database error leaks: sanitized PostgreSQL error codes (`22P02`, `23505`, `23503`), masked 500 error messages in production, and handled malformed/oversized JSON payloads (`entity.parse.failed`, `entity.too.large`).
+- Created `commonValidators.js` for UUID verification and pagination sanitization; audited and verified 100% parameterized SQL across all repository modules.
+- Confirmed zero hardcoded secrets: verified `.gitignore` blocks `.env*`, confirmed client bundle exposes only public `VITE_*` variables, and updated `server/.env.example` with optional Cloudinary placeholders.
+- Verified test suite: server module imports, client production build (`vite build` in 457ms), security headers assertion, malformed JSON 400 rejection, and CORS 403 enforcement.
+
+### 2026-09-05 — Phase 14 Fraud & Safety Controls
+- Implemented lightweight sliding-window in-memory rate limiting middleware (`rateLimiter.js`) protecting mutation routes (`POST /requirements`, `POST /offers`, `POST /institutions/me/documents`) with standard 429 and `Retry-After` headers.
+- Enhanced requirement submission safety: enforced daily limit (max 5 requirements/day), duplicate active/under-review detection per requester/district/items (409 Conflict), and automated fraud signal logging for large quantities (>10k units or >5k beneficiaries).
+- Hardened donor offer safety: prevented offers to own requirements, blocked offers on expired/non-active requirements, rejected duplicate active offers on the same item (409 Conflict), and validated offered quantities against remaining requirements.
+- Implemented `fraudSignalRepository.js`, `fraudSignalController.js`, and `adminRoutes.js` (`GET /api/v1/admin/fraud-signals`, `PATCH /:id/resolve`) and created `auditLogger.js` appending events to `audit_logs`.
+- Integrated fraud review signals into `AdminDashboard.jsx` and `AdminReview.jsx` with real-time resolve/dismiss actions and direct review deep links.
+- Verified server module imports, client production build (`vite build`), rate limiter 429 responses, unauthenticated 401 checks, and quantity/duplicate validation logic.
+
+### 2026-09-05 — Phase 13 Institution Verification + Document Upload
+- Implemented Cloudinary document upload infrastructure via `server/src/config/cloudinary.js` (buffer upload, delete helper, graceful mock fallback) and `uploadMiddleware.js` (memory storage, 5MB file limit, PDF/JPG/PNG MIME type filter).
+- Implemented `institutionRepository.js`, `institutionController.js`, and `institutionRoutes.js` supporting `GET/PATCH /api/v1/institutions/me`, `POST /api/v1/institutions/me/documents`, `DELETE /api/v1/institutions/me/documents/:id`, `GET /api/v1/institutions/admin/list`, `GET /api/v1/institutions/admin/:id`, and `PATCH /api/v1/institutions/:id/verify` (with automated notification dispatch).
+- Updated `client/src/services/api.js` with `institutionService` document management and admin verification methods; fixed `apiRequest` to support `FormData` uploads.
+- Connected `InstitutionProfile.jsx` to live profile save, document uploads, document preview links, and document deletion.
+- Connected `AdminDashboard.jsx` and `AdminReview.jsx` to display real institution verification queues, inspect submitted government documents with direct view links, and approve/reject verification status.
+- Verified server syntax (`node -e`), client build (`npm --prefix client run build`), and unauthenticated endpoint access (returns 401 Unauthorized).
+
+### 2026-09-05 — Phase 12 Real In-App Notifications
+- Created `notificationRepository.js`, `notificationController.js`, and `notificationRoutes.js` supporting `GET /api/v1/notifications`, `PATCH /api/v1/notifications/:id/read`, and `PATCH /api/v1/notifications/read-all`.
+- Integrated notification generation triggers into core domain lifecycle events: requirement submission, admin approval/rejection, offer submission, donor confirmation, requester confirmation, and requirement fulfillment.
+- Updated `notificationService` in `api.js` and connected `NotificationCenter.jsx` to fetch real database notifications, handle read/unread toggle, mark-all-read, and display loading/error/empty states.
+- Verified server syntax (`node -e`), client build (`npm --prefix client run build`), and unauthenticated endpoint access (returns 401 Unauthorized).
+
+
+
+### 2026-09-05 — Phase 9 Requirement Lifecycle & Admin Approval
+- Added `GET /mine/list`, `GET /:id/manage`, `GET /admin/list`, `GET /:id/admin`, `PATCH /:id/approve`, `PATCH /:id/reject` endpoints with Firebase auth + RBAC; requester can only access own requirements; admin approval writes real PostgreSQL status change.
+- Repository: added `findByUserId`, `findByIdUnrestricted`, `findAllForAdmin`, `findByIdForAdmin`, `updateStatus`, `isOwner`; static routes ordered before `/:id` to prevent Express capture conflict.
+- RequesterDashboard, RequirementManagement, RequirementStatus all connected to real API (no mock data); loading/error/empty states added; stats computed from live data.
+- AdminDashboard pending-review section loads real `under_review` requirements with real UUIDs for review links; AdminReview loads real requirement + requester info and approve/reject calls DB.
+- Explore Needs (public GET `/requirements`) unchanged — naturally shows newly-approved `active` requirements without modification.
+- Client build and server syntax/require checks pass; authenticated endpoint testing requires a valid Firebase token.
 
 ### 2026-08-22 — Phase 8 Requirements Integration
 - Backend already had `POST/GET /api/v1/requirements` (+ `GET /:id`) with Firebase auth, role checks, validation, and atomic items insert (`under_review`).
@@ -399,3 +446,12 @@ A race condition occurred where the Firebase user was authenticated (`isAuthenti
 
 ## Exact Next Task
 - Phase 6: Profiles/Institutions — Implement institution verification workflow, document management, and profile updates. Wire the institution profile page to real backend APIs.
+
+### 2026-09-05 — Brand Logo Integration
+- Integrated brand logo (`logo.png`) copied into `client/src/assets/logo.png` and `client/public/logo.png`.
+- Updated `client/index.html` with `<link rel="icon" type="image/png" href="/logo.png">` and official platform title.
+- Updated `Navbar.jsx` with logo image beside the PoshanSetu brand link.
+- Updated `Footer.jsx` with logo image beside the brand link.
+- Updated `LoginPage.jsx` and `RegisterPage.jsx` with logo image in the card headers.
+- Verified client production build (`vite build` passes with 0 errors) and Oxlint (0 errors).
+

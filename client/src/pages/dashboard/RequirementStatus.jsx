@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import AuthContext from '../../context/AuthContext';
+import { requirementService } from '../../services/api';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -12,6 +14,7 @@ import {
   MapPin,
   Calendar,
   XCircle,
+  Loader2,
 } from 'lucide-react';
 
 // ─── Status Lifecycle Definition ─────────────────────────────────────────────
@@ -69,56 +72,81 @@ const EXPIRED_STAGE = {
   border: 'border-slate-200',
 };
 
-// ─── Mock requirement data keyed by id ───────────────────────────────────────
-const REQUIREMENTS = {
-  'req-1': {
-    id: 'req-1',
-    title: 'Food Support for 120 Students',
-    location: 'Trimbak, Nashik',
-    status: 'active',
-    submittedOn: '2026-08-01',
-    expiresOn: '2026-09-15',
-    history: [
-      { status: 'under_review', date: '2026-08-01', note: 'Requirement submitted and sent for moderation.' },
-      { status: 'active', date: '2026-08-03', note: 'Approved by moderator. Now visible to donors.' },
-    ],
-  },
-  'req-2': {
-    id: 'req-2',
-    title: 'Dal for Anganwadi Children',
-    location: 'Dindori, Nashik',
-    status: 'partially_supported',
-    submittedOn: '2026-08-10',
-    expiresOn: '2026-09-20',
-    history: [
-      { status: 'under_review', date: '2026-08-10', note: 'Requirement submitted.' },
-      { status: 'active', date: '2026-08-11', note: 'Approved and published.' },
-      { status: 'partially_supported', date: '2026-08-17', note: '15 kg of 20 kg covered by donor offers.' },
-    ],
-  },
+const REJECTED_STAGE = {
+  id: 'rejected',
+  label: 'Rejected',
+  description: 'This requirement was not approved by the admin team. Please contact PoshanSetu for clarification.',
+  icon: XCircle,
+  color: 'text-red-600',
+  bg: 'bg-red-500',
+  bgLight: 'bg-red-50',
+  border: 'border-red-200',
 };
 
 function getStagesForStatus(status) {
-  if (status === 'expired') {
-    return [...LIFECYCLE_STAGES.slice(0, 1), EXPIRED_STAGE];
-  }
+  if (status === 'expired') return [...LIFECYCLE_STAGES.slice(0, 2), EXPIRED_STAGE];
+  if (status === 'rejected') return [LIFECYCLE_STAGES[0], REJECTED_STAGE];
   return LIFECYCLE_STAGES;
-}
-
-function getCurrentIndex(status) {
-  if (status === 'expired') return -1; // special case
-  return LIFECYCLE_STAGES.findIndex((s) => s.id === status);
 }
 
 export default function RequirementStatus() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { firebaseUser } = useContext(AuthContext);
+  const [req, setReq] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const req = REQUIREMENTS[id] || REQUIREMENTS['req-1'];
-  const stages = req.status === 'expired'
-    ? [...LIFECYCLE_STAGES.slice(0, 2), EXPIRED_STAGE]
-    : LIFECYCLE_STAGES;
+  useEffect(() => {
+    if (!firebaseUser || !id) return;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await requirementService.getMyById(token, id);
+        if (!cancelled) setReq(res.data);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load requirement');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [firebaseUser, id]);
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-32 gap-3 text-[#64707A]">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-sm font-medium">Loading status…</span>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error || !req) {
+    return (
+      <PageContainer>
+        <div className="max-w-lg mx-auto px-6 py-20 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-700 mb-4">{error || 'Requirement not found'}</p>
+          <Button variant="outline" onClick={() => navigate('/requester/dashboard')} icon={ArrowLeft}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const stages = getStagesForStatus(req.status);
   const currentStageIndex = stages.findIndex((s) => s.id === req.status);
+  const location = [req.city, req.district].filter(Boolean).join(', ');
 
   return (
     <PageContainer>
@@ -136,7 +164,7 @@ export default function RequirementStatus() {
           <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">Requirement Status</h1>
           <div className="flex items-center gap-1.5 text-sm text-[#64707A]">
             <MapPin className="w-4 h-4 shrink-0" />
-            <span>{req.title} — {req.location}</span>
+            <span>{req.title}{location ? ` — ${location}` : ''}</span>
           </div>
         </div>
 
@@ -199,8 +227,8 @@ export default function RequirementStatus() {
                 })}
               </div>
 
-              {/* Expired alternate path */}
-              {req.status !== 'expired' && (
+              {/* Expired alternate path note */}
+              {req.status !== 'expired' && req.status !== 'rejected' && (
                 <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
                   <p className="text-xs text-[#64707A] flex items-center gap-2">
                     <XCircle className="w-4 h-4 text-slate-400" />
@@ -208,29 +236,6 @@ export default function RequirementStatus() {
                   </p>
                 </div>
               )}
-            </div>
-
-            {/* History Log */}
-            <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
-              <h2 className="font-bold text-[#304355] mb-4">Status History</h2>
-              <div className="space-y-3">
-                {req.history.slice().reverse().map((entry, i) => {
-                  const stage = LIFECYCLE_STAGES.find((s) => s.id === entry.status) || EXPIRED_STAGE;
-                  const Icon = stage.icon;
-                  return (
-                    <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${stage.bgLight} ${stage.border}`}>
-                      <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${stage.color}`} />
-                      <div>
-                        <p className={`font-semibold text-xs ${stage.color}`}>{stage.label}</p>
-                        <p className="text-xs text-[#64707A]">{entry.note}</p>
-                        <p className="text-xs text-[#64707A] mt-0.5">
-                          {new Date(entry.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </div>
           </div>
 
@@ -242,15 +247,23 @@ export default function RequirementStatus() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-[#64707A]">Submitted</span>
-                  <span className="font-semibold text-[#1F2933]">{new Date(req.submittedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  <span className="font-semibold text-[#1F2933]">{new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#64707A]">Expires</span>
                   <span className={`font-semibold ${req.status === 'expired' ? 'text-slate-500' : 'text-orange-600'}`}>
-                    {new Date(req.expiresOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Current status badge */}
+            <div className="bg-[#304355]/5 border border-[#304355]/20 rounded-2xl p-4">
+              <h3 className="font-bold text-sm text-[#304355] mb-2">Current Status</h3>
+              <p className="text-xs text-[#64707A] leading-relaxed capitalize">
+                <strong>{req.status?.replace(/_/g, ' ')}</strong>
+              </p>
             </div>
 
             {/* Note about fulfillment */}

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "test": "node test/testRunner.js",
     "migrate": "node src/db/runMigrations.js",
     "import:nfhs5": "node src/db/importNfhs5.js"
   },
@@ -15,6 +16,7 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase-admin": "^14.2.0",
+    "multer": "^2.3.0",
     "pg": "^8.23.0",
     "xlsx": "^0.18.5"
   },

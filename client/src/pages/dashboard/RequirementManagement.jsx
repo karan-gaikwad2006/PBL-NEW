@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import AuthContext from '../../context/AuthContext';
+import { requirementService } from '../../services/api';
 import {
   ArrowLeft,
   MapPin,
@@ -18,58 +20,8 @@ import {
   MessageSquare,
   ShieldCheck,
   Trash2,
+  Loader2,
 } from 'lucide-react';
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const REQUIREMENTS = {
-  'req-1': {
-    id: 'req-1',
-    title: 'Food Support for 120 Students',
-    description: 'Residential school for tribal students in Trimbak, Nashik. We serve 120+ students daily. Urgent need for basic grains and pulses to maintain the mid-day meal program.',
-    category: 'Grains & Pulses',
-    urgency: 'high',
-    status: 'active',
-    location: 'Trimbak, Nashik',
-    district: 'Nashik',
-    taluka: 'Trimbak',
-    beneficiaries: 120,
-    beneficiaryCategories: ['School Children', 'Tribal Students'],
-    submittedOn: '2026-08-01',
-    expiresOn: '2026-09-15',
-    items: [
-      { name: 'Rice', target: 100, remaining: 60, unit: 'kg' },
-      { name: 'Moong Dal', target: 50, remaining: 30, unit: 'kg' },
-      { name: 'Chana', target: 25, remaining: 25, unit: 'kg' },
-    ],
-    offers: [
-      { id: 'off-1', donor: 'Karan S.', item: 'Rice', quantity: '20 kg', status: 'accepted', offeredOn: '2026-08-15', message: 'Will deliver on weekend.' },
-      { id: 'off-2', donor: 'Priya M.', item: 'Moong Dal', quantity: '15 kg', status: 'accepted', offeredOn: '2026-08-16', message: 'Can courier via local transport.' },
-      { id: 'off-3', donor: 'Suresh R.', item: 'Rice', quantity: '20 kg', status: 'pending', offeredOn: '2026-08-18', message: 'Please confirm the address.' },
-    ],
-  },
-  'req-2': {
-    id: 'req-2',
-    title: 'Dal for Anganwadi Children',
-    description: 'Anganwadi centre serving underfive children and pregnant mothers in Dindori block.',
-    category: 'Pulses',
-    urgency: 'medium',
-    status: 'partially_supported',
-    location: 'Dindori, Nashik',
-    district: 'Nashik',
-    taluka: 'Dindori',
-    beneficiaries: 45,
-    beneficiaryCategories: ['Children under 5', 'Pregnant Women'],
-    submittedOn: '2026-08-10',
-    expiresOn: '2026-09-20',
-    items: [
-      { name: 'Moong Dal', target: 20, remaining: 5, unit: 'kg' },
-    ],
-    offers: [
-      { id: 'off-4', donor: 'Ravi K.', item: 'Moong Dal', quantity: '10 kg', status: 'accepted', offeredOn: '2026-08-17', message: '' },
-      { id: 'off-5', donor: 'Anjali T.', item: 'Moong Dal', quantity: '5 kg', status: 'accepted', offeredOn: '2026-08-18', message: 'Can drop off anytime.' },
-    ],
-  },
-};
 
 const STATUS_CONFIG = {
   active: { label: 'Active', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
@@ -77,6 +29,8 @@ const STATUS_CONFIG = {
   partially_supported: { label: 'Partially Supported', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
   fulfilled: { label: 'Fulfilled', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   expired: { label: 'Expired', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200' },
+  rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  hidden: { label: 'Hidden', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200' },
 };
 
 const URGENCY_CONFIG = {
@@ -96,23 +50,24 @@ function StatusChip({ status }) {
 }
 
 function ItemProgress({ item }) {
-  const pct = Math.round(((item.target - item.remaining) / item.target) * 100);
+  const done = item.quantityRequired - item.quantityRemaining;
+  const pct = item.quantityRequired > 0 ? Math.round((done / item.quantityRequired) * 100) : 0;
   return (
     <div className="bg-[#E8E8E2] rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-sm text-[#1F2933]">{item.name}</span>
-        <span className="text-xs text-[#64707A]">{item.target - item.remaining} / {item.target} {item.unit}</span>
+        <span className="text-xs text-[#64707A]">{done} / {item.quantityRequired} {item.unit}</span>
       </div>
       <div className="w-full bg-slate-300 rounded-full h-2 mb-1.5">
         <div
-          className={`h-2 rounded-full transition-all ${item.remaining === 0 ? 'bg-purple-500' : pct > 50 ? 'bg-[#304355]' : 'bg-orange-500'}`}
+          className={`h-2 rounded-full transition-all ${item.quantityRemaining === 0 ? 'bg-purple-500' : pct > 50 ? 'bg-[#304355]' : 'bg-orange-500'}`}
           style={{ width: `${pct}%` }}
         />
       </div>
       <div className="flex justify-between text-xs">
-        <span className="text-emerald-600 font-semibold">{item.target - item.remaining} {item.unit} covered</span>
-        <span className={`font-semibold ${item.remaining > 0 ? 'text-orange-600' : 'text-purple-600'}`}>
-          {item.remaining > 0 ? `${item.remaining} ${item.unit} still needed` : 'Fulfilled'}
+        <span className="text-emerald-600 font-semibold">{done} {item.unit} covered</span>
+        <span className={`font-semibold ${item.quantityRemaining > 0 ? 'text-orange-600' : 'text-purple-600'}`}>
+          {item.quantityRemaining > 0 ? `${item.quantityRemaining} ${item.unit} still needed` : 'Fulfilled'}
         </span>
       </div>
     </div>
@@ -122,17 +77,62 @@ function ItemProgress({ item }) {
 export default function RequirementManagement() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeOfferTab, setActiveOfferTab] = useState('all');
+  const { firebaseUser } = useContext(AuthContext);
+  const [req, setReq] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const req = REQUIREMENTS[id] || REQUIREMENTS['req-1'];
+  useEffect(() => {
+    if (!firebaseUser || !id) return;
+    let cancelled = false;
 
-  const filteredOffers = activeOfferTab === 'all'
-    ? req.offers
-    : req.offers.filter((o) => o.status === activeOfferTab);
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await requirementService.getMyById(token, id);
+        if (!cancelled) setReq(res.data);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load requirement');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
 
-  const totalTarget = req.items.reduce((a, i) => a + i.target, 0);
-  const totalRemaining = req.items.reduce((a, i) => a + i.remaining, 0);
-  const overallPct = Math.round(((totalTarget - totalRemaining) / totalTarget) * 100);
+    load();
+    return () => { cancelled = true; };
+  }, [firebaseUser, id]);
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-32 gap-3 text-[#64707A]">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-sm font-medium">Loading requirement…</span>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error || !req) {
+    return (
+      <PageContainer>
+        <div className="max-w-lg mx-auto px-6 py-20 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-700 mb-4">{error || 'Requirement not found'}</p>
+          <Button variant="outline" onClick={() => navigate('/requester/dashboard')} icon={ArrowLeft}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const totalTarget = req.items.reduce((a, i) => a + i.quantityRequired, 0);
+  const totalRemaining = req.items.reduce((a, i) => a + i.quantityRemaining, 0);
+  const overallPct = totalTarget > 0 ? Math.round(((totalTarget - totalRemaining) / totalTarget) * 100) : 0;
+  const location = [req.city, req.district].filter(Boolean).join(', ');
 
   return (
     <PageContainer>
@@ -156,7 +156,7 @@ export default function RequirementManagement() {
             <h1 className="text-2xl md:text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">{req.title}</h1>
             <div className="flex items-center gap-1.5 text-sm text-[#64707A]">
               <MapPin className="w-4 h-4 shrink-0" />
-              <span>{req.location}</span>
+              <span>{location}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -167,11 +167,21 @@ export default function RequirementManagement() {
               <Eye className="w-4 h-4" />
               View Status
             </Link>
-            <Button variant="secondary" icon={Edit3} size="sm">
-              Edit Requirement
-            </Button>
           </div>
         </div>
+
+        {/* Under Review Notice */}
+        {req.status === 'under_review' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm text-blue-800 mb-0.5">Awaiting Admin Review</p>
+              <p className="text-xs text-blue-700">
+                This requirement is currently being reviewed by PoshanSetu moderators. Once approved, it will become publicly visible to donors.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
           {/* Left Column */}
@@ -183,25 +193,23 @@ export default function RequirementManagement() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#64707A]">
                 <div>
                   <p className="font-semibold uppercase tracking-wider mb-0.5">Submitted</p>
-                  <p className="text-[#1F2933] font-medium">{new Date(req.submittedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <p className="text-[#1F2933] font-medium">{new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
                 <div>
                   <p className="font-semibold uppercase tracking-wider mb-0.5">Expires</p>
-                  <p className="text-[#1F2933] font-medium">{new Date(req.expiresOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  <p className="text-[#1F2933] font-medium">{new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                 </div>
                 <div>
                   <p className="font-semibold uppercase tracking-wider mb-0.5">Beneficiaries</p>
-                  <p className="text-[#1F2933] font-medium">{req.beneficiaries}</p>
+                  <p className="text-[#1F2933] font-medium">{req.beneficiaryCount}</p>
                 </div>
               </div>
-              <div className="mt-4">
-                <p className="text-xs font-semibold text-[#64707A] uppercase tracking-wider mb-2">Categories</p>
-                <div className="flex flex-wrap gap-2">
-                  {req.beneficiaryCategories.map((c) => (
-                    <span key={c} className="text-xs bg-[#E8E8E2] text-[#304355] px-2.5 py-1 rounded-full font-medium">{c}</span>
-                  ))}
+              {req.beneficiaryDescription && (
+                <div className="mt-4">
+                  <p className="text-xs font-semibold text-[#64707A] uppercase tracking-wider mb-2">Beneficiary Details</p>
+                  <p className="text-xs text-[#64707A]">{req.beneficiaryDescription}</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Items Progress */}
@@ -210,71 +218,23 @@ export default function RequirementManagement() {
                 <h2 className="font-bold text-[#304355]">Items Progress</h2>
                 <span className="text-sm font-semibold text-[#304355]">{overallPct}% overall</span>
               </div>
-              <div className="space-y-3">
-                {req.items.map((item) => (
-                  <ItemProgress key={item.name} item={item} />
-                ))}
-              </div>
-            </div>
-
-            {/* Donor Offers */}
-            <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="font-bold text-[#304355]">Donor Offers ({req.offers.length})</h2>
-              </div>
-              {/* Offer Filter Tabs */}
-              <div className="flex gap-1 border-b border-slate-200 mb-4">
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'pending', label: 'Pending' },
-                  { id: 'accepted', label: 'Accepted' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveOfferTab(tab.id)}
-                    className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
-                      activeOfferTab === tab.id
-                        ? 'border-[#304355] text-[#304355]'
-                        : 'border-transparent text-[#64707A] hover:text-[#304355]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-              {filteredOffers.length === 0 ? (
-                <p className="text-sm text-[#64707A] py-4 text-center">No offers in this category.</p>
+              {req.items.length === 0 ? (
+                <p className="text-sm text-[#64707A]">No items listed.</p>
               ) : (
                 <div className="space-y-3">
-                  {filteredOffers.map((offer) => (
-                    <div key={offer.id} className={`flex items-start justify-between gap-4 p-4 rounded-xl border ${offer.status === 'pending' ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 bg-slate-50/30'}`}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#304355]/10 flex items-center justify-center shrink-0">
-                          <User className="w-4 h-4 text-[#304355]" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-[#1F2933]">{offer.donor}</p>
-                          <p className="text-xs text-[#64707A]">{offer.quantity} of {offer.item}</p>
-                          {offer.message && (
-                            <p className="text-xs text-[#64707A] mt-1 italic">"{offer.message}"</p>
-                          )}
-                          <p className="text-xs text-[#64707A] mt-0.5">
-                            {new Date(offer.offeredOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${offer.status === 'accepted' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                          {offer.status === 'accepted' ? 'Accepted' : 'Pending'}
-                        </span>
-                        {offer.status === 'pending' && (
-                          <Button size="sm" variant="outline">Accept</Button>
-                        )}
-                      </div>
-                    </div>
+                  {req.items.map((item) => (
+                    <ItemProgress key={item.id || item.name} item={item} />
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Donor Support Note — placeholder until Phase 10 */}
+            <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
+              <h2 className="font-bold text-[#304355] mb-2">Donor Offers</h2>
+              <p className="text-sm text-[#64707A]">
+                Donor support functionality will be available in the next phase. Once active, donors can view and offer support for this requirement.
+              </p>
             </div>
           </div>
 
@@ -285,34 +245,30 @@ export default function RequirementManagement() {
               <h3 className="font-bold text-[#304355] mb-4 text-sm uppercase tracking-wider">Summary</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-[#64707A]">Total need</span>
-                  <span className="font-bold text-[#1F2933]">{totalTarget} kg (across items)</span>
+                  <span className="text-[#64707A]">Total needed</span>
+                  <span className="font-bold text-[#1F2933]">{totalTarget} units</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#64707A]">Covered</span>
-                  <span className="font-bold text-emerald-600">{totalTarget - totalRemaining} kg</span>
+                  <span className="font-bold text-emerald-600">{totalTarget - totalRemaining} units</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#64707A]">Still needed</span>
                   <span className={`font-bold ${totalRemaining > 0 ? 'text-orange-600' : 'text-purple-600'}`}>
-                    {totalRemaining > 0 ? `${totalRemaining} kg` : 'Fulfilled!'}
+                    {totalRemaining > 0 ? `${totalRemaining} units` : 'Fulfilled!'}
                   </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Offers received</span>
-                  <span className="font-bold text-[#1F2933]">{req.offers.length}</span>
                 </div>
               </div>
             </div>
 
             {/* Expiry Warning */}
-            {req.status === 'active' && (
+            {(req.status === 'active' || req.status === 'partially_supported') && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
                 <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm text-[#1F2933] mb-0.5">Expiry Reminder</p>
                   <p className="text-xs text-[#64707A]">
-                    This requirement expires on <strong>{new Date(req.expiresOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>. Contact donors if coordination is still needed.
+                    Expires on <strong>{new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
                   </p>
                 </div>
               </div>
@@ -329,13 +285,15 @@ export default function RequirementManagement() {
                   View Lifecycle Status
                   <ChevronRight className="w-4 h-4 text-[#64707A]" />
                 </Link>
-                <Link
-                  to={`/requirements/${req.id}`}
-                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
-                >
-                  View Public Page
-                  <ChevronRight className="w-4 h-4 text-[#64707A]" />
-                </Link>
+                {req.status === 'active' && (
+                  <Link
+                    to={`/requirements/${req.id}`}
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
+                  >
+                    View Public Page
+                    <ChevronRight className="w-4 h-4 text-[#64707A]" />
+                  </Link>
+                )}
                 <Link
                   to="/requester/dashboard"
                   className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
@@ -345,17 +303,6 @@ export default function RequirementManagement() {
                 </Link>
               </div>
             </div>
-
-            {/* Danger Zone */}
-            {req.status !== 'fulfilled' && (
-              <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-4">
-                <h3 className="font-bold text-sm text-red-600 mb-2">Manage Requirement</h3>
-                <p className="text-xs text-[#64707A] mb-3">Removing a requirement is irreversible and will notify existing donors.</p>
-                <Button variant="danger" size="sm" icon={Trash2} className="w-full">
-                  Remove Requirement
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>

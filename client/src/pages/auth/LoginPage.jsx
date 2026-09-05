@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Key, ArrowRight, AlertCircle } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { getDashboardForRole } from '../../context/AuthContext';
+import logo from '../../assets/logo.png';
 
 const ROLE_PREFIXES = Object.freeze({
   donor: ['/donor/'],
@@ -93,8 +94,12 @@ export default function LoginPage() {
 
       <div className="bg-white rounded-2xl shadow-md border border-[#304355]/10 w-full max-w-md p-8 relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#304355]/10 text-[#304355] mb-3">
-            <Key className="w-6 h-6" />
+          <div className="flex justify-center mb-4">
+            <img 
+              src={logo} 
+              alt="PoshanSetu" 
+              className="h-20 sm:h-24 w-auto object-contain" 
+            />
           </div>
           <h1 className="text-2xl font-extrabold text-[#304355] mb-1">Welcome Back</h1>
           <p className="text-sm text-[#64707A]">

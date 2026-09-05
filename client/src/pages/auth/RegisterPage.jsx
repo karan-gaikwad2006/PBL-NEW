@@ -5,6 +5,7 @@ import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
 import useAuth from '../../hooks/useAuth';
 import { getDashboardForRole } from '../../context/AuthContext';
+import logo from '../../assets/logo.png';
 
 const ROLE_PREFIXES = Object.freeze({
   donor: ['/donor/'],
@@ -115,7 +116,15 @@ export default function RegisterPage() {
     <div className="bg-[#E8E8E2] min-h-[calc(100vh-140px)] flex items-center justify-center py-10 px-4">
       <div className="max-w-2xl w-full bg-white shadow-md border border-[#304355]/10 rounded-2xl overflow-hidden">
         <div className="bg-[#304355] text-white p-8 sm:p-10 text-center space-y-2">
-          <div className="text-xl font-bold tracking-tight">PoshanSetu</div>
+          <div className="flex justify-center mb-2">
+            <div className="bg-white/95 rounded-xl px-4 py-2 shadow-sm inline-block">
+              <img 
+                src={logo} 
+                alt="PoshanSetu" 
+                className="h-16 sm:h-20 w-auto object-contain" 
+              />
+            </div>
+          </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">Join PoshanSetu</h1>
           <p className="text-sm text-slate-200 max-w-md mx-auto pt-1">
             Your account type helps us personalize your PoshanSetu experience.

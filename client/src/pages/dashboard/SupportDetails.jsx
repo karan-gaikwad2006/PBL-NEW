@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import AuthContext from '../../context/AuthContext';
+import { offerService } from '../../services/api';
 import {
   ArrowLeft,
   MapPin,
@@ -15,73 +17,17 @@ import {
   ChevronRight,
   AlertCircle,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const SUPPORT_DETAILS = {
-  'sup-1': {
-    id: 'sup-1',
-    requirementId: 'req-1',
-    requirementTitle: 'Food Support for 120 Students',
-    institution: 'Trimbakeshwar Ashram Shala',
-    location: 'Trimbak, Nashik',
-    district: 'Nashik',
-    beneficiaries: 120,
-    item: 'Rice',
-    originalNeed: '50 kg',
-    yourOffer: '20 kg',
-    remaining: '30 kg',
-    status: 'pending_confirmation',
-    offeredOn: '2026-08-15',
-    requesterContact: 'Sanjay Bhosale',
-    requesterPhone: '+91 98201 xxxxx',
-    donorMessage: 'I can deliver the rice bags to the school directly. Please share the address.',
-    timeline: [
-      { date: '2026-08-15', label: 'Offer Submitted', description: 'You submitted a support offer for 20 kg of Rice.', done: true },
-      { date: '2026-08-16', label: 'Offer Accepted', description: 'Trimbakeshwar Ashram Shala accepted your offer.', done: true },
-      { date: null, label: 'Coordination', description: 'Coordinate delivery or handoff with the requester.', done: false, active: true },
-      { date: null, label: 'Completion Confirmation', description: 'Both parties confirm receipt and fulfillment.', done: false },
-    ],
-    confirmationStatus: {
-      donor: false,
-      requester: false,
-    },
-  },
-  'sup-2': {
-    id: 'sup-2',
-    requirementId: 'req-2',
-    requirementTitle: 'Dal for Anganwadi Children',
-    institution: 'Dindori Anganwadi Centre 7',
-    location: 'Dindori, Nashik',
-    district: 'Nashik',
-    beneficiaries: 45,
-    item: 'Moong Dal',
-    originalNeed: '20 kg',
-    yourOffer: '15 kg',
-    remaining: '5 kg',
-    status: 'active',
-    offeredOn: '2026-08-17',
-    requesterContact: 'Lata Shinde',
-    requesterPhone: '+91 94220 xxxxx',
-    donorMessage: 'Happy to help. Will deliver on weekend.',
-    timeline: [
-      { date: '2026-08-17', label: 'Offer Submitted', description: 'You submitted a support offer for 15 kg of Moong Dal.', done: true },
-      { date: '2026-08-18', label: 'Offer Accepted', description: 'Dindori Anganwadi Centre 7 accepted your offer.', done: true },
-      { date: null, label: 'Coordination', description: 'Coordinate delivery or handoff with the requester.', done: false, active: true },
-      { date: null, label: 'Completion Confirmation', description: 'Both parties confirm receipt and fulfillment.', done: false },
-    ],
-    confirmationStatus: { donor: false, requester: false },
-  },
-};
 
 function StatusChip({ status }) {
   const map = {
-    active: { label: 'Coordination in Progress', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-    pending_confirmation: { label: 'Action Needed', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
-    partially_fulfilled: { label: 'Partially Supported', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+    pending: { label: 'Pending Response', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
+    accepted: { label: 'Active', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    in_progress: { label: 'In Progress', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
     completed: { label: 'Completed', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
   };
-  const s = map[status] || map.active;
+  const s = map[status] || map.accepted;
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${s.bg} ${s.text} ${s.border}`}>
       {s.label}
@@ -89,51 +35,80 @@ function StatusChip({ status }) {
   );
 }
 
-function TimelineStep({ step, isLast }) {
-  return (
-    <div className="flex gap-4">
-      <div className="flex flex-col items-center">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${
-          step.done
-            ? 'bg-emerald-500 border-emerald-500 text-white'
-            : step.active
-            ? 'bg-white border-[#304355] text-[#304355]'
-            : 'bg-white border-slate-300 text-slate-400'
-        }`}>
-          {step.done ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : step.active ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Clock className="w-4 h-4" />
-          )}
-        </div>
-        {!isLast && (
-          <div className={`w-0.5 flex-1 mt-1 ${step.done ? 'bg-emerald-400' : 'bg-slate-200'}`} style={{ minHeight: 36 }} />
-        )}
-      </div>
-      <div className={`pb-6 ${isLast ? '' : ''}`}>
-        <p className={`font-semibold text-sm ${step.done ? 'text-emerald-700' : step.active ? 'text-[#304355]' : 'text-[#64707A]'}`}>
-          {step.label}
-          {step.date && <span className="ml-2 font-normal text-xs text-[#64707A]">— {new Date(step.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
-        </p>
-        <p className="text-xs text-[#64707A] mt-0.5 leading-relaxed">{step.description}</p>
-      </div>
-    </div>
-  );
-}
-
 export default function SupportDetails() {
   const { supportId } = useParams();
   const navigate = useNavigate();
-  const [donorConfirmed, setDonorConfirmed] = useState(false);
+  const { firebaseUser } = useContext(AuthContext);
 
-  // Fall back to sup-1 for demo if id is not in mock data
-  const support = SUPPORT_DETAILS[supportId] || SUPPORT_DETAILS['sup-1'];
+  const [support, setSupport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const progressPct = Math.round(
-    (parseFloat(support.yourOffer) / parseFloat(support.originalNeed)) * 100
-  );
+  useEffect(() => {
+    if (!firebaseUser || !supportId) return;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await offerService.getById(token, supportId);
+        if (!cancelled) setSupport(res.data);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load support offer details');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [firebaseUser, supportId]);
+
+  const handleConfirmDelivery = async () => {
+    if (!firebaseUser || !supportId) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const token = await firebaseUser.getIdToken();
+      const res = await offerService.confirmDonor(token, supportId);
+      setSupport(res.data);
+    } catch (err) {
+      setError(err.message || 'Failed to confirm delivery');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center py-32 gap-3 text-[#64707A]">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-sm font-medium">Loading support details…</span>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (error && !support) {
+    return (
+      <PageContainer>
+        <div className="max-w-lg mx-auto px-6 py-20 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="font-semibold text-red-700 mb-4">{error}</p>
+          <Button variant="outline" onClick={() => navigate('/donor/dashboard')} icon={ArrowLeft}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const donorConfirmed = support.confirmedByDonor;
+  const requesterConfirmed = support.confirmedByRequester;
 
   return (
     <PageContainer>
@@ -144,7 +119,7 @@ export default function SupportDetails() {
           <ChevronRight className="w-4 h-4" />
           <Link to="/donor/dashboard" className="hover:text-[#304355] transition-colors">Active Supports</Link>
           <ChevronRight className="w-4 h-4" />
-          <span className="text-[#1F2933] font-medium">Support Details</span>
+          <span className="text-[#1F2933] font-medium truncate max-w-xs">{support.requirementTitle}</span>
         </nav>
 
         {/* Page Header */}
@@ -170,103 +145,84 @@ export default function SupportDetails() {
               <h2 className="text-xl font-bold text-[#304355] mb-1">{support.requirementTitle}</h2>
               <div className="flex items-center gap-1.5 text-sm text-[#64707A] mb-5">
                 <MapPin className="w-4 h-4 shrink-0" />
-                <span>{support.location}</span>
+                <span>{support.location || 'Maharashtra'}</span>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                {[
-                  { label: 'Original Need', value: support.originalNeed, color: 'text-[#1F2933]' },
-                  { label: 'Your Offer', value: support.yourOffer, color: 'text-[#304355]' },
-                  { label: 'Remaining', value: support.remaining, color: 'text-orange-600' },
-                  { label: 'Beneficiaries', value: support.beneficiaries, color: 'text-[#1F2933]' },
-                ].map((s) => (
-                  <div key={s.label} className="bg-[#E8E8E2] rounded-xl p-4 text-center">
-                    <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">{s.label}</p>
-                    <p className={`text-xl font-extrabold ${s.color}`}>{s.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-[#64707A]">
-                  <span>Your contribution</span>
-                  <span className="font-semibold">{progressPct}% of this item</span>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
+                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center">
+                  <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Item Offered</p>
+                  <p className="text-lg font-extrabold text-[#304355]">{support.item}</p>
                 </div>
-                <div className="w-full bg-slate-200 rounded-full h-2">
-                  <div
-                    className="bg-[#304355] h-2 rounded-full transition-all"
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
-                  />
+                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center">
+                  <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Quantity</p>
+                  <p className="text-lg font-extrabold text-[#304355]">{support.quantityOffered} {support.unit}</p>
+                </div>
+                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center col-span-2 md:col-span-1">
+                  <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Status</p>
+                  <p className="text-lg font-extrabold text-[#304355] capitalize">{support.status}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="bg-white rounded-2xl shadow-sm border border-[#304355]/10 p-6">
-              <h3 className="font-bold text-[#304355] mb-5 text-base">Support Timeline</h3>
-              {support.timeline.map((step, i) => (
-                <TimelineStep key={i} step={step} isLast={i === support.timeline.length - 1} />
-              ))}
             </div>
 
             {/* Message */}
-            <div className="bg-white rounded-2xl shadow-sm border border-[#304355]/10 p-6">
-              <h3 className="font-bold text-[#304355] mb-3 text-base flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Your Message to Requester
-              </h3>
-              <div className="bg-[#E8E8E2] rounded-xl px-4 py-3 text-sm text-[#1F2933] italic">
-                "{support.donorMessage}"
-              </div>
-            </div>
-
-            {/* Completion Confirmation */}
-            {(support.status === 'active' || support.status === 'pending_confirmation') && (
+            {support.donorMessage && (
               <div className="bg-white rounded-2xl shadow-sm border border-[#304355]/10 p-6">
-                <h3 className="font-bold text-[#304355] mb-2 text-base">Confirm Completion</h3>
-                <p className="text-sm text-[#64707A] mb-4 leading-relaxed">
-                  Once you have delivered the items and the requester has confirmed receipt, both parties need to confirm completion. This is required before the support is marked as fulfilled.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${donorConfirmed ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200'}`}>
-                    <CheckCircle2 className={`w-5 h-5 ${donorConfirmed ? 'text-emerald-600' : 'text-slate-300'}`} />
-                    <div>
-                      <p className="font-semibold text-sm text-[#1F2933]">Your Confirmation</p>
-                      <p className="text-xs text-[#64707A]">{donorConfirmed ? 'Confirmed' : 'Pending'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-slate-50 border-slate-200">
-                    <CheckCircle2 className="w-5 h-5 text-slate-300" />
-                    <div>
-                      <p className="font-semibold text-sm text-[#1F2933]">Requester's Confirmation</p>
-                      <p className="text-xs text-[#64707A]">Pending</p>
-                    </div>
-                  </div>
+                <h3 className="font-bold text-[#304355] mb-3 text-base flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  Your Message to Requester
+                </h3>
+                <div className="bg-[#E8E8E2] rounded-xl px-4 py-3 text-sm text-[#1F2933] italic">
+                  "{support.donorMessage}"
                 </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Completion is only finalized when <strong>both</strong> you and the requester confirm. This protects all parties.
-                  </p>
-                </div>
-                {!donorConfirmed ? (
-                  <Button
-                    variant="emerald"
-                    icon={CheckCircle2}
-                    onClick={() => setDonorConfirmed(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    Confirm I Have Delivered the Items
-                  </Button>
-                ) : (
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-800 font-medium flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Your confirmation has been recorded. Waiting for the requester to confirm.
-                  </div>
-                )}
               </div>
             )}
+
+            {/* Completion Confirmation */}
+            <div className="bg-white rounded-2xl shadow-sm border border-[#304355]/10 p-6">
+              <h3 className="font-bold text-[#304355] mb-2 text-base">Dual-Confirmation Status</h3>
+              <p className="text-sm text-[#64707A] mb-4 leading-relaxed">
+                Once you have delivered the items and the requester has confirmed receipt, both confirmations are recorded to complete this support offer.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${donorConfirmed ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200'}`}>
+                  <CheckCircle2 className={`w-5 h-5 ${donorConfirmed ? 'text-emerald-600' : 'text-slate-300'}`} />
+                  <div>
+                    <p className="font-semibold text-sm text-[#1F2933]">Your Confirmation</p>
+                    <p className="text-xs text-[#64707A]">{donorConfirmed ? `Confirmed on ${new Date(support.donorConfirmedAt).toLocaleDateString('en-IN')}` : 'Pending'}</p>
+                  </div>
+                </div>
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${requesterConfirmed ? 'bg-emerald-50 border-emerald-300' : 'bg-slate-50 border-slate-200'}`}>
+                  <CheckCircle2 className={`w-5 h-5 ${requesterConfirmed ? 'text-emerald-600' : 'text-slate-300'}`} />
+                  <div>
+                    <p className="font-semibold text-sm text-[#1F2933]">Requester's Confirmation</p>
+                    <p className="text-xs text-[#64707A]">{requesterConfirmed ? `Confirmed on ${new Date(support.requesterConfirmedAt).toLocaleDateString('en-IN')}` : 'Pending'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-red-700 text-xs font-semibold">
+                  {error}
+                </div>
+              )}
+
+              {!donorConfirmed ? (
+                <Button
+                  variant="emerald"
+                  icon={submitting ? Loader2 : CheckCircle2}
+                  disabled={submitting}
+                  onClick={handleConfirmDelivery}
+                  className="w-full sm:w-auto"
+                >
+                  {submitting ? 'Confirming…' : 'Confirm I Have Delivered the Items'}
+                </Button>
+              ) : (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-800 font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Your delivery confirmation has been recorded.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Sidebar */}
@@ -279,9 +235,8 @@ export default function SupportDetails() {
                   <User className="w-4 h-4 text-[#304355]" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-[#1F2933]">{support.institution}</p>
-                  <p className="text-xs text-[#64707A]">Contact: {support.requesterContact}</p>
-                  <p className="text-xs text-[#64707A] mt-0.5">📞 {support.requesterPhone}</p>
+                  <p className="font-bold text-sm text-[#1F2933]">{support.requesterName}</p>
+                  <p className="text-xs text-[#64707A]">Requester Institution / Individual</p>
                 </div>
               </div>
               <Link
@@ -290,36 +245,6 @@ export default function SupportDetails() {
               >
                 View Requirement Details <ChevronRight className="w-3.5 h-3.5" />
               </Link>
-            </div>
-
-            {/* Offer Summary */}
-            <div className="bg-white rounded-2xl shadow-sm border border-[#304355]/10 p-5">
-              <h3 className="font-bold text-[#304355] mb-4 text-sm uppercase tracking-wider">Your Offer</h3>
-              <div className="space-y-2.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Item</span>
-                  <span className="font-semibold text-[#1F2933]">{support.item}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Quantity</span>
-                  <span className="font-semibold text-[#1F2933]">{support.yourOffer}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Submitted</span>
-                  <span className="font-semibold text-[#1F2933]">
-                    {new Date(support.offeredOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Trust */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
-              <ShieldCheck className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-sm text-[#1F2933] mb-0.5">Verified Requester</p>
-                <p className="text-xs text-[#64707A]">This organization has been reviewed by PoshanSetu. Contact details are shared securely.</p>
-              </div>
             </div>
 
             {/* Navigation */}
@@ -337,3 +262,4 @@ export default function SupportDetails() {
     </PageContainer>
   );
 }
+

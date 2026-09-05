@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
+import AuthContext from '../../context/AuthContext';
+import { requirementService } from '../../services/api';
 import {
   ClipboardList,
   Bell,
@@ -18,113 +20,8 @@ import {
   User,
   ArrowRight,
   Eye,
+  Loader2,
 } from 'lucide-react';
-
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const REQUESTER_STATS = {
-  totalSubmitted: 4,
-  activeRequirements: 2,
-  offersReceived: 5,
-  fulfilled: 1,
-  expired: 1,
-};
-
-const REQUIREMENTS = [
-  {
-    id: 'req-1',
-    title: 'Food Support for 120 Students',
-    category: 'Grains',
-    items: [
-      { name: 'Rice', target: 100, remaining: 60, unit: 'kg' },
-      { name: 'Moong Dal', target: 50, remaining: 30, unit: 'kg' },
-    ],
-    status: 'active',
-    urgency: 'high',
-    submittedOn: '2026-08-01',
-    expiresOn: '2026-09-15',
-    location: 'Trimbak, Nashik',
-    offersReceived: 3,
-    beneficiaries: 120,
-  },
-  {
-    id: 'req-2',
-    title: 'Dal for Anganwadi Children',
-    category: 'Pulses',
-    items: [
-      { name: 'Moong Dal', target: 20, remaining: 5, unit: 'kg' },
-    ],
-    status: 'partially_supported',
-    urgency: 'medium',
-    submittedOn: '2026-08-10',
-    expiresOn: '2026-09-20',
-    location: 'Dindori, Nashik',
-    offersReceived: 2,
-    beneficiaries: 45,
-  },
-  {
-    id: 'req-3',
-    title: 'Emergency Nutrition Kits — Under Review',
-    category: 'Mixed',
-    items: [
-      { name: 'Chana', target: 30, remaining: 30, unit: 'kg' },
-    ],
-    status: 'under_review',
-    urgency: 'critical',
-    submittedOn: '2026-08-18',
-    expiresOn: '2026-09-30',
-    location: 'Igatpuri, Nashik',
-    offersReceived: 0,
-    beneficiaries: 60,
-  },
-  {
-    id: 'req-4',
-    title: 'Annual Grain Support — Fulfilled',
-    category: 'Grains',
-    items: [
-      { name: 'Rice', target: 50, remaining: 0, unit: 'kg' },
-    ],
-    status: 'fulfilled',
-    urgency: 'medium',
-    submittedOn: '2026-06-15',
-    expiresOn: '2026-07-30',
-    location: 'Trimbak, Nashik',
-    offersReceived: 2,
-    beneficiaries: 80,
-  },
-];
-
-const RECENT_OFFERS = [
-  {
-    id: 'off-1',
-    requirementId: 'req-1',
-    requirementTitle: 'Food Support for 120 Students',
-    donor: 'Karan S.',
-    item: 'Rice',
-    quantity: '20 kg',
-    offeredOn: '2026-08-15',
-    status: 'pending',
-  },
-  {
-    id: 'off-2',
-    requirementId: 'req-1',
-    requirementTitle: 'Food Support for 120 Students',
-    donor: 'Priya M.',
-    item: 'Moong Dal',
-    quantity: '15 kg',
-    offeredOn: '2026-08-16',
-    status: 'accepted',
-  },
-  {
-    id: 'off-3',
-    requirementId: 'req-2',
-    requirementTitle: 'Dal for Anganwadi Children',
-    donor: 'Ravi K.',
-    item: 'Moong Dal',
-    quantity: '10 kg',
-    offeredOn: '2026-08-17',
-    status: 'accepted',
-  },
-];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -133,6 +30,8 @@ const STATUS_CONFIG = {
   partially_supported: { label: 'Partially Supported', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
   fulfilled: { label: 'Fulfilled', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
   expired: { label: 'Expired', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200' },
+  rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  hidden: { label: 'Hidden', bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-slate-200' },
 };
 
 const URGENCY_CONFIG = {
@@ -141,6 +40,16 @@ const URGENCY_CONFIG = {
   medium: { label: 'Medium', color: 'text-amber-600', dot: 'bg-amber-400' },
   low: { label: 'Low', color: 'text-blue-600', dot: 'bg-blue-400' },
 };
+
+function computeStats(reqs) {
+  return {
+    totalSubmitted: reqs.length,
+    activeRequirements: reqs.filter((r) => r.status === 'active').length,
+    partialCount: reqs.filter((r) => r.status === 'partially_supported').length,
+    fulfilled: reqs.filter((r) => r.status === 'fulfilled').length,
+    expired: reqs.filter((r) => r.status === 'expired').length,
+  };
+}
 
 function StatusChip({ status }) {
   const s = STATUS_CONFIG[status] || STATUS_CONFIG.under_review;
@@ -164,9 +73,10 @@ function StatCard({ icon: Icon, value, label, color = 'text-[#304355]' }) {
 }
 
 function RequirementCard({ req }) {
-  const totalItems = req.items.reduce((a, i) => a + i.target, 0);
-  const remainingItems = req.items.reduce((a, i) => a + i.remaining, 0);
-  const pct = Math.round(((totalItems - remainingItems) / totalItems) * 100);
+  const totalItems = req.items.reduce((a, i) => a + i.quantityRequired, 0);
+  const remainingItems = req.items.reduce((a, i) => a + i.quantityRemaining, 0);
+  const pct = totalItems > 0 ? Math.round(((totalItems - remainingItems) / totalItems) * 100) : 0;
+  const location = [req.city, req.district].filter(Boolean).join(', ');
 
   return (
     <div className="bg-white rounded-xl border border-[#304355]/10 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -180,13 +90,17 @@ function RequirementCard({ req }) {
       <h3 className="font-bold text-[#304355] text-base mb-1">{req.title}</h3>
       <div className="flex items-center gap-1.5 text-xs text-[#64707A] mb-4">
         <MapPin className="w-3.5 h-3.5 shrink-0" />
-        <span>{req.location}</span>
-        <span className="mx-1">•</span>
-        <span>{req.beneficiaries} beneficiaries</span>
+        <span>{location}</span>
+        {req.beneficiaryCount && (
+          <>
+            <span className="mx-1">•</span>
+            <span>{req.beneficiaryCount} beneficiaries</span>
+          </>
+        )}
       </div>
 
       {/* Progress */}
-      {req.status !== 'under_review' && (
+      {req.status !== 'under_review' && totalItems > 0 && (
         <div className="mb-4">
           <div className="flex justify-between text-xs mb-1">
             <span className="text-[#64707A]">Progress</span>
@@ -203,14 +117,10 @@ function RequirementCard({ req }) {
 
       <div className="flex items-center justify-between text-xs text-[#64707A]">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Expires {new Date(req.expiresOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-          </div>
-          {req.offersReceived > 0 && (
-            <div className="flex items-center gap-1 text-emerald-600 font-semibold">
-              <Bell className="w-3.5 h-3.5" />
-              <span>{req.offersReceived} offer{req.offersReceived > 1 ? 's' : ''}</span>
+          {req.expiresAt && (
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Expires {new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
             </div>
           )}
         </div>
@@ -229,11 +139,39 @@ function RequirementCard({ req }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function RequesterDashboard() {
+  const { firebaseUser, user } = useContext(AuthContext);
+  const [requirements, setRequirements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
 
+  useEffect(() => {
+    if (!firebaseUser) return;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await requirementService.getMine(token);
+        if (!cancelled) setRequirements(res.data || []);
+      } catch (err) {
+        if (!cancelled) setError(err.message || 'Failed to load requirements');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [firebaseUser]);
+
   const filteredReqs = filter === 'all'
-    ? REQUIREMENTS
-    : REQUIREMENTS.filter((r) => r.status === filter);
+    ? requirements
+    : requirements.filter((r) => r.status === filter);
+
+  const stats = computeStats(requirements);
 
   return (
     <PageContainer>
@@ -255,11 +193,11 @@ export default function RequesterDashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-          <StatCard icon={ClipboardList} value={REQUESTER_STATS.totalSubmitted} label="Total Submitted" />
-          <StatCard icon={CheckCircle2} value={REQUESTER_STATS.activeRequirements} label="Active" color="text-emerald-500" />
-          <StatCard icon={Bell} value={REQUESTER_STATS.offersReceived} label="Offers Received" color="text-blue-500" />
-          <StatCard icon={RefreshCw} value={REQUESTER_STATS.fulfilled} label="Fulfilled" color="text-purple-500" />
-          <StatCard icon={Clock} value={REQUESTER_STATS.expired} label="Expired" color="text-slate-400" />
+          <StatCard icon={ClipboardList} value={stats.totalSubmitted} label="Total Submitted" />
+          <StatCard icon={CheckCircle2} value={stats.activeRequirements} label="Active" color="text-emerald-500" />
+          <StatCard icon={RefreshCw} value={stats.partialCount} label="Partial" color="text-blue-500" />
+          <StatCard icon={TrendingUp} value={stats.fulfilled} label="Fulfilled" color="text-purple-500" />
+          <StatCard icon={Clock} value={stats.expired} label="Expired" color="text-slate-400" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -289,10 +227,27 @@ export default function RequesterDashboard() {
             </div>
 
             {/* Requirements List */}
-            {filteredReqs.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-16 gap-3 text-[#64707A]">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm font-medium">Loading your requirements…</span>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+                <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+                <p className="font-semibold text-red-700 text-sm">{error}</p>
+              </div>
+            ) : filteredReqs.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
                 <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="font-semibold text-[#64707A]">No requirements with this status</p>
+                <p className="font-semibold text-[#64707A] mb-1">
+                  {filter === 'all' ? 'No requirements yet' : 'No requirements with this status'}
+                </p>
+                {filter === 'all' && (
+                  <Link to="/submit-need" className="text-sm font-semibold text-[#304355] hover:underline">
+                    Submit your first requirement →
+                  </Link>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -305,50 +260,22 @@ export default function RequesterDashboard() {
 
           {/* Sidebar */}
           <div className="space-y-5">
-            {/* Recent Offers */}
-            <div className="bg-white rounded-xl border border-[#304355]/10 shadow-sm p-5">
-              <h3 className="font-bold text-[#304355] mb-4 flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                Recent Offers Received
-              </h3>
-              {RECENT_OFFERS.length === 0 ? (
-                <p className="text-sm text-[#64707A]">No offers yet.</p>
-              ) : (
-                <div className="space-y-3">
-                  {RECENT_OFFERS.map((offer) => (
-                    <div key={offer.id} className="flex items-start justify-between gap-3 py-2.5 border-b border-slate-100 last:border-0">
-                      <div>
-                        <p className="font-semibold text-sm text-[#1F2933]">{offer.donor}</p>
-                        <p className="text-xs text-[#64707A]">{offer.quantity} of {offer.item}</p>
-                        <p className="text-xs text-[#64707A] truncate max-w-[160px]">{offer.requirementTitle}</p>
-                      </div>
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
-                        offer.status === 'accepted'
-                          ? 'bg-emerald-50 text-emerald-700'
-                          : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {offer.status === 'accepted' ? 'Accepted' : 'Pending'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Institution Profile */}
+            {/* Info Panel */}
             <div className="bg-white rounded-xl border border-[#304355]/10 shadow-sm p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-[#304355]/10 flex items-center justify-center">
                   <User className="w-5 h-5 text-[#304355]" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-[#1F2933]">Trimbakeshwar Ashram Shala</p>
-                  <p className="text-xs text-[#64707A]">Residential Tribal School</p>
+                  <p className="font-bold text-sm text-[#1F2933]">{user?.full_name || 'My Account'}</p>
+                  <p className="text-xs text-[#64707A] capitalize">{user?.role || 'Requester'}</p>
                 </div>
               </div>
-              <Link to="/institution-profile" className="text-xs font-semibold text-[#304355] hover:underline inline-flex items-center gap-1">
-                View & Edit Profile <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  <strong>Status note:</strong> New requirements start as <em>Under Review</em>. An admin must approve them before they appear publicly for donors.
+                </p>
+              </div>
             </div>
 
             {/* Quick Actions */}

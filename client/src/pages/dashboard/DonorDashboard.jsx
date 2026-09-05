@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import useAuth from '../../hooks/useAuth';
+import { offerService } from '../../services/api';
 import {
   Heart,
   Clock,
@@ -21,97 +22,14 @@ import {
 } from 'lucide-react';
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-const DONOR_STATS = {
-  activeSupports: 3,
-  pendingConfirmations: 1,
-  partiallySupported: 2,
-  completedSupports: 8,
-};
-
-const PENDING_SUPPORTS = [
-  {
-    id: 'sup-1',
-    requirementId: 'req-1',
-    requirementTitle: 'Food Support for 120 Students',
-    institution: 'Trimbakeshwar Ashram Shala',
-    location: 'Trimbak, Nashik',
-    item: 'Rice',
-    quantityOffered: '20 kg',
-    status: 'pending_confirmation',
-    offeredOn: '2026-08-15',
-    message: 'Awaiting your confirmation that you received the donation.',
-    actionRequired: true,
-  },
-];
-
-const ACTIVE_SUPPORTS = [
-  {
-    id: 'sup-2',
-    requirementId: 'req-2',
-    requirementTitle: 'Dal for Anganwadi Children',
-    institution: 'Dindori Anganwadi Centre 7',
-    location: 'Dindori, Nashik',
-    item: 'Moong Dal',
-    quantityOffered: '15 kg',
-    status: 'active',
-    offeredOn: '2026-08-17',
-    statusLabel: 'Coordination in Progress',
-  },
-  {
-    id: 'sup-3',
-    requirementId: 'req-3',
-    requirementTitle: 'Supplementary Nutrition Pack',
-    institution: 'ZP School Igatpuri',
-    location: 'Igatpuri, Nashik',
-    item: 'Chana',
-    quantityOffered: '10 kg',
-    status: 'active',
-    offeredOn: '2026-08-16',
-    statusLabel: 'Coordination in Progress',
-  },
-  {
-    id: 'sup-4',
-    requirementId: 'req-4',
-    requirementTitle: 'Ration Support — Tribal Hamlet',
-    institution: 'Grameen Vikas Ashram',
-    location: 'Surgana, Nashik',
-    item: 'Rice',
-    quantityOffered: '30 kg',
-    status: 'partially_fulfilled',
-    offeredOn: '2026-08-12',
-    statusLabel: 'Partially Supported',
-  },
-];
-
-const COMPLETED_SUPPORTS = [
-  {
-    id: 'sup-5',
-    requirementTitle: 'Emergency Grain Support',
-    institution: 'Kalwan Tribal School',
-    location: 'Kalwan, Nashik',
-    item: 'Wheat',
-    quantityOffered: '50 kg',
-    completedOn: '2026-08-10',
-    status: 'completed',
-  },
-  {
-    id: 'sup-6',
-    requirementTitle: 'Mid-Day Meal Grains',
-    institution: 'ZP School Yeola',
-    location: 'Yeola, Nashik',
-    item: 'Rice',
-    quantityOffered: '25 kg',
-    completedOn: '2026-07-30',
-    status: 'completed',
-  },
-];
+// Mock data replaced by real API data
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusChip({ status }) {
   const map = {
-    active: { label: 'Active', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-    pending_confirmation: { label: 'Action Needed', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
-    partially_fulfilled: { label: 'Partially Supported', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
+    pending: { label: 'Action Needed', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
+    accepted: { label: 'Active', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+    in_progress: { label: 'In Progress', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' },
     completed: { label: 'Completed', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
   };
   const s = map[status] || map.active;
@@ -200,11 +118,42 @@ function SupportCard({ support, showAction = false }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function DonorDashboard() {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [activeTab, setActiveTab] = useState('active');
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchOffers() {
+      if (!firebaseUser) return;
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await offerService.getMine(token);
+        if (!cancelled) setOffers(res.data);
+      } catch (err) {
+        console.error("Failed to fetch donor offers", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchOffers();
+    return () => { cancelled = true; };
+  }, [firebaseUser]);
 
   const displayName = user?.full_name || 'Donor';
   const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  const pendingOffers = offers.filter(o => o.actionRequired);
+  const activeOffers = offers.filter(o => o.status === 'accepted' || o.status === 'in_progress');
+  const completedOffers = offers.filter(o => o.status === 'completed');
+
+  const DONOR_STATS = {
+    activeSupports: activeOffers.length,
+    pendingConfirmations: pendingOffers.length,
+    partiallySupported: 0, // Placeholder
+    completedSupports: completedOffers.length,
+  };
 
   return (
     <PageContainer>
@@ -244,14 +193,14 @@ export default function DonorDashboard() {
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
             {/* Pending Action Banner */}
-            {PENDING_SUPPORTS.length > 0 && (
+            {pendingOffers.length > 0 && (
               <section>
                 <h2 className="text-lg font-bold text-[#304355] mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-amber-500" />
                   Pending Action
                 </h2>
                 <div className="space-y-4">
-                  {PENDING_SUPPORTS.map((s) => (
+                  {pendingOffers.map((s) => (
                     <SupportCard key={s.id} support={s} showAction />
                   ))}
                 </div>
@@ -281,32 +230,42 @@ export default function DonorDashboard() {
 
               {activeTab === 'active' && (
                 <div className="space-y-4">
-                  {ACTIVE_SUPPORTS.map((s) => (
-                    <SupportCard key={s.id} support={s} />
-                  ))}
+                  {loading ? (
+                     <div className="text-[#64707A] text-sm">Loading offers...</div>
+                  ) : activeOffers.length === 0 && pendingOffers.length === 0 ? (
+                     <div className="text-[#64707A] text-sm">No active support offers found.</div>
+                  ) : (
+                    activeOffers.map((s) => (
+                      <SupportCard key={s.id} support={s} />
+                    ))
+                  )}
                 </div>
               )}
 
               {activeTab === 'completed' && (
                 <div className="space-y-4">
-                  {COMPLETED_SUPPORTS.map((s) => (
-                    <div key={s.id} className="bg-white rounded-xl border border-[#304355]/10 p-5 shadow-sm flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <StatusChip status="completed" />
+                  {completedOffers.length === 0 ? (
+                     <div className="text-[#64707A] text-sm">No completed supports yet.</div>
+                  ) : (
+                    completedOffers.map((s) => (
+                      <div key={s.id} className="bg-white rounded-xl border border-[#304355]/10 p-5 shadow-sm flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <StatusChip status="completed" />
+                          </div>
+                          <h3 className="font-bold text-[#304355] text-sm mb-0.5">{s.requirementTitle}</h3>
+                          <p className="text-xs text-[#64707A]">{s.institution} — {s.location}</p>
                         </div>
-                        <h3 className="font-bold text-[#304355] text-sm mb-0.5">{s.requirementTitle}</h3>
-                        <p className="text-xs text-[#64707A]">{s.institution} — {s.location}</p>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-[#1F2933] text-base">{s.quantityOffered}</p>
+                          <p className="text-xs text-[#64707A]">{s.item}</p>
+                          <p className="text-xs text-[#64707A] mt-1">
+                            {new Date(s.offeredOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-bold text-[#1F2933] text-base">{s.quantityOffered}</p>
-                        <p className="text-xs text-[#64707A]">{s.item}</p>
-                        <p className="text-xs text-[#64707A] mt-1">
-                          {new Date(s.completedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </section>
@@ -318,20 +277,20 @@ export default function DonorDashboard() {
             <div className="bg-white rounded-xl border border-[#304355]/10 shadow-sm p-5">
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-[#304355] text-white flex items-center justify-center text-lg font-extrabold">
-                  KS
+                  {initials}
                 </div>
                 <div>
-                  <p className="font-bold text-[#1F2933]">Karan S.</p>
+                  <p className="font-bold text-[#1F2933]">{displayName}</p>
                   <p className="text-xs text-[#64707A]">Individual Donor</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-[#E8E8E2] rounded-lg py-2.5">
-                  <p className="text-xl font-extrabold text-[#304355]">11</p>
+                  <p className="text-xl font-extrabold text-[#304355]">{offers.length}</p>
                   <p className="text-xs text-[#64707A]">Total Supports</p>
                 </div>
                 <div className="bg-[#E8E8E2] rounded-lg py-2.5">
-                  <p className="text-xl font-extrabold text-[#304355]">8</p>
+                  <p className="text-xl font-extrabold text-[#304355]">{DONOR_STATS.completedSupports}</p>
                   <p className="text-xs text-[#64707A]">Fulfilled</p>
                 </div>
               </div>

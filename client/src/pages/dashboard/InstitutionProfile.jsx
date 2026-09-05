@@ -54,34 +54,51 @@ function DocStatusChip({ status }) {
 }
 
 function DocumentCard({ doc, onDelete }) {
+  const fileExt = (doc.fileName || doc.name || '').split('.').pop().toUpperCase().slice(0, 4) || 'DOC';
+  const status = doc.reviewStatus || doc.status || 'pending';
+  const uploadedDate = doc.createdAt || doc.uploadedOn || new Date();
+
   return (
     <div className={`flex items-start justify-between gap-4 p-4 rounded-xl border ${
-      doc.status === 'rejected' ? 'border-red-200 bg-red-50/30' : 'border-slate-100 bg-white'
+      status === 'rejected' ? 'border-red-200 bg-red-50/30' : 'border-slate-100 bg-white'
     }`}>
       <div className="flex items-start gap-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${
-          doc.type === 'PDF' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+          fileExt === 'PDF' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
         }`}>
-          {doc.type}
+          {fileExt}
         </div>
         <div>
-          <p className="font-semibold text-sm text-[#1F2933] mb-0.5">{doc.name}</p>
-          <p className="text-xs text-[#64707A]">Uploaded {new Date(doc.uploadedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          <p className="font-semibold text-sm text-[#1F2933] mb-0.5">{doc.fileName || doc.name}</p>
+          <p className="text-xs text-[#64707A]">
+            {doc.documentType ? `${doc.documentType} • ` : ''}
+            Uploaded {new Date(uploadedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
           {doc.notes && (
-            <p className={`text-xs mt-1 ${doc.status === 'rejected' ? 'text-red-700' : 'text-[#64707A]'}`}>
-              {doc.status === 'rejected' ? `⚠ ${doc.notes}` : doc.notes}
+            <p className={`text-xs mt-1 ${status === 'rejected' ? 'text-red-700' : 'text-[#64707A]'}`}>
+              {status === 'rejected' ? `⚠ ${doc.notes}` : doc.notes}
             </p>
           )}
         </div>
       </div>
       <div className="flex flex-col items-end gap-2 shrink-0">
-        <DocStatusChip status={doc.status} />
+        <DocStatusChip status={status} />
         <div className="flex items-center gap-2">
-          <button className="p-1 rounded hover:bg-slate-100 text-[#64707A] transition-colors" title="Preview">
-            <Eye className="w-4 h-4" />
-          </button>
-          {doc.status !== 'reviewed' && (
-            <button onClick={() => onDelete(doc.id)} className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors" title="Remove">
+          {doc.fileUrl && (
+            <button
+              onClick={() => window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')}
+              className="p-1 rounded hover:bg-slate-100 text-[#304355] transition-colors"
+              title="Preview / View Document"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+          )}
+          {status !== 'verified' && (
+            <button
+              onClick={() => onDelete(doc.id)}
+              className="p-1 rounded hover:bg-red-50 text-red-400 hover:text-red-600 transition-colors"
+              title="Remove Document"
+            >
               <Trash2 className="w-4 h-4" />
             </button>
           )}
@@ -98,6 +115,7 @@ export default function InstitutionProfile() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -126,6 +144,7 @@ export default function InstitutionProfile() {
         
         if (instRes.data) {
           setInstitution(instRes.data);
+          setDocuments(instRes.data.documents || []);
           setFormData({
             name: instRes.data.name || '',
             organization_type: instRes.data.organization_type || '',
@@ -165,6 +184,9 @@ export default function InstitutionProfile() {
       }
       
       setInstitution(res.data);
+      if (res.data.documents) {
+        setDocuments(res.data.documents);
+      }
       setIsEditing(false);
     } catch (err) {
       console.error('Failed to save institution profile:', err);
@@ -174,25 +196,50 @@ export default function InstitutionProfile() {
     }
   };
 
-  const handleDelete = (id) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+  const handleDelete = async (id) => {
+    if (!firebaseUser) return;
+    try {
+      const token = await firebaseUser.getIdToken();
+      await institutionService.deleteDocument(token, id);
+      setDocuments((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      console.error('Failed to delete document:', err);
+      setError(err.message || 'Failed to remove document.');
+    }
   };
 
-  const handleFileSelect = (files) => {
-    const newDocs = Array.from(files).map((f) => ({
-      id: `doc-${Date.now()}-${Math.random()}`,
-      name: f.name.replace(/\.[^/.]+$/, ''),
-      type: f.name.split('.').pop().toUpperCase().slice(0, 4),
-      uploadedOn: new Date().toISOString().split('T')[0],
-      status: 'pending',
-      notes: '',
-    }));
-    setDocuments((prev) => [...prev, ...newDocs]);
+  const handleFileSelect = async (files) => {
+    if (!firebaseUser || !files || files.length === 0) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const token = await firebaseUser.getIdToken();
+      for (const file of Array.from(files)) {
+        const data = new FormData();
+        data.append('file', file);
+        data.append('documentType', 'Registration Certificate');
+        const res = await institutionService.uploadDocument(token, data);
+        if (res.data) {
+          setDocuments((prev) => [res.data, ...prev]);
+        }
+      }
+      // Re-fetch profile to update verification status if updated
+      const instRes = await institutionService.getMine(token);
+      if (instRes.data) {
+        setInstitution(instRes.data);
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setError(err.message || 'Failed to upload document. Please ensure it is a PDF/PNG/JPG under 5MB.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (loading) {
     return (
       <PageContainer>
+
         <div className="min-h-[60vh] flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-[#304355] animate-spin" />
         </div>

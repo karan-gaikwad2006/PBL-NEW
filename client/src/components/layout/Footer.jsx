@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import logo from '../../assets/logo.png';
 
 export default function Footer() {
   return (
@@ -7,7 +8,15 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-12 w-full grid grid-cols-1 md:grid-cols-4 gap-8 text-slate-200">
         {/* Brand Column */}
         <div className="md:col-span-1 space-y-4">
-          <span className="text-xl font-bold text-white block">PoshanSetu</span>
+          <Link to="/" className="inline-block hover:opacity-90 transition">
+            <div className="bg-white/95 backdrop-blur-xs rounded-xl px-4 py-2.5 shadow-xs inline-block">
+              <img 
+                src={logo} 
+                alt="PoshanSetu — Bridge of Nutrition • Community Care" 
+                className="h-20 sm:h-24 md:h-28 w-auto object-contain" 
+              />
+            </div>
+          </Link>
           <p className="text-sm text-slate-300 max-w-xs leading-relaxed">
             Empowering communities through nutrition intelligence. Bridging the gap between surplus and scarcity.
           </p>
