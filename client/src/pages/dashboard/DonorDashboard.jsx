@@ -19,6 +19,7 @@ import {
   RefreshCw,
   ArrowRight,
   CircleDot,
+  Info,
 } from 'lucide-react';
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
@@ -59,14 +60,32 @@ function StatCard({ icon: Icon, value, label, highlighted, highlightColor }) {
 }
 
 // ─── Support Card ─────────────────────────────────────────────────────────────
-function SupportCard({ support, showAction = false }) {
+function SupportCard({ support }) {
   const navigate = useNavigate();
+
+  const isPartial = support.isPartial;
+
+  const pendingOffers = support.donorOffers.filter(o => o.status === 'pending');
+  const actionRequired = pendingOffers.length > 0;
+
   return (
-    <div className={`bg-white rounded-xl border p-5 shadow-sm transition-shadow hover:shadow-md ${support.actionRequired ? 'border-amber-300' : 'border-[#304355]/10'}`}>
+    <div className={`bg-white rounded-xl border p-5 shadow-sm transition-shadow hover:shadow-md ${actionRequired ? 'border-amber-300' : 'border-[#304355]/10'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-            <StatusChip status={support.status} />
+            {actionRequired ? (
+              <StatusChip status="pending" />
+            ) : support.hasActive ? (
+              <StatusChip status="accepted" />
+            ) : (
+              <StatusChip status="completed" />
+            )}
+
+            {isPartial && (
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 uppercase tracking-tight">
+                Partial Fulfillment
+              </span>
+            )}
           </div>
           <h3 className="font-bold text-[#304355] text-base mb-1 truncate">{support.requirementTitle}</h3>
           <p className="text-sm text-[#64707A] mb-0.5">{support.institution}</p>
@@ -76,40 +95,87 @@ function SupportCard({ support, showAction = false }) {
           </div>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Offered</p>
-          <p className="font-bold text-[#1F2933] text-base">{support.quantityOffered}</p>
-          <p className="text-xs text-[#64707A]">{support.item}</p>
+          <Link
+            to={`/requirements/${support.requirementId}`}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#304355] hover:underline mb-2"
+          >
+            View Requirement <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
 
-      {support.message && (
-        <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-800">{support.message}</p>
+          <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-3">
+        <p className="text-[10px] font-bold text-[#64707A] uppercase tracking-wider">Requirement Items & Your Support</p>
+        {support.items && support.items.map(itm => {
+          const yourSupport = Number(itm.donorSupportedQuantity || 0);
+          const required = Number(itm.quantityRequired || 0);
+          const remaining = Number(itm.quantityRemaining || 0);
+          const supportedByOthers = Math.max(0, required - remaining - yourSupport);
+          return (
+            <div key={itm.name} className="space-y-1">
+              <div className="flex justify-between items-center text-[11px]">
+                <span className="font-semibold text-[#304355]">
+                  {itm.name}
+                </span>
+                <span className="text-[#64707A]">{itm.unit}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px] text-[#64707A]">
+                <span>Required: <strong className="text-[#304355]">{required}</strong></span>
+                <span>Your support: <strong className="text-emerald-600">{yourSupport}</strong></span>
+                <span>Remaining: <strong className="text-[#304355]">{remaining}</strong></span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden flex">
+                {/* Someone else's support (or total supported minus yours) */}
+                <div
+                  className="bg-slate-400 h-full transition-all duration-500"
+                  style={{ width: `${required ? Math.min(100, (supportedByOthers / required) * 100) : 0}%` }}
+                />
+                {/* Your support */}
+                <div
+                  className="bg-emerald-500 h-full transition-all duration-500"
+                  style={{ width: `${required ? Math.min(100, (yourSupport / required) * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {actionRequired && (
+        <div className="mt-4 space-y-3">
+          <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending Deliveries</p>
+          {pendingOffers.map(offer => (
+            <div key={offer.id} className="flex items-center justify-between bg-white border border-amber-200 rounded p-2">
+              <div className="text-xs">
+                <span className="font-bold text-[#304355]">{offer.quantity_offered} {offer.unit}</span> of {offer.item_name}
+              </div>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => navigate(`/confirm-completion/${offer.id}`)}
+                className="py-1 px-3 text-[11px]"
+              >
+                Confirm Delivery
+              </Button>
+            </div>
+          ))}
         </div>
+      )}
+
+      {/* Show active but not pending offers (e.g. waiting for requester) */}
+      {!actionRequired && support.hasActive && (
+         <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded flex items-start gap-2">
+           <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+           <p className="text-xs text-blue-800">
+             You have confirmed delivery. Waiting for the requester to confirm receipt.
+           </p>
+         </div>
       )}
 
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-[#64707A]">
           <Calendar className="w-3.5 h-3.5" />
-          <span>Offered on {new Date(support.offeredOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {showAction && (
-            <Button
-              size="sm"
-              variant="danger"
-              onClick={() => navigate(`/confirm-completion/${support.id}`)}
-            >
-              Confirm Delivery
-            </Button>
-          )}
-          <Link
-            to={`/donor/supports/${support.id}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#304355] hover:underline"
-          >
-            View Details <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+          <span>Last offered on {new Date(support.lastOfferedOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
         </div>
       </div>
     </div>
@@ -122,6 +188,13 @@ export default function DonorDashboard() {
   const [activeTab, setActiveTab] = useState('active');
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    activeSupports: 0,
+    partiallySupported: 0,
+    completedSupports: 0,
+    pendingConfirmations: 0
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
   const [impact, setImpact] = useState(null);
   const [impactLoading, setImpactLoading] = useState(true);
   const [impactError, setImpactError] = useState(null);
@@ -130,9 +203,10 @@ export default function DonorDashboard() {
     let cancelled = false;
     async function fetchOffers() {
       if (!firebaseUser) return;
+      setLoading(true);
       try {
         const token = await firebaseUser.getIdToken();
-        const res = await offerService.getMine(token);
+        const res = await offerService.getMine(token, { filter: activeTab });
         if (!cancelled) setOffers(res.data);
       } catch (err) {
         console.error("Failed to fetch donor offers", err);
@@ -141,6 +215,25 @@ export default function DonorDashboard() {
       }
     }
     fetchOffers();
+    return () => { cancelled = true; };
+  }, [firebaseUser, activeTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchStats() {
+      if (!firebaseUser) return;
+      setStatsLoading(true);
+      try {
+        const token = await firebaseUser.getIdToken();
+        const res = await offerService.getStats(token);
+        if (!cancelled) setStats(res.data);
+      } catch (err) {
+        console.error("Failed to fetch donor stats", err);
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    }
+    fetchStats();
     return () => { cancelled = true; };
   }, [firebaseUser]);
 
@@ -168,16 +261,7 @@ export default function DonorDashboard() {
   const displayName = user?.full_name || 'Donor';
   const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-  const pendingOffers = offers.filter(o => o.actionRequired);
-  const activeOffers = offers.filter(o => o.status === 'accepted' || o.status === 'in_progress');
-  const completedOffers = offers.filter(o => o.status === 'completed');
-
-  const DONOR_STATS = {
-    activeSupports: activeOffers.length,
-    pendingConfirmations: pendingOffers.length,
-    partiallySupported: 0, // Placeholder
-    completedSupports: completedOffers.length,
-  };
+  const pendingOffers = offers.filter(o => o.donorOffers.some(offer => offer.status === 'pending'));
 
   return (
     <PageContainer>
@@ -201,23 +285,23 @@ export default function DonorDashboard() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <StatCard icon={Heart} value={DONOR_STATS.activeSupports} label="Active Supports" />
+          <StatCard icon={Heart} value={stats.activeSupports} label="Active Supports" />
           <StatCard
             icon={AlertCircle}
-            value={DONOR_STATS.pendingConfirmations}
+            value={stats.pendingConfirmations}
             label="Pending Confirmations"
             highlighted
             highlightColor="text-amber-500"
           />
-          <StatCard icon={RefreshCw} value={DONOR_STATS.partiallySupported} label="Partially Supported" highlightColor="text-sky-500" />
-          <StatCard icon={CheckCircle2} value={DONOR_STATS.completedSupports} label="Completed Supports" highlightColor="text-emerald-500" />
+          <StatCard icon={RefreshCw} value={stats.partiallySupported} label="Partially Supported" highlightColor="text-sky-500" />
+          <StatCard icon={CheckCircle2} value={stats.completedSupports} label="Completed Supports" highlightColor="text-emerald-500" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
             {/* Pending Action Banner */}
-            {pendingOffers.length > 0 && (
+            {activeTab === 'active' && pendingOffers.length > 0 && (
               <section>
                 <h2 className="text-lg font-bold text-[#304355] mb-3 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-amber-500" />
@@ -225,7 +309,7 @@ export default function DonorDashboard() {
                 </h2>
                 <div className="space-y-4">
                   {pendingOffers.map((s) => (
-                    <SupportCard key={s.id} support={s} showAction />
+                    <SupportCard key={s.id} support={s} />
                   ))}
                 </div>
               </section>
@@ -236,7 +320,8 @@ export default function DonorDashboard() {
               <div className="flex items-center gap-1 border-b border-slate-200 mb-4">
                 {[
                   { id: 'active', label: 'Active Supports' },
-                  { id: 'completed', label: 'Completed' },
+                  { id: 'partial', label: 'Partially Supported' },
+                  { id: 'complete', label: 'Completed' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -252,46 +337,26 @@ export default function DonorDashboard() {
                 ))}
               </div>
 
-              {activeTab === 'active' && (
-                <div className="space-y-4">
-                  {loading ? (
-                     <div className="text-[#64707A] text-sm">Loading offers...</div>
-                  ) : activeOffers.length === 0 && pendingOffers.length === 0 ? (
-                     <div className="text-[#64707A] text-sm">No active support offers found.</div>
-                  ) : (
-                    activeOffers.map((s) => (
-                      <SupportCard key={s.id} support={s} />
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'completed' && (
-                <div className="space-y-4">
-                  {completedOffers.length === 0 ? (
-                     <div className="text-[#64707A] text-sm">No completed supports yet.</div>
-                  ) : (
-                    completedOffers.map((s) => (
-                      <div key={s.id} className="bg-white rounded-xl border border-[#304355]/10 p-5 shadow-sm flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1.5">
-                            <StatusChip status="completed" />
-                          </div>
-                          <h3 className="font-bold text-[#304355] text-sm mb-0.5">{s.requirementTitle}</h3>
-                          <p className="text-xs text-[#64707A]">{s.institution} — {s.location}</p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-bold text-[#1F2933] text-base">{s.quantityOffered}</p>
-                          <p className="text-xs text-[#64707A]">{s.item}</p>
-                          <p className="text-xs text-[#64707A] mt-1">
-                            {new Date(s.offeredOn).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+              <div className="space-y-4">
+                {loading ? (
+                   <div className="text-[#64707A] text-sm py-8 flex items-center gap-2">
+                     <RefreshCw className="w-4 h-4 animate-spin" />
+                     Loading supports...
+                   </div>
+                ) : offers.length === 0 ? (
+                   <div className="bg-white rounded-xl border border-dashed border-slate-300 py-12 text-center">
+                     <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                     <p className="text-[#64707A] text-sm">No {activeTab} support records found.</p>
+                     <Link to="/requirements" className="text-[#304355] text-xs font-bold mt-2 inline-block hover:underline">
+                       Find requirements to support
+                     </Link>
+                   </div>
+                ) : (
+                  offers.map((s) => (
+                    <SupportCard key={s.id} support={s} />
+                  ))
+                )}
+              </div>
             </section>
           </div>
 
@@ -310,11 +375,15 @@ export default function DonorDashboard() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-[#E8E8E2] rounded-lg py-2.5">
-                  <p className="text-xl font-extrabold text-[#304355]">{offers.length}</p>
+                  <p className="text-xl font-extrabold text-[#304355]">
+                    {statsLoading ? '...' : (stats.activeSupports + stats.partiallySupported + stats.completedSupports)}
+                  </p>
                   <p className="text-xs text-[#64707A]">Total Supports</p>
                 </div>
                 <div className="bg-[#E8E8E2] rounded-lg py-2.5">
-                  <p className="text-xl font-extrabold text-[#304355]">{DONOR_STATS.completedSupports}</p>
+                  <p className="text-xl font-extrabold text-[#304355]">
+                    {statsLoading ? '...' : stats.completedSupports}
+                  </p>
                   <p className="text-xs text-[#64707A]">Fulfilled</p>
                 </div>
               </div>

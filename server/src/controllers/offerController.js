@@ -105,9 +105,19 @@ async function getMyOffers(req, res, next) {
   try {
     const limit = Number(req.query.limit) || 50;
     const offset = Number(req.query.offset) || 0;
+    const filter = req.query.filter || 'all';
 
-    const offers = await offerRepository.findByDonorId(req.user.id, { limit, offset });
+    const offers = await offerRepository.findByDonorId(req.user.id, { limit, offset, filter });
     return successResponse(res, 'Your offers retrieved successfully', offers);
+  } catch (error) {
+    next(error);
+  }
+}
+
+async function getMyStats(req, res, next) {
+  try {
+    const stats = await offerRepository.getDonorStats(req.user.id);
+    return successResponse(res, 'Donor stats retrieved successfully', stats);
   } catch (error) {
     next(error);
   }
@@ -223,6 +233,7 @@ module.exports = {
   confirmDonor,
   confirmRequester,
   getMyImpact,
+  getMyStats,
 };
 
 

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
 import useAuth from '../../hooks/useAuth';
@@ -26,6 +26,7 @@ import {
   Save,
   X,
   Loader2,
+  ArrowLeft,
 } from 'lucide-react';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -109,6 +110,7 @@ function DocumentCard({ doc, onDelete }) {
 }
 
 export default function InstitutionProfile() {
+  const navigate = useNavigate();
   const { firebaseUser, user: currentUser } = useAuth();
   const [institution, setInstitution] = useState(null);
   const [districts, setDistricts] = useState([]);
@@ -272,11 +274,16 @@ export default function InstitutionProfile() {
             <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">Institution Profile</h1>
             <p className="text-sm text-[#64707A]">Manage your organization's information and verification documents.</p>
           </div>
-          {!isEditing && (
-            <Button variant="outline" icon={Edit3} onClick={() => setIsEditing(true)}>
-              {institution ? 'Edit Profile' : 'Create Profile'}
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" icon={ArrowLeft} onClick={() => navigate(-1)}>
+              Back
             </Button>
-          )}
+            {!isEditing && (
+              <Button variant="outline" icon={Edit3} onClick={() => setIsEditing(true)}>
+                {institution ? 'Edit Profile' : 'Create Profile'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {error && (

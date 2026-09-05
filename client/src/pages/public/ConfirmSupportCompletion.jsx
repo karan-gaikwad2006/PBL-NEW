@@ -15,6 +15,7 @@ import {
   BarChart3, 
   History, 
   Info,
+  ArrowLeft,
   Check,
   X,
   Loader2,
@@ -139,6 +140,11 @@ export default function ConfirmSupportCompletion() {
   return (
     <PageContainer>
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-8">
+        <div className="mb-6">
+          <Button variant="ghost" onClick={() => navigate(-1)} icon={ArrowLeft}>
+            Back
+          </Button>
+        </div>
         <main className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Main Confirmation Canvas */}
           <div className="lg:col-span-8 space-y-6">

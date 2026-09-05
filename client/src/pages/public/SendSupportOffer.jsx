@@ -108,11 +108,13 @@ export default function SendSupportOffer() {
         items: itemsToSubmit,
         message
       };
-      await offerService.create(token, offerData);
+      const response = await offerService.create(token, offerData);
+      const createdOffers = Array.isArray(response.data) ? response.data : [response.data];
       navigate(`/requirements/${id}/support-success`, {
         state: {
           items: itemsToSubmit,
-          message
+          message,
+          offerId: createdOffers[0]?.id,
         }
       });
     } catch (err) {

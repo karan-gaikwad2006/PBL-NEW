@@ -13,6 +13,7 @@ const DISTRICT_NAME_ALIASES = {
   Aurangabad: 'Chhatrapati Sambhajinagar',
   Osmanabad: 'Dharashiv',
   Ahmadnagar: 'Ahilyanagar',
+  Bid: 'Beed',
 };
 
 function getDistrictName(feature) {

@@ -20,7 +20,8 @@ import {
   Truck,
   Sparkles,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { districtService, requirementService } from '../../services/api';
 
@@ -103,6 +104,14 @@ export default function DistrictInsights() {
                 </span>
               </p>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate('/explore')}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#64707A] hover:text-[#304355] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Explore
+            </button>
           </div>
         </header>
 

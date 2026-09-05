@@ -193,9 +193,13 @@ export const offerService = {
     const params = new URLSearchParams();
     if (filters.limit) params.append('limit', filters.limit);
     if (filters.offset) params.append('offset', filters.offset);
+    if (filters.filter) params.append('filter', filters.filter);
     const qs = params.toString();
     return apiRequest(`/v1/offers/mine${qs ? `?${qs}` : ''}`, { method: 'GET' }, token);
   },
+
+  getStats: (token) =>
+    apiRequest('/v1/offers/mine/stats', { method: 'GET' }, token),
 
   getById: (token, id) =>
     apiRequest(`/v1/offers/${id}`, { method: 'GET' }, token),

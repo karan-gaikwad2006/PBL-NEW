@@ -16,6 +16,7 @@ import {
   Check,
   Loader2,
   AlertCircle,
+  ArrowLeft,
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { requirementService } from '../../services/api';
@@ -148,6 +149,9 @@ export default function RequirementDetails() {
                 </span>
               </div>
             </div>
+            <Button variant="outline" icon={ArrowLeft} onClick={() => navigate('/requirements')}>
+              Back to Catalog
+            </Button>
           </div>
         </div>
 

@@ -330,7 +330,7 @@ export default function ExploreMap() {
             />
             
             {/* Geolocation Button */}
-            <div className="absolute top-4 left-4 z-[400] flex flex-col gap-2">
+            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
               <button
                 onClick={handleUseLocation}
                 disabled={locating}

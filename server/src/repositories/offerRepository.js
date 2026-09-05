@@ -140,36 +140,141 @@ async function createMultiOffer(donorId, requirementId, items, message) {
   }
 }
 
-async function findByDonorId(donorId, { limit = 50, offset = 0 } = {}) {
-  const values = [donorId, Math.min(Math.max(Number(limit) || 50, 1), 100), Math.max(Number(offset) || 0, 0)];
-  
+async function findByDonorId(donorId, { limit = 50, offset = 0, filter = 'all' } = {}) {
+  const values = [donorId, filter, Math.min(Math.max(Number(limit) || 50, 1), 100), Math.max(Number(offset) || 0, 0)];
+
   const { rows } = await query(
-    `SELECT so.id, so.requirement_id, 'Food support for ' || r.beneficiary_count || ' beneficiaries' AS requirement_title,
-            so.item_name, so.quantity_offered, so.unit, so.donor_message, so.status, so.created_at,
-            u.full_name AS requester_name, d.name AS district, r.taluka
-     FROM support_offers so
-     JOIN requirements r ON r.id = so.requirement_id
-     JOIN users u ON u.id = r.requester_user_id
-     LEFT JOIN districts d ON d.id = r.district_id
-     WHERE so.donor_user_id = $1
-     ORDER BY so.created_at DESC
-     LIMIT $2 OFFSET $3`,
+    `WITH donor_reqs AS (
+      SELECT
+         r.id AS requirement_id,
+         r.beneficiary_count,
+         r.requester_user_id,
+         r.district_id,
+         r.taluka,
+         r.status AS requirement_status,
+         MAX(so.created_at) AS last_offered_at,
+         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress')) AS has_active,
+         BOOL_OR(so.status = 'completed') AS has_completed,
+         BOOL_OR(so.status NOT IN ('cancelled', 'declined')) AS has_valid_offer,
+         BOOL_OR(
+           so.status NOT IN ('cancelled', 'declined')
+           AND r.status <> 'fulfilled'
+           AND EXISTS (
+             SELECT 1
+             FROM requirement_items ri_open
+             WHERE ri_open.requirement_id = r.id
+               AND lower(ri_open.item_name) = lower(so.item_name)
+               AND ri_open.quantity_remaining > 0
+           )
+         ) AS has_open_relevant_item,
+         json_agg(
+           json_build_object(
+             'id', so.id,
+             'item_name', so.item_name,
+             'quantity_offered', so.quantity_offered,
+             'unit', so.unit,
+             'status', so.status,
+             'donor_message', so.donor_message,
+             'created_at', so.created_at
+           )
+         ) AS offers
+       FROM support_offers so
+       JOIN requirements r ON r.id = so.requirement_id
+       WHERE so.donor_user_id = $1
+       GROUP BY r.id
+     )
+    SELECT
+       dr.*,
+       u.full_name AS requester_name,
+       d.name AS district,
+       (SELECT json_agg(json_build_object(
+          'name', ri.item_name,
+          'quantityRequired', ri.quantity_required,
+          'quantityRemaining', ri.quantity_remaining,
+            'donorSupportedQuantity', COALESCE((
+              SELECT SUM(so_item.quantity_offered)
+              FROM support_offers so_item
+              WHERE so_item.requirement_id = ri.requirement_id
+                AND so_item.donor_user_id = $1
+                AND lower(so_item.item_name) = lower(ri.item_name)
+                AND so_item.status NOT IN ('cancelled', 'declined')
+            ), 0),
+          'unit', ri.unit
+        )) FROM requirement_items ri WHERE ri.requirement_id = dr.requirement_id) AS requirement_items
+     FROM donor_reqs dr
+     JOIN users u ON u.id = dr.requester_user_id
+     LEFT JOIN districts d ON d.id = dr.district_id
+    WHERE
+       ($2 = 'all')
+       OR ($2 = 'active' AND dr.has_active = true)
+      OR ($2 = 'partial' AND dr.has_valid_offer = true AND dr.has_open_relevant_item = true)
+      OR ($2 = 'complete' AND dr.has_active = false AND dr.has_completed = true AND dr.has_open_relevant_item = false)
+     ORDER BY dr.last_offered_at DESC
+     LIMIT $3 OFFSET $4`,
     values
   );
-  
+
   return rows.map(row => ({
-    id: row.id,
+    id: row.requirement_id,
     requirementId: row.requirement_id,
-    requirementTitle: row.requirement_title,
+    requirementTitle: `Food support for ${row.beneficiary_count} beneficiaries`,
     institution: row.requester_name,
     location: [row.taluka, row.district].filter(Boolean).join(', '),
-    item: row.item_name,
-    quantityOffered: `${row.quantity_offered} ${row.unit}`,
-    status: row.status,
-    offeredOn: row.created_at,
-    message: row.donor_message,
-    actionRequired: row.status === 'pending'
+    requirementStatus: row.requirement_status,
+    items: row.requirement_items,
+    donorOffers: row.offers,
+    lastOfferedOn: row.last_offered_at,
+    hasActive: row.has_active,
+    hasCompleted: row.has_completed,
+    isPartial: row.has_valid_offer && row.has_open_relevant_item,
   }));
+}
+
+/**
+ * Get dashboard card stats for a donor.
+ */
+async function getDonorStats(donorId) {
+  const { rows } = await query(
+    `WITH donor_reqs AS (
+      SELECT
+         r.id AS requirement_id,
+         r.status AS requirement_status,
+         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress')) AS has_active,
+         BOOL_OR(so.status = 'completed') AS has_completed,
+         BOOL_OR(so.status NOT IN ('cancelled', 'declined')) AS has_valid_offer,
+         BOOL_OR(
+           so.status NOT IN ('cancelled', 'declined')
+           AND r.status <> 'fulfilled'
+           AND EXISTS (
+             SELECT 1
+             FROM requirement_items ri_open
+             WHERE ri_open.requirement_id = r.id
+               AND lower(ri_open.item_name) = lower(so.item_name)
+               AND ri_open.quantity_remaining > 0
+           )
+         ) AS has_open_relevant_item,
+         COUNT(CASE WHEN so.status = 'pending' THEN 1 END) AS pending_action_count
+       FROM support_offers so
+       JOIN requirements r ON r.id = so.requirement_id
+       WHERE so.donor_user_id = $1
+       GROUP BY r.id, r.status
+     )
+     SELECT
+       COUNT(CASE WHEN has_active THEN 1 END) AS active_count,
+      COUNT(CASE WHEN has_valid_offer AND has_open_relevant_item THEN 1 END) AS partial_count,
+      COUNT(CASE WHEN NOT has_active AND has_completed AND NOT has_open_relevant_item THEN 1 END) AS complete_count,
+       SUM(pending_action_count) AS action_needed_count
+     FROM donor_reqs`,
+    [donorId]
+  );
+
+  const stats = rows[0] || {};
+  return {
+    activeSupports: Number(stats.active_count || 0),
+    partiallySupported: Number(stats.partial_count || 0),
+    completedSupports: Number(stats.complete_count || 0),
+    pendingConfirmations: Number(stats.action_needed_count || 0)
+  };
 }
 
 async function findByIdWithDetails(id) {
@@ -460,6 +565,7 @@ module.exports = {
   hasActiveOffer,
   getItemRemaining,
   getDonorImpact,
+  getDonorStats,
 };
 
 

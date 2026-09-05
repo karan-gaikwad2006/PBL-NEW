@@ -8,6 +8,11 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-09-06 — Donor Partial Support Classification
+- Donor dashboard offer lists and stats classify records only from the authenticated donor's `support_offers`; open relevant `requirement_items` drive partial state, while complete requires dual-confirmed offers with no relevant quantity remaining.
+- Donor dashboard item data now separates `donorSupportedQuantity` from global `quantityRemaining`.
+- Support success navigation preserves the created offer ID for confirmation; nested support, requirement, district, and profile pages expose Back actions.
+
 ### 2026-09-05 — Admin Dashboard Live Stats Cards
 - Restored Active Requirements, Total Donors, Requesters, and Fulfillment Rate cards using `GET /api/v1/admin/stats`.
 - Counts come from Neon (`users.role`, `requirements.status`, institution verification queue, pending fraud signals). Fulfillment rate is fulfilled / (active + partially_supported + fulfilled).

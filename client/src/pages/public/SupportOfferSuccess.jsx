@@ -1,20 +1,25 @@
 import React from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
-import { CheckCircle2, ArrowRight, ShieldAlert, BarChart3, LayoutDashboard, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ShieldAlert, BarChart3, LayoutDashboard, Search } from 'lucide-react';
 
 export default function SupportOfferSuccess() {
-  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
   const items = location.state?.items || [];
   const message = location.state?.message;
+  const offerId = location.state?.offerId;
 
   return (
     <PageContainer>
       <div className="max-w-[700px] mx-auto px-6 md:px-10 py-12 text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex justify-start">
+          <Button variant="ghost" onClick={() => navigate(-1)} icon={ArrowLeft}>
+            Back
+          </Button>
+        </div>
         {/* Success Icon */}
         <div className="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 rounded-full text-emerald-600">
           <CheckCircle2 className="w-12 h-12" />
@@ -99,14 +104,15 @@ export default function SupportOfferSuccess() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Button
             variant="primary"
-            onClick={() => navigate(`/confirm-completion/${id || 'req-1'}`)}
+            onClick={() => offerId && navigate(`/confirm-completion/${offerId}`)}
+            disabled={!offerId}
             icon={BarChart3}
           >
             Track Progress
           </Button>
           <Button
             variant="outline"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/donor/dashboard')}
             icon={LayoutDashboard}
           >
             Go to My Dashboard
