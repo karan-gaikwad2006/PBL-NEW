@@ -8,6 +8,10 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-09-09 — Pledge Support Login Gate
+- Public pledge-support buttons now send signed-out users to `/login-required` with the requirement page preserved as the post-login destination.
+- `/requirements/:id/support` is route-protected for direct URL access, and `LoginRequired` now correctly prioritizes router state when preserving destinations.
+
 ### 2026-09-06 — Donor Partial Support Classification
 - Donor dashboard offer lists and stats classify records only from the authenticated donor's `support_offers`; open relevant `requirement_items` drive partial state, while complete requires dual-confirmed offers with no relevant quantity remaining.
 - Donor dashboard item data now separates `donorSupportedQuantity` from global `quantityRemaining`.

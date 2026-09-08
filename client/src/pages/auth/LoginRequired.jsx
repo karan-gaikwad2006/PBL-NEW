@@ -12,9 +12,9 @@ export default function LoginRequired() {
   const location = useLocation();
 
   // The "from" location is passed via router state by protected flows
-  const from = location.state?.from || location.search
-    ? new URLSearchParams(location.search).get('redirect') || '/dashboard'
-    : '/dashboard';
+  const from = location.state?.from
+    || new URLSearchParams(location.search).get('redirect')
+    || '/dashboard';
 
   const context = location.state?.context || 'respond to a requirement';
 

@@ -24,10 +24,23 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { districtService, requirementService } from '../../services/api';
+import useAuth from '../../hooks/useAuth';
 
 export default function DistrictInsights() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { districtId } = useParams();
+
+  const handlePledgeSupport = (requirementId) => {
+    const destination = `/requirements/${requirementId}`;
+    if (!isAuthenticated) {
+      navigate('/login-required', {
+        state: { from: destination, context: 'pledge support for a requirement' },
+      });
+      return;
+    }
+    navigate(destination);
+  };
 
   const districtSlug = districtId || 'nashik';
   const formattedTitle = districtSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -353,7 +366,7 @@ export default function DistrictInsights() {
                         </div>
 
                         <button
-                          onClick={() => navigate(`/requirements/${req.id}`)}
+                          onClick={() => handlePledgeSupport(req.id)}
                           className="w-full bg-[#304355] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#243342] transition shadow-xs cursor-pointer"
                         >
                           Pledge Support

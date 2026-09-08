@@ -18,6 +18,7 @@ import {
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 import { districtService, requirementService } from '../../services/api';
 import { getDistrictFromCoords } from '../../utils/geoUtils';
+import useAuth from '../../hooks/useAuth';
 
 const URGENCY_CONFIG = {
   CRITICAL: {
@@ -76,6 +77,18 @@ function mapRequirementToCard(req) {
 
 export default function ExploreMap() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const handlePledgeSupport = (requirementId) => {
+    const destination = `/requirements/${requirementId}`;
+    if (!isAuthenticated) {
+      navigate('/login-required', {
+        state: { from: destination, context: 'pledge support for a requirement' },
+      });
+      return;
+    }
+    navigate(destination);
+  };
   const [selectedDistrict, setSelectedDistrict] = useState('Nashik');
   const [searchQuery, setSearchQuery] = useState('');
   const [locating, setLocating] = useState(false);
@@ -591,7 +604,7 @@ export default function ExploreMap() {
                 </div>
 
                 <button
-                  onClick={() => navigate(`/requirements/${req.id}`)}
+                  onClick={() => handlePledgeSupport(req.id)}
                   className="mt-6 w-full bg-white border border-[#304355] text-[#304355] hover:bg-[#304355] hover:text-white py-2.5 rounded-xl font-semibold text-xs transition cursor-pointer"
                 >
                   Pledge Support

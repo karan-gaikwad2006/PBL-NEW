@@ -97,7 +97,15 @@ export default function App() {
                   />
                 }
               />
-              <Route path="/requirements/:id/support" element={<SendSupportOffer />} />
+              <Route
+                path="/requirements/:id/support"
+                element={
+                  <ProtectedRoute
+                    element={<SendSupportOffer />}
+                    context="pledge support for a requirement"
+                  />
+                }
+              />
               <Route path="/requirements/:id/support-success" element={<SupportOfferSuccess />} />
               <Route path="/confirm-completion/:id" element={<ConfirmSupportCompletion />} />
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { requirementService } from '../../services/api';
+import useAuth from '../../hooks/useAuth';
 
 const URGENCY_CONFIG = {
   CRITICAL: {
@@ -70,6 +71,18 @@ function mapRequirementToMatch(req) {
 
 export default function FoodMatching() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
+  const handlePledgeSupport = (requirementId) => {
+    const destination = `/requirements/${requirementId}`;
+    if (!isAuthenticated) {
+      navigate('/login-required', {
+        state: { from: destination, context: 'pledge support for a requirement' },
+      });
+      return;
+    }
+    navigate(destination);
+  };
   const [searchParams] = useSearchParams();
 
   const initialItem = searchParams.get('item') || 'Moong Dal';
@@ -335,7 +348,7 @@ export default function FoodMatching() {
                     {/* Action Button */}
                     <div className="pt-2 flex justify-end">
                       <button
-                        onClick={() => navigate(`/requirements/${req.id}`)}
+                        onClick={() => handlePledgeSupport(req.id)}
                         className="bg-[#304355] text-white px-6 py-2.5 rounded-xl text-xs font-semibold hover:bg-[#243342] transition shadow-xs flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Pledge Support for this Requirement</span>
