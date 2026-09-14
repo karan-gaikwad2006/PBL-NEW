@@ -1,7 +1,30 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, KeyRound } from 'lucide-react';
+import { Mail, ArrowLeft, ArrowRight, CheckCircle2, AlertCircle, KeyRound, Loader2 } from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
+
+/**
+ * Maps Firebase Auth error codes to user-friendly error messages.
+ */
+function getFriendlyErrorMessage(err) {
+  if (!err) return 'Something went wrong. Please try again later.';
+
+  const code = err.code || (err.message && err.message.match(/\((auth\/[^)]+)\)/)?.[1]) || '';
+
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait a while and try again.';
+    case 'auth/network-request-failed':
+      return 'Unable to connect right now. Please check your internet connection and try again.';
+    default:
+      if (err.message && err.message.toLowerCase().includes('network')) {
+        return 'Unable to connect right now. Please check your internet connection and try again.';
+      }
+      return 'Something went wrong. Please try again later.';
+  }
+}
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -19,6 +42,8 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const err = validate();
     if (err) { setError(err); return; }
     setError('');
@@ -28,7 +53,13 @@ export default function ForgotPasswordPage() {
       await resetPassword(email);
       setSent(true);
     } catch (err) {
-      setError(err.message);
+      const code = err.code || (err.message && err.message.match(/\((auth\/[^)]+)\)/)?.[1]) || '';
+      if (code === 'auth/user-not-found') {
+        // Privacy protection: Treat user-not-found as success to prevent email enumeration
+        setSent(true);
+      } else {
+        setError(getFriendlyErrorMessage(err));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -68,9 +99,10 @@ export default function ForgotPasswordPage() {
                   id="fp-email"
                   type="email"
                   value={email}
+                  disabled={isSubmitting}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   placeholder="name@example.com"
-                  className={`w-full bg-[#FBF9FA] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${error ? 'border-red-400' : 'border-[#304355]/20'}`}
+                  className={`w-full bg-[#FBF9FA] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${error ? 'border-red-400' : 'border-[#304355]/20'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 />
               </div>
               {error && (
@@ -83,9 +115,19 @@ export default function ForgotPasswordPage() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full bg-[#304355] text-white py-3 px-4 rounded-xl font-bold text-sm hover:bg-[#243342] transition-all flex justify-center items-center gap-2 shadow-xs"
+              disabled={isSubmitting}
+              className={`w-full bg-[#304355] text-white py-3 px-4 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 shadow-xs ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#243342]'}`}
             >
-              Send Reset Link <ArrowRight className="w-4 h-4" />
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  Send Reset Link <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
 
             <Link to="/login" className="flex items-center justify-center gap-1 text-xs text-[#64707A] hover:text-[#304355] transition mt-2">
@@ -116,3 +158,4 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
+
