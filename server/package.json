@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "build": "node --check src/index.js",
     "test": "node test/testRunner.js",
     "migrate": "node src/db/runMigrations.js",
     "import:nfhs5": "node src/db/importNfhs5.js"

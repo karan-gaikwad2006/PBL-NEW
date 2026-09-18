@@ -17,7 +17,7 @@ function buildCorsConfig() {
 
   return {
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || (isDevelopmentEnv() && isLocalDevelopmentOrigin(origin))) {
         callback(null, true);
       } else {
         callback(new Error(`CORS not allowed for origin: ${origin}`));
@@ -29,6 +29,27 @@ function buildCorsConfig() {
     optionsSuccessStatus: 204,
     maxAge: 86400,
   };
+}
+
+function isLocalDevelopmentOrigin(origin) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== 'http:') return false;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+
+    const octets = hostname.split('.').map(Number);
+    if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+      return false;
+    }
+
+    return (
+      octets[0] === 10 ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168)
+    );
+  } catch (_) {
+    return false;
+  }
 }
 
 const corsMiddleware = () => cors(buildCorsConfig());
