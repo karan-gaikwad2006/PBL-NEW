@@ -39,6 +39,30 @@ const URGENCY_CONFIG = {
   },
 };
 
+const URGENCY_PRIORITY = Object.freeze({
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+});
+
+const DISTRICT_ALIASES = Object.freeze({
+  ahmednagar: 'ahilyanagar',
+  ahmadnagar: 'ahilyanagar',
+  aurangabad: 'chhatrapati sambhajinagar',
+  osmanabad: 'dharashiv',
+  bid: 'beed',
+  buldana: 'buldhana',
+  gondiya: 'gondia',
+  raigarh: 'raigad',
+  mumbai: 'mumbai city',
+});
+
+function normalizeDistrictName(name) {
+  const normalized = String(name || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+  return DISTRICT_ALIASES[normalized] || normalized;
+}
+
 function daysUntil(expiresAt) {
   if (!expiresAt) return 14;
   const ms = new Date(expiresAt).getTime() - Date.now();
@@ -65,6 +89,8 @@ function mapRequirementToCard(req) {
     district: req.district ? `${req.district} District` : 'Maharashtra District',
     rawDistrict: req.district || '',
     urgency: urgencyKey,
+    status: req.status,
+    expiresAt: req.expiresAt,
     urgencyLabel: urgencyMeta.label,
     urgencyColor: urgencyMeta.color,
     daysLeft: daysUntil(req.expiresAt),
@@ -195,6 +221,29 @@ export default function ExploreMap() {
       return matchesLocation && matchesUrgency && matchesAttention && matchesInstitution;
     });
   }, [allRequirements, effectiveDistrict, urgencyFilter, attentionFilter, institutionFilter]);
+
+  const urgencyByDistrict = useMemo(() => {
+    return allRequirements.reduce((districtUrgencies, requirement) => {
+      const status = String(requirement.status || '').toLowerCase();
+      const isRelevant = (
+        (status === 'active' || status === 'partially_supported') &&
+        daysUntil(requirement.expiresAt) > 0 &&
+        requirement.items?.some((item) => Number(item.quantityRemaining) > 0)
+      );
+
+      if (!isRelevant) return districtUrgencies;
+
+      const district = normalizeDistrictName(requirement.rawDistrict || requirement.district);
+      const urgency = String(requirement.urgency || '').toUpperCase();
+      if (!district || !URGENCY_PRIORITY[urgency]) return districtUrgencies;
+
+      const currentPriority = URGENCY_PRIORITY[districtUrgencies[district]] || 0;
+      if (URGENCY_PRIORITY[urgency] > currentPriority) {
+        districtUrgencies[district] = urgency;
+      }
+      return districtUrgencies;
+    }, {});
+  }, [allRequirements]);
 
   // District statistics
   const districtRequirementsCount = useMemo(() => {
@@ -340,6 +389,7 @@ export default function ExploreMap() {
             <MaharashtraDistrictMap
               selectedDistrict={selectedDistrict}
               onDistrictSelect={handleDistrictChange}
+              urgencyByDistrict={urgencyByDistrict}
             />
             
             {/* Geolocation Button */}

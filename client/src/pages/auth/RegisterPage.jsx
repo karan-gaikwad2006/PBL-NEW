@@ -10,7 +10,7 @@ import logo from '../../assets/logo.png';
 const ROLE_PREFIXES = Object.freeze({
   donor: ['/donor/'],
   requester: ['/requester/'],
-  institution: ['/institution-profile'],
+  institution: ['/institution/', '/institution-profile'],
   admin: ['/admin/'],
 });
 

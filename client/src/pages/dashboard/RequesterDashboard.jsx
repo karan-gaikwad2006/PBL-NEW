@@ -174,6 +174,7 @@ export default function RequesterDashboard() {
     : requirements.filter((r) => r.status === filter);
 
   const stats = computeStats(requirements);
+  const isInstitution = user?.role === 'institution';
 
   return (
     <PageContainer>
@@ -181,8 +182,14 @@ export default function RequesterDashboard() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">My Requirements</h1>
-            <p className="text-sm text-[#64707A]">Manage your submitted requirements and respond to donor offers.</p>
+            <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">
+              {isInstitution ? 'Ashram Shala Dashboard' : 'My Requirements'}
+            </h1>
+            <p className="text-sm text-[#64707A]">
+              {isInstitution
+                ? 'Manage your institution’s food requirements and respond to donor offers.'
+                : 'Manage your submitted requirements and respond to donor offers.'}
+            </p>
           </div>
           <Link
             to="/submit-need"

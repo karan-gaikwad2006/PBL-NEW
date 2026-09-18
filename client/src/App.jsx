@@ -146,7 +146,16 @@ export default function App() {
               element={
                 <ProtectedRoute
                   element={<RequesterDashboard />}
-                  allowedRoles={['requester', 'admin']}
+                  allowedRoles={['requester', 'institution', 'admin']}
+                />
+              }
+            />
+            <Route
+              path="/institution/dashboard"
+              element={
+                <ProtectedRoute
+                  element={<RequesterDashboard />}
+                  allowedRoles={['institution', 'admin']}
                 />
               }
             />

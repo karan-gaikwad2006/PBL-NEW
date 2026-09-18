@@ -12,7 +12,7 @@ import { userService } from '../services/api';
 export const ROLE_DASHBOARD_MAP = Object.freeze({
   donor: '/donor/dashboard',
   requester: '/requester/dashboard',
-  institution: '/institution-profile',
+  institution: '/institution/dashboard',
   admin: '/admin/dashboard',
 });
 

@@ -8,6 +8,11 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-09-18 — Ashram Shala Dashboard Routing Fix
+- Institution/Ashram Shala accounts now default to `/institution/dashboard`, backed by the live `RequesterDashboard` requirement-management view.
+- `/institution/dashboard` and `/requester/dashboard` both allow the `institution` role; `/institution-profile` remains the profile and document-management page.
+- Client build passes. Client lint still reports existing warnings, including unused imports in `RequesterDashboard.jsx`.
+
 ### 2026-09-09 — Pledge Support Login Gate
 - Public pledge-support buttons now send signed-out users to `/login-required` with the requirement page preserved as the post-login destination.
 - `/requirements/:id/support` is route-protected for direct URL access, and `LoginRequired` now correctly prioritizes router state when preserving destinations.

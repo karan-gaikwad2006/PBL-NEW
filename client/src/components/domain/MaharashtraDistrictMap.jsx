@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { districtService } from '../../services/api';
+import { districtService, requirementService } from '../../services/api';
 
 const MAHARASHTRA_BOUNDS = [
   [15.5, 72.5],
@@ -16,13 +16,72 @@ const DISTRICT_NAME_ALIASES = {
   Bid: 'Beed',
 };
 
+const SEVERITY_STYLES = Object.freeze({
+  CRITICAL: { fillColor: '#DC2626', fillOpacity: 0.78 },
+  HIGH: { fillColor: '#F97316', fillOpacity: 0.75 },
+  MEDIUM: { fillColor: '#FACC15', fillOpacity: 0.72 },
+  LOW: { fillColor: '#22C55E', fillOpacity: 0.68 },
+  NONE: { fillColor: '#D1D5DB', fillOpacity: 0.62 },
+});
+
+const URGENCY_PRIORITY = Object.freeze({
+  LOW: 1,
+  MEDIUM: 2,
+  HIGH: 3,
+  CRITICAL: 4,
+});
+
 function getDistrictName(feature) {
   const sourceName = feature?.properties?.dtname || feature?.properties?.district || feature?.properties?.NAME_2;
   return DISTRICT_NAME_ALIASES[sourceName] || sourceName || 'Unknown district';
 }
 
 function normalizeDistrictName(name) {
-  return name.trim().toLocaleLowerCase();
+  const normalized = String(name || '').trim().toLocaleLowerCase().replace(/\s+/g, ' ');
+  const aliases = {
+    ahmednagar: 'ahilyanagar',
+    ahmadnagar: 'ahilyanagar',
+    aurangabad: 'chhatrapati sambhajinagar',
+    osmanabad: 'dharashiv',
+    bid: 'beed',
+    buldana: 'buldhana',
+    gondiya: 'gondia',
+    raigarh: 'raigad',
+    mumbai: 'mumbai city',
+  };
+  return aliases[normalized] || normalized;
+}
+
+function hasRemainingQuantity(requirement) {
+  const items = Array.isArray(requirement.items) ? requirement.items : [];
+  return items.some((item) => Number(item.quantityRemaining ?? item.quantity_remaining ?? 0) > 0);
+}
+
+function daysUntil(expiresAt) {
+  if (!expiresAt) return 14;
+  return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+}
+
+function buildUrgencyByDistrict(requirements) {
+  return requirements.reduce((districtUrgencies, requirement) => {
+    const status = String(requirement.status || '').toLowerCase();
+    const urgency = String(requirement.urgency || '').toUpperCase();
+    const isRelevant = (
+      (status === 'active' || status === 'partially_supported') &&
+      daysUntil(requirement.expiresAt) > 0 &&
+      hasRemainingQuantity(requirement) &&
+      URGENCY_PRIORITY[urgency]
+    );
+
+    if (!isRelevant) return districtUrgencies;
+
+    const district = normalizeDistrictName(requirement.district);
+    const currentPriority = URGENCY_PRIORITY[districtUrgencies[district]] || 0;
+    if (district && URGENCY_PRIORITY[urgency] > currentPriority) {
+      districtUrgencies[district] = urgency;
+    }
+    return districtUrgencies;
+  }, {});
 }
 
 function FitMaharashtraBounds({ preview }) {
@@ -63,9 +122,15 @@ function CtrlWheelZoom({ enabled }) {
   return null;
 }
 
-export default function MaharashtraDistrictMap({ selectedDistrict, onDistrictSelect, preview = false }) {
+export default function MaharashtraDistrictMap({
+  selectedDistrict,
+  onDistrictSelect,
+  urgencyByDistrict,
+  preview = false,
+}) {
   const [districtData, setDistrictData] = useState(null);
   const [districtApiData, setDistrictApiData] = useState([]);
+  const [liveUrgencyByDistrict, setLiveUrgencyByDistrict] = useState({});
   const [loadError, setLoadError] = useState('');
   const [hoveredDistrict, setHoveredDistrict] = useState('');
 
@@ -96,6 +161,25 @@ export default function MaharashtraDistrictMap({ selectedDistrict, onDistrictSel
   }, []);
 
   useEffect(() => {
+    if (urgencyByDistrict !== undefined) return undefined;
+
+    let isMounted = true;
+    requirementService.getAll({ limit: 100 })
+      .then((result) => {
+        if (isMounted && Array.isArray(result.data)) {
+          setLiveUrgencyByDistrict(buildUrgencyByDistrict(result.data));
+        }
+      })
+      .catch(() => {
+        // The map remains available with neutral fills when requirements are unavailable.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [urgencyByDistrict]);
+
+  useEffect(() => {
     let isMounted = true;
 
     districtService.getAll()
@@ -124,14 +208,17 @@ export default function MaharashtraDistrictMap({ selectedDistrict, onDistrictSel
   const districtStyle = (feature) => {
     const districtName = getDistrictName(feature);
     const normalizedDistrictName = normalizeDistrictName(districtName);
-    const isActive = normalizedDistrictName === normalizeDistrictName(selectedDistrict || '')
-      || normalizedDistrictName === normalizeDistrictName(hoveredDistrict || '');
+    const isSelected = normalizedDistrictName === normalizeDistrictName(selectedDistrict || '');
+    const isHovered = normalizedDistrictName === normalizeDistrictName(hoveredDistrict || '');
+    const districtUrgencies = urgencyByDistrict ?? liveUrgencyByDistrict;
+    const severity = districtUrgencies[normalizedDistrictName] || 'NONE';
+    const severityStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.NONE;
 
     return {
-      color: isActive ? '#B45309' : '#304355',
-      weight: isActive ? 3 : 1.2,
-      fillColor: isActive ? '#FBBF24' : '#DDE7E3',
-      fillOpacity: isActive ? 0.85 : 0.62,
+      color: isSelected || isHovered ? '#1F2937' : '#304355',
+      weight: isSelected || isHovered ? 3 : 1.2,
+      fillColor: severityStyle.fillColor,
+      fillOpacity: severityStyle.fillOpacity,
     };
   };
 
