@@ -13,7 +13,8 @@ import {
   AlertCircle,
   PackageOpen,
   RefreshCw,
-  Navigation
+  Navigation,
+  Database,
 } from 'lucide-react';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 import { districtService, requirementService } from '../../services/api';
@@ -125,6 +126,12 @@ export default function ExploreMap() {
   const [districtsList, setDistrictsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedRequirements, setSelectedRequirements] = useState([]);
+  const [selectedNutrition, setSelectedNutrition] = useState(null);
+  const [districtDataLoading, setDistrictDataLoading] = useState(true);
+  const [districtDataError, setDistrictDataError] = useState(null);
+  const [nutritionDataLoading, setNutritionDataLoading] = useState(true);
+  const [nutritionDataError, setNutritionDataError] = useState(null);
 
   // Filter states
   const [locationFilter, setLocationFilter] = useState('ALL');
@@ -164,6 +171,49 @@ export default function ExploreMap() {
     };
   }, []);
 
+  useEffect(() => {
+    let isMounted = true;
+    const districtRecord = districtsList.find((district) =>
+      normalizeDistrictName(district.name) === normalizeDistrictName(selectedDistrict)
+    );
+    const districtIdentifier = districtRecord?.id || districtRecord?.slug || selectedDistrict;
+
+    setSelectedRequirements([]);
+    setSelectedNutrition(null);
+    setDistrictDataLoading(true);
+    setNutritionDataLoading(true);
+    setDistrictDataError(null);
+    setNutritionDataError(null);
+
+    requirementService.getAll({ district: selectedDistrict, limit: 100 })
+      .then((response) => {
+        if (!isMounted) return;
+        const rows = Array.isArray(response?.data) ? response.data : [];
+        setSelectedRequirements(rows.map(mapRequirementToCard));
+      })
+      .catch((requestError) => {
+        if (isMounted) setDistrictDataError(requestError.message || 'Unable to load active requirements.');
+      })
+      .finally(() => {
+        if (isMounted) setDistrictDataLoading(false);
+      });
+
+    districtService.getById(districtIdentifier)
+      .then((response) => {
+        if (isMounted) setSelectedNutrition(response?.data || null);
+      })
+      .catch((requestError) => {
+        if (isMounted) setNutritionDataError(requestError.message || 'Unable to load nutrition data.');
+      })
+      .finally(() => {
+        if (isMounted) setNutritionDataLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDistrict, districtsList]);
+
   // Update selectedDistrict when map or search is clicked
   const handleDistrictChange = (newDistrictName) => {
     if (!newDistrictName) return;
@@ -183,7 +233,7 @@ export default function ExploreMap() {
   };
 
   // Derived effective district filter
-  const effectiveDistrict = locationFilter !== 'ALL' ? locationFilter : selectedDistrict;
+  const effectiveDistrict = locationFilter !== 'ALL' ? locationFilter : 'ALL';
 
   // Filter logic
   const filteredRequirements = useMemo(() => {
@@ -244,13 +294,6 @@ export default function ExploreMap() {
       return districtUrgencies;
     }, {});
   }, [allRequirements]);
-
-  // District statistics
-  const districtRequirementsCount = useMemo(() => {
-    return allRequirements.filter((r) =>
-      (r.rawDistrict || r.district || '').toLowerCase().includes((selectedDistrict || '').toLowerCase())
-    ).length;
-  }, [allRequirements, selectedDistrict]);
 
   // Derived attention status for panel
   const districtAttentionInfo = useMemo(() => {
@@ -419,7 +462,7 @@ export default function ExploreMap() {
           </div>
 
           {/* Selection Panel (Right 1 col) */}
-          <div className="lg:col-span-1 bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6 flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-1 self-start bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6 flex flex-col space-y-6">
             <div className="space-y-4">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
@@ -437,33 +480,6 @@ export default function ExploreMap() {
                 </div>
               </div>
 
-              {/* Data Transparency Box */}
-              <div className="border-t border-[#304355]/10 pt-4 space-y-2 text-xs">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A] block">
-                  Data Transparency
-                </span>
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Source:</span>
-                  <span className="font-semibold text-[#1F2933]">NFHS-5 (2019-21)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#64707A]">Last Synced:</span>
-                  <span className="font-semibold text-[#1F2933]">Oct 2023</span>
-                </div>
-              </div>
-
-              {/* Active Stats */}
-              <div className="bg-[#FBF9FA] rounded-xl p-4 border border-[#304355]/10 flex justify-between items-center">
-                <div>
-                  <span className="text-2xl font-extrabold text-[#304355] block">
-                    {districtRequirementsCount}
-                  </span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
-                    Active Requirements in {selectedDistrict}
-                  </span>
-                </div>
-                <Activity className="w-8 h-8 text-[#304355]/20" />
-              </div>
             </div>
 
             {/* Action Buttons */}
@@ -486,15 +502,129 @@ export default function ExploreMap() {
         </div>
       </section>
 
+      {/* Section 1B: District data kept intentionally separate */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Requester / active needs */}
+          <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#304355]">Requester / Active Needs</h2>
+                <p className="text-xs text-[#64707A] mt-1">Live active requirements in {selectedDistrict}.</p>
+              </div>
+              <Activity className="w-6 h-6 text-[#304355]/30 shrink-0" />
+            </div>
+
+            {districtDataLoading ? (
+              <div className="py-8 text-center text-sm text-[#64707A]">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
+                Loading active requirements…
+              </div>
+            ) : districtDataError ? (
+              <div className="py-8 text-center text-sm text-red-700">
+                <AlertCircle className="w-5 h-5 mx-auto mb-2" />
+                {districtDataError}
+              </div>
+            ) : selectedRequirements.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[#64707A]">
+                No active requirements in this district.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedRequirements.map((requirement) => (
+                  <article key={requirement.id} className="rounded-xl border border-[#304355]/10 bg-[#FBF9FA] p-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h3 className="font-bold text-sm text-[#304355]">{requirement.institutionName}</h3>
+                        <p className="text-xs text-[#64707A] mt-0.5">
+                          {requirement.institutionType} · {requirement.rawDistrict || selectedDistrict}
+                        </p>
+                      </div>
+                      <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-bold border ${requirement.urgencyColor}`}>
+                        {requirement.urgencyLabel}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#64707A]">
+                      <span>City/Village: <strong className="text-[#1F2933]">{requirement.city || 'Not provided'}</strong></span>
+                      <span>Status: <strong className="text-[#1F2933] capitalize">{String(requirement.status || '').replace('_', ' ')}</strong></span>
+                      <span>Verification: <strong className="text-[#1F2933]">{requirement.confidence}</strong></span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {requirement.items.map((item, index) => (
+                        <div key={`${requirement.id}-${item.name}-${index}`} className="border-t border-[#304355]/10 pt-2 text-xs">
+                          <div className="flex justify-between gap-3">
+                            <strong className="text-[#304355]">{item.name}</strong>
+                            <span className="text-[#64707A]">{item.unit}</span>
+                          </div>
+                          <div className="flex justify-between gap-3 mt-1 text-[#64707A]">
+                            <span>Required: <strong className="text-[#1F2933]">{item.quantityRequired}</strong></span>
+                            <span>Remaining: <strong className="text-[#1F2933]">{item.quantityRemaining}</strong></span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Nutrition / deficiency data */}
+          <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h2 className="text-xl font-extrabold text-[#304355]">Nutrition / Deficiency Data</h2>
+                <p className="text-xs text-[#64707A] mt-1">District-level population indicators for {selectedDistrict}.</p>
+              </div>
+              <Database className="w-6 h-6 text-[#304355]/30 shrink-0" />
+            </div>
+
+            {nutritionDataLoading ? (
+              <div className="py-8 text-center text-sm text-[#64707A]">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
+                Loading nutrition data…
+              </div>
+            ) : nutritionDataError || !selectedNutrition ? (
+              <div className="py-8 text-center text-sm text-[#64707A]">
+                <AlertCircle className="w-5 h-5 mx-auto mb-2" />
+                Nutrition data unavailable for this district.
+              </div>
+            ) : selectedNutrition.nutritionIndicators?.length === 0 ? (
+              <div className="py-8 text-center text-sm text-[#64707A]">
+                Nutrition data unavailable for this district.
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {selectedNutrition.nutritionIndicators.map((indicator) => (
+                    <div key={`${indicator.name}-${indicator.reportingPeriod || indicator.dataYear || ''}`} className="rounded-xl border border-[#304355]/10 bg-[#FBF9FA] p-3">
+                      <p className="text-xs font-semibold text-[#64707A]">{indicator.name}</p>
+                      <p className="text-xl font-extrabold text-[#304355] mt-1">
+                        {indicator.value ?? 'Not available'}{indicator.unit ? ` ${indicator.unit}` : ''}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-[#304355]/10 mt-4 pt-3 space-y-1 text-xs text-[#64707A]">
+                  <p>Source: <strong className="text-[#1F2933]">{selectedNutrition.nutritionIndicators[0]?.sourceName || 'Not available'}</strong></p>
+                  <p>Reporting period: <strong className="text-[#1F2933]">{selectedNutrition.nutritionIndicators[0]?.reportingPeriod || selectedNutrition.nutritionIndicators[0]?.dataYear || 'Not available'}</strong></p>
+                  <p className="pt-1">These are district-level population indicators, not a diagnosis of any requester, child, or family.</p>
+                </div>
+              </>
+            )}
+          </section>
+        </div>
+      </section>
+
       {/* Section 2: Current Active Requirements Catalog Preview */}
       <section className="max-w-[1280px] mx-auto px-6 md:px-10 py-10 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h3 className="text-2xl font-extrabold text-[#304355]">
-              Active Requirements in {effectiveDistrict && effectiveDistrict !== 'ALL' ? effectiveDistrict : 'Maharashtra'}
+              Browse Active Requirements Across Maharashtra
             </h3>
             <p className="text-sm text-[#64707A]">
-              Showing verified needs from local institutions in {selectedDistrict} and surrounding areas.
+              Use the filters to browse live needs statewide. Selected-district details appear above.
             </p>
           </div>
 
