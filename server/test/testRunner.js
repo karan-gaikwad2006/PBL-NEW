@@ -4,6 +4,8 @@ const { isValidUUID, requireUUID, sanitizePagination } = require('../src/validat
 const { createRateLimiter } = require('../src/middleware/rateLimiter');
 const { ALLOWED_MIME_TYPES } = require('../src/middleware/uploadMiddleware');
 const { AppError } = require('../src/utils/response');
+const matchingEngine = require('../src/services/matchingEngine');
+const { calculateNutritionAttention, canonicalIndicatorName } = require('../src/services/nutritionAttention');
 
 let passedTests = 0;
 let failedTests = 0;
@@ -77,6 +79,13 @@ async function runAllTests() {
     const res = await makeRequest({ host: 'localhost', port: 5000, path: '/api/v1/districts/pune', method: 'GET' });
     assert(res.status === 200, 'GET /api/v1/districts/pune returns 200');
     assert(res.body?.data?.name?.toLowerCase() === 'pune', 'District data matches Pune');
+  }
+
+  for (const district of ['nashik', 'pune', 'akola']) {
+    const res = await makeRequest({ host: 'localhost', port: 5000, path: `/api/v1/districts/${district}`, method: 'GET' });
+    assert(res.status === 200, `GET /api/v1/districts/${district} returns 200`);
+    assert((res.body?.data?.nutritionIndicators || []).length > 0, `${district} exposes real nutrition indicators`);
+    assert((res.body?.data?.nutritionAttention?.recommendedFoodCategories || []).length > 0, `${district} derives nutrition recommendations`);
   }
 
   {
@@ -228,7 +237,70 @@ async function runAllTests() {
   }
 
   // -------------------------------------------------------------
-  // 6. RATE LIMITER UNIT TESTS
+  // 6. DETERMINISTIC MATCHING ENGINE UNIT TESTS
+  // -------------------------------------------------------------
+  console.log('\n--- 6. Deterministic Matching Engine Unit Tests ---');
+  {
+    assert(matchingEngine.proximityScore({ lat: 18.52, lng: 73.85 }, { lat: 18.52, lng: 73.85 }, 50) === 1, 'Zero-distance proximity scores 1');
+    assert(matchingEngine.proximityScore({ lat: 18.52, lng: 73.85 }, { lat: 20.59, lng: 78.96 }, 50) === 0, 'Beyond-radius proximity scores 0');
+    assert(matchingEngine.foodMatchScore('Ragi (Finger Millet)', 'ragi') === 1, 'Food aliases normalize as exact matches');
+    assert(matchingEngine.foodMatchScore('Moong Dal', 'Toor Dal') === 0.5, 'Related pulse categories score 0.5');
+    assert(matchingEngine.foodMatchScore('Rice', 'Jaggery') === 0, 'Unrelated foods do not match');
+    assert(matchingEngine.remainingNeedScore([{ quantityRequired: 100, quantityRemaining: 5 }]) === 0.1, 'Nearly fulfilled valid need uses the 0.1 floor');
+
+    const fixture = {
+      id: 'requirement-1',
+      status: 'partially_supported',
+      urgency: 'high',
+      expiresAt: new Date(Date.now() + 86400000).toISOString(),
+      location: { lat: 18.52, lng: 73.85 },
+      items: [
+        { name: 'Jowar', quantityRequired: 100, quantityRemaining: 80, unit: 'kg' },
+        { name: 'Toor Dal', quantityRequired: 50, quantityRemaining: 40, unit: 'kg' },
+      ],
+      nutritionIndicators: [],
+    };
+    const matches = await matchingEngine.matchRequirements(
+      { location: fixture.location, foodItems: [{ item: 'Jowar' }, { item: 'Dal' }] },
+      { requirements: [fixture], deficiencyMappings: [] },
+    );
+    assert(matches.length === 1, 'Partially supported requirements remain matchable');
+    assert(matches[0].matchedItems.length === 2, 'Multiple donor items match multiple requirement items');
+    assert(matches[0].scoreBreakdown.proximity === 1, 'Score breakdown exposes proximity');
+
+    const flowA = await matchingEngine.matchRequirements(
+      { location: fixture.location, foodItems: [] },
+      { requirements: [fixture], deficiencyMappings: [] },
+    );
+    assert(flowA.length === 1 && flowA[0].scoreBreakdown.foodMatch === 0, 'Location-only Flow A keeps nearby requirements');
+
+    const expired = { ...fixture, id: 'expired', expiresAt: new Date(Date.now() - 1000).toISOString() };
+    const noMatch = await matchingEngine.matchRequirements(
+      { location: fixture.location, foodItems: [{ item: 'Jaggery' }] },
+      { requirements: [expired, fixture], deficiencyMappings: [] },
+    );
+    assert(noMatch.length === 0, 'Expired and no-food-match requirements are excluded from Flow B');
+  }
+
+  {
+    const attention = calculateNutritionAttention([
+      { name: 'children_6to59m_anaemic_pct', value: 68.9 },
+      { name: 'children_under5_underweight_pct', value: 77.5 },
+    ]);
+    assert(attention.level === 'VERY_HIGH', 'Nutrition attention uses available indicator data deterministically');
+    assert(attention.recommendedFoodCategories.includes('Ragi'), 'Nutrition attention returns curated food recommendations');
+    assert(calculateNutritionAttention([]).level === 'UNAVAILABLE', 'Nutrition attention supports unavailable data');
+    const importedNameAttention = calculateNutritionAttention([
+      { name: 'stunting', value: 42 },
+      { name: 'underweight', value: 45 },
+      { name: 'wasting', value: 27 },
+    ]);
+    assert(canonicalIndicatorName('stunting') === 'children_under5_stunted_pct', 'Imported NFHS indicator names map to reference keys');
+    assert(importedNameAttention.recommendedFoodCategories.includes('Moong Dal'), 'Imported NFHS indicators trigger curated recommendations');
+  }
+
+  // -------------------------------------------------------------
+    // 7. RATE LIMITER UNIT TESTS
   // -------------------------------------------------------------
   console.log('\n--- 6. Rate Limiter Middleware Unit Tests ---');
   {

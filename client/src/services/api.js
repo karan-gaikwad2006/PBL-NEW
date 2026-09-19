@@ -182,6 +182,14 @@ export const requirementService = {
     apiRequest(`/v1/requirements/${id}/reject`, { method: 'PATCH' }, token),
 };
 
+export const matchingService = {
+  find: (data) =>
+    apiRequest('/v1/matching', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 export const offerService = {
   create: (token, data) =>
     apiRequest('/v1/offers', {

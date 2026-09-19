@@ -222,6 +222,35 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
   return rows.map(mapRequirement);
 }
 
+/** Public deterministic matching catalog with live district indicators. */
+async function findAllForMatching() {
+  const { rows } = await query(
+    `${requirementSelect.replace(
+      'FROM requirements r',
+      `,
+       COALESCE((
+         SELECT json_agg(json_build_object(
+           'name', ni.indicator_name,
+           'value', ni.indicator_value,
+           'unit', ni.unit,
+           'sourceName', ni.source_name,
+           'reportingPeriod', ni.reporting_period,
+           'dataYear', ni.data_year,
+           'notes', ni.notes
+         ) ORDER BY ni.indicator_name)
+         FROM nutrition_indicators ni WHERE ni.district_id = r.district_id
+       ), '[]'::json) AS nutrition_indicators
+       FROM requirements r`
+    )}
+     WHERE r.status IN ('active', 'partially_supported')
+       AND r.expires_at > NOW()
+       AND (r.institution_id IS NULL OR i.verification_status = 'verified')
+     GROUP BY r.id, d.name, i.id, i.name, i.organization_type
+     ORDER BY r.submitted_at DESC`,
+  );
+  return rows.map((row) => ({ ...mapRequirement(row), nutritionIndicators: row.nutrition_indicators || [] }));
+}
+
 /** Public single requirement — only active/partially_supported, non-expired */
 async function findById(id, publicOnly = true) {
   const conditions = ['r.id = $1'];
@@ -385,6 +414,7 @@ async function isOwner(requirementId, userId) {
 
 module.exports = {
   findAll,
+  findAllForMatching,
   findById,
   findByIdUnrestricted,
   findByUserId,

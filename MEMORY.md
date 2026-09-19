@@ -8,6 +8,35 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-09-19 — Food Images & Nutrition Attention Map Calibration
+- Replaced mismatched stock photos for food categories (`moong dal` was mason jar salad, `mixed dal` was peanuts, `jowar` duplicated wheat, `wheat`, `bajra`, and `ragi` all shared the same wheat image). Added dedicated, high-resolution local photography assets in `client/public/images/foods/` and registered clean aliases in `foodImageMap.js`.
+- Calibrated `calculateNutritionAttention` thresholds in `server/src/services/nutritionAttention.js` based on actual NFHS-5 Maharashtra composite vulnerability scores (`>= 0.31` for VERY_HIGH, `>= 0.27` for HIGH, `>= 0.245` for MODERATE, `< 0.245` for LOWER).
+- All 4 active nutrition attention colors (Red `#DC2626`, Orange `#F97316`, Yellow `#FACC15`, Green `#22C55E`) are now visibly represented across Maharashtra's 36 districts on the Nutrition Needs map layer (5 Very High, 10 High, 12 Moderate, 9 Lower).
+- Fixed React Rules of Hooks crash in `MaharashtraDistrictMap.jsx` by positioning `useMemo` ahead of conditional early returns.
+- Defaulted map layer to Nutrition Needs on `ExploreMap.jsx`.
+- Added `mapMode="nutrition"` to the interactive map preview on `LandingPage.jsx` with an updated descriptor badge.
+- Backend suite passes 100/100, client build passes cleanly.
+
+### 2026-09-19 — Deterministic Matching Engine
+- Added the isolated backend matching engine and `POST /api/v1/matching`; it ranks live active/partially-supported requirements using deterministic proximity, food, deficiency-reference, urgency, and remaining-need scores, with multi-item metadata and no AI calls.
+- Connected `FoodMatching.jsx` to the live endpoint. Server suite passes 86/86 and client production build passes; matching uses optional resolved requirement coordinates because the existing schema stores district IDs, not requirement latitude/longitude.
+
+### 2026-09-19 — Explore Needs Decision-Support Layers
+- Enhanced the existing Explore Needs page with Institution Needs/Nutrition Needs map modes, deterministic district nutrition attention metadata from the curated reference mapping, dynamic legends, source/reporting-period indicator details, and a live district donation bridge using existing requirements and `/api/v1/matching`.
+- Preserved separate requester and nutrition panels, current location/search/filter/support flows, partially supported requirements, and hover fill colors. Backend suite passes 89/89 and client build passes; lint exits successfully with pre-existing warnings.
+
+### 2026-09-19 — District Donation UX
+- Explore Needs is now discovery-first: visual remote food-image recommendation cards, live Needed Right Now cards, and one CTA carrying district/recommendation context to the existing FoodMatching page.
+- FoodMatching now refreshes district recommendations, supports multiple selected foods with independent quantities/units, secondary custom-food search, explicit deterministic matching submission, and multi-item result display. Client build passes and lint exits successfully with repository warnings.
+
+### 2026-09-19 — Explore Donation Guidance QA
+- Verified the rendered Explore Needs donation-guidance flow in headed-equivalent Edge screenshots for Nashik, Pune, and Akola.
+- Fixed live Needed Right Now cards (they were dropped because requirement items were spread instead of nested as `{ item, requirement }`) so Nashik shows real remaining quantities and requester names.
+- Kept Donate These Foods as an enabled primary CTA, moved per-food quantity/unit controls above the donation food cards, and replaced mismatched stock photos (samosa/forest/bread) with closer food images.
+- Backend suite 100/100; client production build and lint still succeed with existing repository warnings.
+
+- Fixed the missing Explore recommendations at the backend source: NFHS import names (`stunting`, `wasting`, `severe wasting`, `underweight`) were compared literally against the curated reference keys (`children_under5_*_pct`), so no mappings triggered. Added canonical indicator aliases in `nutritionAttention.js`.
+- Live district API checks for Nashik, Pune, and Akola now return nutrition indicators and derived recommendation categories. Backend suite passes 100/100 and client build passes.
 ### 2026-09-18 — Ashram Shala Dashboard Routing Fix
 - Institution/Ashram Shala accounts now default to `/institution/dashboard`, backed by the live `RequesterDashboard` requirement-management view.
 - `/institution/dashboard` and `/requester/dashboard` both allow the `institution` role; `/institution-profile` remains the profile and document-management page.

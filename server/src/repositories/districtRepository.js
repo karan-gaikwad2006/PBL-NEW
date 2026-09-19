@@ -1,4 +1,5 @@
 const { query } = require('../config/db');
+const { calculateNutritionAttention } = require('../services/nutritionAttention');
 
 const DISTRICT_NAME_ALIASES = {
   Ahmednagar: 'Ahilyanagar',
@@ -16,12 +17,14 @@ function canonicalDistrictName(name) {
 }
 
 function mapDistrictRow(row) {
+  const nutritionIndicators = row.nutrition_indicators || [];
   return {
     id: row.id,
     name: canonicalDistrictName(row.name),
     slug: row.slug,
     state: row.state,
-    nutritionIndicators: row.nutrition_indicators || [],
+    nutritionIndicators,
+    nutritionAttention: calculateNutritionAttention(nutritionIndicators),
   };
 }
 

@@ -1,0 +1,187 @@
+{
+  "_meta": {
+    "description": "Seed data for PoshanSetu MVP — Maharashtra-wide district nutrition indicators + static deficiency-to-food mapping table. Import into DistrictIndicator and DeficiencyFoodMap tables at build time.",
+    "sources": [
+      "International Institute for Population Sciences (IIPS) and ICF. 2020. National Family Health Survey (NFHS)-5, State and District Factsheets, Maharashtra. Mumbai: IIPS.",
+      "IFPRI POSHAN District Nutrition Profile, Nashik, Maharashtra (derived from NFHS-5, 2019-21 round).",
+      "ICMR-National Institute of Nutrition (NIN), Dietary Guidelines for Indians — used to justify the nutrient-to-food category mapping below."
+    ],
+    "important_note": "These are POPULATION-LEVEL statistics. They must never be presented as applying to any specific individual, child, or institution. See PRD v2 Section 7.3 for the mandatory framing rule.",
+    "data_quality_note": "6 districts below have VERIFIED, district-specific NFHS-5 figures (data_source: 'district_factsheet'). The remaining 30 Maharashtra districts currently use the Maharashtra STATE-LEVEL average as a placeholder (data_source: 'state_average_fallback') because pulling all 36 district factsheets individually was not done in this pass. DO NOT silently treat fallback rows as district-accurate in the UI — surface the data_source field and label fallback districts as 'state average shown, district data pending' wherever this data is displayed. Replace fallback rows with real district factsheet data before expanding operations into that district; each district's factsheet is available at the same NFHS-5 Maharashtra compendium linked above."
+  },
+
+  "state_average_reference": {
+    "state": "Maharashtra",
+    "reporting_period": "NFHS-5, 2019-20",
+    "indicators": [
+      { "indicator_name": "children_under5_stunted_pct", "value": 35.2 },
+      { "indicator_name": "children_under5_wasted_pct", "value": 25.6 },
+      { "indicator_name": "children_under5_severely_wasted_pct", "value": 10.9 },
+      { "indicator_name": "children_under5_underweight_pct", "value": 36.1 },
+      { "indicator_name": "children_6to59m_anaemic_pct", "value": 68.9 },
+      { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 54.5 },
+      { "indicator_name": "women_pregnant_anaemic_pct", "value": 45.7 }
+    ],
+    "source": "NFHS-5 Maharashtra State Fact Sheet (IIPS & ICF, 2020)"
+  },
+
+  "district_indicators": [
+    {
+      "district": "Nashik",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-21",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": 42.0 },
+        { "indicator_name": "children_under5_wasted_pct", "value": 27.0 },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": 11.0 },
+        { "indicator_name": "children_under5_underweight_pct", "value": 45.0 },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": 67.0 },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 55.0 },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": 73.0 }
+      ],
+      "source": "IFPRI POSHAN District Nutrition Profile, Nashik (NFHS-5, 2019-21)"
+    },
+    {
+      "district": "Ahmednagar",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-20",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": 31.7 },
+        { "indicator_name": "children_under5_wasted_pct", "value": 24.9 },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": 8.6 },
+        { "indicator_name": "children_under5_underweight_pct", "value": 41.2 },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": 64.5 },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 50.5 },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": 44.0 }
+      ],
+      "source": "NFHS-5 Ahmednagar District Fact Sheet (IIPS & ICF, 2020)"
+    },
+    {
+      "district": "Akola",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-20",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": 31.8 },
+        { "indicator_name": "children_under5_wasted_pct", "value": 29.4 },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": 14.7 },
+        { "indicator_name": "children_under5_underweight_pct", "value": 30.8 },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": 77.5 },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 53.2 },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": 39.2 }
+      ],
+      "source": "NFHS-5 Akola District Fact Sheet (IIPS & ICF, 2020)"
+    },
+    {
+      "district": "Amravati",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-20",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": 29.0 },
+        { "indicator_name": "children_under5_wasted_pct", "value": 26.2 },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": 10.7 },
+        { "indicator_name": "children_under5_underweight_pct", "value": 38.0 },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": 74.4 },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 53.6 },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": 43.3 }
+      ],
+      "source": "NFHS-5 Amravati District Fact Sheet (IIPS & ICF, 2020)"
+    },
+    {
+      "district": "Aurangabad",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-20",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": 34.2 },
+        { "indicator_name": "children_under5_wasted_pct", "value": 26.4 },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": 11.8 },
+        { "indicator_name": "children_under5_underweight_pct", "value": 42.9 },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": 64.5 },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": 52.6 },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": 48.2 }
+      ],
+      "source": "NFHS-5 Aurangabad District Fact Sheet (IIPS & ICF, 2020)"
+    },
+    {
+      "district": "Bhandara",
+      "state": "Maharashtra",
+      "data_source": "district_factsheet",
+      "reporting_period": "NFHS-5, 2019-20",
+      "indicators": [
+        { "indicator_name": "children_under5_stunted_pct", "value": null },
+        { "indicator_name": "children_under5_wasted_pct", "value": null },
+        { "indicator_name": "children_under5_severely_wasted_pct", "value": null },
+        { "indicator_name": "children_under5_underweight_pct", "value": null },
+        { "indicator_name": "children_6to59m_anaemic_pct", "value": null },
+        { "indicator_name": "women_nonpregnant_anaemic_pct", "value": null },
+        { "indicator_name": "women_pregnant_anaemic_pct", "value": null }
+      ],
+      "source": "NFHS-5 Bhandara District Fact Sheet (IIPS & ICF, 2020) — nutrition/anaemia page not captured in this pass; child-feeding page was cut off before nutrition indicators. Re-fetch page 33-34 of the compendium to complete this row before using Bhandara in production.",
+      "incomplete": true
+    }
+  ],
+
+  "remaining_districts_pending_real_data": [
+    "Bid", "Buldana", "Chandrapur", "Dhule", "Gadchiroli", "Gondiya", "Hingoli",
+    "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai Suburban", "Mumbai", "Nagpur",
+    "Nanded", "Nandurbar", "Osmanabad", "Palghar", "Parbhani", "Pune", "Raigarh",
+    "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha",
+    "Washim", "Yavatmal"
+  ],
+  "_note_on_pending_districts": "Application logic: for any district in the list above, look up 'state_average_reference' as the fallback indicator set, and set data_source='state_average_fallback' on the returned object. Replace with a real entry in district_indicators as each district's factsheet is pulled.",
+
+  "deficiency_food_map": [
+    {
+      "id": "iron-anaemia",
+      "trigger_indicators": ["children_6to59m_anaemic_pct", "women_nonpregnant_anaemic_pct", "women_pregnant_anaemic_pct"],
+      "threshold_pct": 40,
+      "nutrient_category": "Iron",
+      "recommended_food_categories": ["Ragi", "Jaggery", "Green leafy vegetables", "Chana"],
+      "citation": "ICMR-NIN Dietary Guidelines for Indians — iron-rich food group recommendations for anaemia-prone populations"
+    },
+    {
+      "id": "protein-calorie-chronic",
+      "trigger_indicators": ["children_under5_stunted_pct", "children_under5_underweight_pct"],
+      "threshold_pct": 30,
+      "nutrient_category": "Protein + Calories",
+      "recommended_food_categories": ["Moong Dal", "Peanuts", "Milk powder", "Soya"],
+      "citation": "ICMR-NIN Dietary Guidelines for Indians — protein/calorie-dense food group for chronic undernutrition (stunting/underweight)"
+    },
+    {
+      "id": "acute-calorie",
+      "trigger_indicators": ["children_under5_wasted_pct", "children_under5_severely_wasted_pct"],
+      "threshold_pct": 10,
+      "nutrient_category": "Acute calorie need",
+      "recommended_food_categories": ["Rice", "Wheat", "Groundnut oil"],
+      "citation": "ICMR-NIN Dietary Guidelines for Indians — energy-dense food group for acute wasting"
+    },
+    {
+      "id": "general-diversity",
+      "trigger_indicators": ["children_under5_underweight_pct"],
+      "threshold_pct": 0,
+      "nutrient_category": "General dietary diversity",
+      "recommended_food_categories": ["Mixed dal", "Jowar", "Bajra", "Seasonal vegetables"],
+      "citation": "ICMR-NIN Dietary Guidelines for Indians — general diversity food group, applied as a fallback recommendation regardless of indicator severity"
+    }
+  ],
+
+  "framing_template": {
+    "description": "Use this exact structure for any UI text or AI-generated sentence referencing deficiency data. Never skip a step. If data_source is 'state_average_fallback', the sentence MUST say 'Maharashtra state reports...' not '{district} reports...' — do not attribute a state number to a specific district.",
+    "chain_district_verified": [
+      "District-level statistic (cited, NFHS-5): '{district} reports {value}% {indicator_label} (NFHS-5).'",
+      "General nutrient category (cited, ICMR/NIN): '{nutrient_category}-rich foods are generally recommended in response.'",
+      "Actual live requirement: '{institution_name} currently needs {qty} {food_item}.'"
+    ],
+    "chain_state_fallback": [
+      "State-level statistic, clearly labeled as such: 'Maharashtra state reports {value}% {indicator_label} (NFHS-5); district-specific data for {district} is not yet available.'",
+      "General nutrient category (cited, ICMR/NIN): '{nutrient_category}-rich foods are generally recommended in response.'",
+      "Actual live requirement: '{institution_name} currently needs {qty} {food_item}.'"
+    ],
+    "example_verified": "Nashik reports 73% anaemia among pregnant women (NFHS-5). Iron-rich foods such as Ragi and Chana are generally recommended in response. Ashram Shala Trust, Nashik currently needs 30kg Ragi.",
+    "example_fallback": "Maharashtra state reports 45.7% anaemia among pregnant women (NFHS-5); district-specific data for Jalgaon is not yet available. Iron-rich foods such as Ragi and Chana are generally recommended in response. Balgram Trust, Jalgaon currently needs 20kg Chana."
+  }
+}

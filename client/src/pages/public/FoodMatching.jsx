@@ -6,18 +6,16 @@ import {
   HeartHandshake,
   ArrowRight,
   ShieldCheck,
-  AlertTriangle,
-  PackageCheck,
-  Info,
   Sparkles,
   PackageOpen,
   Loader2,
-  AlertCircle,
-  Clock
+  AlertCircle
 } from 'lucide-react';
 import Button from '../../components/common/Button';
-import { requirementService } from '../../services/api';
+import { districtService, matchingService } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
+import FoodImage from '../../components/common/FoodImage';
+import { normalizeFoodName } from '../../utils/foodImageMap';
 
 const URGENCY_CONFIG = {
   CRITICAL: {
@@ -38,13 +36,15 @@ const URGENCY_CONFIG = {
   },
 };
 
-function mapRequirementToMatch(req) {
+function mapRequirementToMatch(match) {
+  const req = match.requirement || match;
   const items = Array.isArray(req.items) ? req.items.filter(Boolean) : [];
   const primaryItem = items[0] || {};
   const urgencyKey = String(req.urgency || 'MEDIUM').toUpperCase();
   const urgencyMeta = URGENCY_CONFIG[urgencyKey] || URGENCY_CONFIG.MEDIUM;
   const remainingQty = primaryItem.quantityRemaining != null ? primaryItem.quantityRemaining : primaryItem.quantity_remaining || 0;
   const unit = primaryItem.unit || 'kg';
+  const matchedFoods = [...new Map((match.matchedItems || []).map((item) => [item.requirementItem?.id || item.requirementItem?.name, item.requirementItem])).values()];
 
   return {
     id: req.id,
@@ -66,6 +66,11 @@ function mapRequirementToMatch(req) {
       `Beneficiaries: ${req.beneficiaryCount || 0}`
     ],
     matchReason: 'Direct demand logged by verified local institution',
+    matchScore: match.matchScore,
+    scoreBreakdown: match.scoreBreakdown,
+    matchedItems: match.matchedItems,
+    requirementItems: items,
+    matchedFoods,
   };
 }
 
@@ -85,76 +90,102 @@ export default function FoodMatching() {
   };
   const [searchParams] = useSearchParams();
 
-  const initialItem = searchParams.get('item') || 'Moong Dal';
-  const initialQty = searchParams.get('qty') || '20';
+  const selectedDistrict = searchParams.get('district') || '';
+  const initialFoods = useMemo(() => (searchParams.get('foods') || '').split('|').map((food) => food.trim()).filter(Boolean), [searchParams]);
 
   // Form State
-  const [foodItem, setFoodItem] = useState(initialItem);
-  const [quantity, setQuantity] = useState(initialQty);
-  const [unit, setUnit] = useState('kg');
-  const [location, setLocation] = useState('All Maharashtra');
+  const [recommendedFoods, setRecommendedFoods] = useState(initialFoods);
+  const [selectedFoods, setSelectedFoods] = useState(() => (
+    initialFoods.reduce((selection, food) => ({ ...selection, [normalizeFoodName(food)]: { name: food, quantity: '', unit: 'kg' } }), {})
+  ));
+  const [otherFood, setOtherFood] = useState('');
+  const [districtLoading, setDistrictLoading] = useState(Boolean(selectedDistrict));
+  const [districtError, setDistrictError] = useState('');
   const [activeSort, setActiveSort] = useState('best'); // 'best' | 'urgent'
 
   // Data states
   const [requirements, setRequirements] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Quick suggestions pills
-  const quickItems = ['Rice', 'Moong Dal', 'Chana', 'Jowar', 'Bajra', 'Ragi', 'Wheat'];
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
-    setError(null);
-
-    requirementService.getAll({ limit: 100 })
+    if (!selectedDistrict) return () => { isMounted = false; };
+    setDistrictLoading(true);
+    districtService.getAll()
       .then((res) => {
         if (!isMounted) return;
-        const rows = Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
-        setRequirements(rows.map(mapRequirementToMatch));
+        const districts = Array.isArray(res.data) ? res.data : [];
+        const district = districts.find((item) => normalizeFoodName(item.name) === normalizeFoodName(selectedDistrict));
+        const foods = district?.nutritionAttention?.recommendedFoodCategories || [];
+        setRecommendedFoods(foods);
+        const initialSelection = initialFoods.reduce((selection, food) => ({ ...selection, [normalizeFoodName(food)]: { name: food, quantity: '', unit: 'kg' } }), {});
+        setSelectedFoods(initialSelection);
       })
-      .catch((err) => {
-        if (!isMounted) return;
-        console.error('[FoodMatching] Error fetching requirements:', err);
-        setError(err.message || 'Failed to load active requirements');
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+      .catch((err) => { if (isMounted) setDistrictError(err.message || 'Could not load district recommendations.'); })
+      .finally(() => { if (isMounted) setDistrictLoading(false); });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedDistrict, initialFoods]);
+
+  const availableFoods = useMemo(() => [...new Map([...recommendedFoods, ...(otherFood.trim() ? [otherFood.trim()] : [])].map((food) => [normalizeFoodName(food), food])).values()], [recommendedFoods, otherFood]);
+
+  const toggleFood = (food) => {
+    const key = normalizeFoodName(food);
+    setSelectedFoods((current) => {
+      if (current[key]) {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      }
+      return { ...current, [key]: { name: food, quantity: '', unit: 'kg' } };
+    });
+  };
+
+  const updateSelectedFood = (food, field, value) => {
+    const key = normalizeFoodName(food);
+    setSelectedFoods((current) => ({ ...current, [key]: { ...current[key], [field]: value } }));
+  };
+
+  const handleFindMatches = async (event) => {
+    event.preventDefault();
+    const foods = Object.values(selectedFoods);
+    if (foods.length === 0 || foods.some((food) => !Number.isFinite(Number(food.quantity)) || Number(food.quantity) <= 0)) {
+      setError('Select at least one food and enter a quantity greater than zero for each selected food.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await matchingService.find({ foodItems: foods.map((food) => ({ item: food.name, quantity: Number(food.quantity), unit: food.unit })), maxResults: 100 });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const districtRows = selectedDistrict
+        ? rows.filter((match) => normalizeFoodName(match.requirement?.district) === normalizeFoodName(selectedDistrict))
+        : rows;
+      setRequirements(districtRows.map(mapRequirementToMatch));
+    } catch (err) {
+      setError(err.message || 'Failed to find matching requirements');
+      setRequirements([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtering & Sorting Logic
   const matchingResults = useMemo(() => {
-    if (!foodItem.trim()) return requirements;
-
-    const query = foodItem.toLowerCase().trim();
-
-    let results = requirements.filter((req) => {
-      const itemMatch = req.requiredItem.toLowerCase().includes(query);
-      const catMatch = req.category.toLowerCase().includes(query);
-      const titleMatch = req.title.toLowerCase().includes(query);
-
-      // Generalized pulse/grain matching
-      const pulseQuery = query.includes('dal') || query.includes('pulse') || query.includes('chana');
-      const pulseMatch = pulseQuery && (req.category.toLowerCase().includes('pulse') || req.requiredItem.toLowerCase().includes('dal'));
-
-      const grainQuery = query.includes('rice') || query.includes('grain') || query.includes('wheat') || query.includes('jowar');
-      const grainMatch = grainQuery && (req.category.toLowerCase().includes('grain') || req.requiredItem.toLowerCase().includes('rice'));
-
-      return itemMatch || catMatch || titleMatch || pulseMatch || grainMatch;
-    });
+    let results = [...requirements];
 
     if (activeSort === 'urgent') {
-      results = [...results].sort((a) => (a.urgency === 'CRITICAL' ? -1 : (a.urgency === 'HIGH' ? 0 : 1)));
+      results.sort((first, second) => {
+        const urgencyOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+        return (urgencyOrder[first.urgency] ?? 4) - (urgencyOrder[second.urgency] ?? 4);
+      });
     }
 
     return results;
-  }, [requirements, foodItem, activeSort]);
+  }, [requirements, activeSort]);
 
   return (
     <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
@@ -162,10 +193,10 @@ export default function FoodMatching() {
         {/* Header */}
         <header className="space-y-2">
           <h1 className="text-3xl lg:text-4xl font-extrabold text-[#304355] tracking-tight">
-            I Have Food. Where Can It Help?
+            {selectedDistrict ? `Donate Food in ${selectedDistrict}` : 'I Have Food. Where Can It Help?'}
           </h1>
           <p className="text-sm md:text-base text-[#64707A] max-w-2xl">
-            Tell us what you have, and explore active requirements that may need it.
+            Choose the foods you can provide, then find real active requirements that may need them.
           </p>
         </header>
 
@@ -177,70 +208,39 @@ export default function FoodMatching() {
               <HeartHandshake className="w-6 h-6 text-[#304355]" /> How I Can Help
             </h2>
 
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-5">
-              {/* Item Search */}
-              <div className="space-y-2">
-                <label className="block text-xs font-bold text-[#1F2933]">
-                  What food or item do you have?
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64707A]" />
-                  <input
-                    type="text"
-                    value={foodItem}
-                    onChange={(e) => setFoodItem(e.target.value)}
-                    placeholder="e.g., Dal, Rice, Vegetables..."
-                    className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl py-3 pl-10 pr-4 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
-                  />
-                </div>
-
-                {/* Quick Item Pills */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {quickItems.map((item) => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() => setFoodItem(item)}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
-                        foodItem.toLowerCase() === item.toLowerCase()
-                          ? 'bg-[#304355] text-white shadow-xs'
-                          : 'bg-[#FBF9FA] text-[#64707A] border border-[#304355]/15 hover:bg-[#304355]/10 hover:text-[#304355]'
-                      }`}
-                    >
-                      {item}
-                    </button>
+            <form onSubmit={handleFindMatches} className="space-y-5">
+              {selectedDistrict && districtLoading ? <p className="text-sm text-[#64707A]">Loading district recommendations…</p> : null}
+              {districtError ? <p className="text-sm text-red-700">{districtError}</p> : null}
+              {Object.values(selectedFoods).length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-bold text-[#1F2933]">Selected foods and quantities</p>
+                  {Object.values(selectedFoods).map((food) => (
+                    <div key={food.name} className="grid grid-cols-[1fr_5rem_6rem] items-center gap-2">
+                      <span className="text-xs font-semibold text-[#304355]">{food.name}</span>
+                      <input type="number" min="1" value={food.quantity} onChange={(event) => updateSelectedFood(food.name, 'quantity', event.target.value)} placeholder="Qty" aria-label={`${food.name} quantity`} className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-lg p-2 text-xs" />
+                      <select value={food.unit} onChange={(event) => updateSelectedFood(food.name, 'unit', event.target.value)} aria-label={`${food.name} unit`} className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-lg p-2 text-xs">
+                        <option value="kg">kg</option>
+                        <option value="grams">grams</option>
+                        <option value="packets">packets</option>
+                        <option value="liters">liters</option>
+                      </select>
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
 
-              {/* Quantity & Unit */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-[#1F2933]">Available Quantity</label>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    min="1"
-                    placeholder="e.g., 20"
-                    className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl p-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold text-[#1F2933]">Unit</label>
-                  <select
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl p-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
-                  >
-                    <option value="kg">Kilograms (kg)</option>
-                    <option value="liters">Liters (L)</option>
-                    <option value="packets">Packets</option>
-                    <option value="boxes">Boxes</option>
-                  </select>
+              {/* Recommended food cards */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-[#1F2933]">Recommended foods for this district</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {availableFoods.map((food) => {
+                    const selected = Boolean(selectedFoods[normalizeFoodName(food)]);
+                    return <button key={food} type="button" onClick={() => toggleFood(food)} aria-pressed={selected} className={`text-left overflow-hidden rounded-xl border-2 transition focus:outline-none focus:ring-2 focus:ring-[#304355] ${selected ? 'border-[#304355] bg-[#EEF1EE]' : 'border-[#304355]/10 bg-[#FBF9FA] hover:border-[#304355]/40'}`}><FoodImage foodName={food} className="w-full h-20" /><span className="flex items-center gap-2 p-2 text-xs font-bold text-[#304355]"><span className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#304355] bg-[#304355] text-white' : 'border-[#64707A]'}`}>{selected ? '✓' : ''}</span>{food}</span></button>;
+                  })}
                 </div>
               </div>
+
+              <div className="space-y-2"><label className="block text-xs font-bold text-[#1F2933]">Have something else?</label><div className="relative"><Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64707A]" /><input type="text" value={otherFood} onChange={(event) => setOtherFood(event.target.value)} placeholder="Search another food item" className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl py-3 pl-10 pr-4 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]" /></div></div>
 
               {/* Data Transparency Box */}
               <div className="bg-[#304355]/5 rounded-xl p-4 border border-[#304355]/10 space-y-2 text-xs">
@@ -251,6 +251,7 @@ export default function FoodMatching() {
                   PoshanSetu matches food offers directly against active, verified institutional requisitions in Maharashtra.
                 </p>
               </div>
+              <button type="submit" disabled={loading || Object.values(selectedFoods).length === 0} className="w-full bg-[#304355] text-white py-3 rounded-xl text-sm font-bold hover:bg-[#243342] transition disabled:opacity-50 disabled:cursor-not-allowed">{loading ? 'Finding matches…' : 'Find Where My Food Can Help'}</button>
             </form>
           </section>
 
@@ -260,8 +261,8 @@ export default function FoodMatching() {
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white p-4 rounded-2xl border border-[#304355]/10 shadow-xs">
               <div>
                 <h3 className="text-base font-bold text-[#304355]">Matching Requirements</h3>
-                <p className="text-xs text-[#64707A]">
-                  Showing active requirements matching "{foodItem || 'all items'}"
+                  <p className="text-xs text-[#64707A]">
+                    {selectedDistrict ? `Showing active requirements in ${selectedDistrict}` : 'Showing active requirements matching your selected foods'}
                 </p>
               </div>
 
@@ -330,9 +331,9 @@ export default function FoodMatching() {
 
                       <div className="bg-[#FBF9FA] px-4 py-2.5 rounded-xl border border-[#304355]/10 text-right sm:text-right">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A] block">
-                          Needs {req.requiredItem}
+                          Matched food{req.matchedFoods.length > 1 ? 's' : ''}
                         </span>
-                        <span className="text-xl font-extrabold text-[#304355]">{req.remainingQty}</span>
+                        <span className="text-sm font-extrabold text-[#304355]">{req.matchedFoods.length ? req.matchedFoods.map((item) => `${item.name} (${item.quantityRemaining} ${item.unit})`).join(', ') : `${req.requiredItem} (${req.remainingQty})`}</span>
                       </div>
                     </div>
 
@@ -365,10 +366,10 @@ export default function FoodMatching() {
                 </div>
                 <h4 className="text-lg font-bold text-[#1F2933]">No matching requirements found</h4>
                 <p className="text-xs text-[#64707A] max-w-md mx-auto">
-                  There are currently no active requirements matching "{foodItem}". Try searching for another staple such as Rice, Dal, Wheat, or Jowar.
+                  There are currently no active requirements for this food selection. Try another recommended food or use “Have something else?”.
                 </p>
-                <Button variant="primary" size="sm" onClick={() => setFoodItem('')}>
-                  View All Requirements
+                <Button variant="primary" size="sm" onClick={() => setRequirements([])}>
+                  Change Food Selection
                 </Button>
               </div>
             )}

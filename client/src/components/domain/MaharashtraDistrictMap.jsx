@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GeoJSON, MapContainer, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { districtService, requirementService } from '../../services/api';
@@ -22,6 +22,14 @@ const SEVERITY_STYLES = Object.freeze({
   MEDIUM: { fillColor: '#FACC15', fillOpacity: 0.72 },
   LOW: { fillColor: '#22C55E', fillOpacity: 0.68 },
   NONE: { fillColor: '#D1D5DB', fillOpacity: 0.62 },
+});
+
+const NUTRITION_STYLES = Object.freeze({
+  VERY_HIGH: { fillColor: '#DC2626', fillOpacity: 0.78 },
+  HIGH: { fillColor: '#F97316', fillOpacity: 0.75 },
+  MODERATE: { fillColor: '#FACC15', fillOpacity: 0.72 },
+  LOWER: { fillColor: '#22C55E', fillOpacity: 0.68 },
+  UNAVAILABLE: { fillColor: '#D1D5DB', fillOpacity: 0.62 },
 });
 
 const URGENCY_PRIORITY = Object.freeze({
@@ -92,7 +100,7 @@ function FitMaharashtraBounds({ preview }) {
       paddingTopLeft: [18, 18],
       paddingBottomRight: preview ? [18, 78] : [18, 18],
     });
-  }, [map]);
+  }, [map, preview]);
 
   return null;
 }
@@ -126,6 +134,8 @@ export default function MaharashtraDistrictMap({
   selectedDistrict,
   onDistrictSelect,
   urgencyByDistrict,
+  nutritionByDistrict = {},
+  mapMode = 'institution',
   preview = false,
 }) {
   const [districtData, setDistrictData] = useState(null);
@@ -197,6 +207,16 @@ export default function MaharashtraDistrictMap({
     };
   }, []);
 
+  const effectiveNutritionByDistrict = useMemo(() => {
+    if (nutritionByDistrict && Object.keys(nutritionByDistrict).length > 0) {
+      return nutritionByDistrict;
+    }
+    return districtApiData.reduce((acc, dist) => {
+      acc[normalizeDistrictName(dist.name)] = dist.nutritionAttention?.level || 'UNAVAILABLE';
+      return acc;
+    }, {});
+  }, [nutritionByDistrict, districtApiData]);
+
   if (loadError) {
     return <div className="flex h-full min-h-[inherit] items-center justify-center p-6 text-center text-sm text-red-700">{loadError}</div>;
   }
@@ -212,7 +232,10 @@ export default function MaharashtraDistrictMap({
     const isHovered = normalizedDistrictName === normalizeDistrictName(hoveredDistrict || '');
     const districtUrgencies = urgencyByDistrict ?? liveUrgencyByDistrict;
     const severity = districtUrgencies[normalizedDistrictName] || 'NONE';
-    const severityStyle = SEVERITY_STYLES[severity] || SEVERITY_STYLES.NONE;
+    const nutritionLevel = effectiveNutritionByDistrict[normalizedDistrictName] || 'UNAVAILABLE';
+    const severityStyle = mapMode === 'nutrition'
+      ? (NUTRITION_STYLES[nutritionLevel] || NUTRITION_STYLES.UNAVAILABLE)
+      : (SEVERITY_STYLES[severity] || SEVERITY_STYLES.NONE);
 
     return {
       color: isSelected || isHovered ? '#1F2937' : '#304355',

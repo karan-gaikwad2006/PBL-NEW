@@ -7,6 +7,7 @@ const requirementRoutes = require('./requirementRoutes');
 const offerRoutes = require('./offerRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const adminRoutes = require('./adminRoutes');
+const matchingController = require('../../controllers/matchingController');
 
 const router = express.Router();
 
@@ -18,6 +19,8 @@ router.use('/requirements', requirementRoutes);
 router.use('/offers', offerRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/admin', adminRoutes);
+
+router.post('/matching', matchingController.getMatches);
 
 
 router.get('/', (req, res) => {

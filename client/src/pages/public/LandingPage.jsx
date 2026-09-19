@@ -253,10 +253,10 @@ export default function LandingPage() {
               className="lg:w-1/2 w-full h-[380px] bg-white rounded-2xl border border-[#304355]/10 shadow-sm block relative z-0 isolate overflow-hidden"
               aria-label="Explore the interactive Maharashtra district map"
             >
-              <MaharashtraDistrictMap preview selectedDistrict="Nashik" onDistrictSelect={() => {}} />
+              <MaharashtraDistrictMap preview selectedDistrict="Nashik" onDistrictSelect={() => {}} mapMode="nutrition" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[400] bg-white/90 px-4 py-3 text-center backdrop-blur-xs">
-                <h4 className="text-base font-bold text-[#304355]">Interactive Maharashtra Map</h4>
-                <p className="text-xs text-[#64707A]">Select a district to explore the full map.</p>
+                <h4 className="text-base font-bold text-[#304355]">Maharashtra Nutrition Needs Map</h4>
+                <p className="text-xs text-[#64707A]">District nutrition attention levels based on official NFHS-5 data. Click to explore.</p>
               </div>
             </Link>
           </div>
