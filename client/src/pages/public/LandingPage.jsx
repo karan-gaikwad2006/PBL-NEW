@@ -30,6 +30,7 @@ import {
   Compass
 } from 'lucide-react';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
+import heroPattern from '../../assets/hero-pattern.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -111,36 +112,43 @@ export default function LandingPage() {
   return (
     <div className="bg-[#FAF8F6] text-[#1F2933] font-sans selection:bg-[#d0e5fb] selection:text-[#081d2e] min-h-screen">
       {/* 1. HERO SECTION */}
-      <section className="w-full bg-[#FAF8F6] py-10 lg:py-16 relative overflow-hidden">
-        {/* Ambient background glows */}
-        <div className="absolute -top-24 right-0 w-96 h-96 rounded-full bg-[#ffddb7]/25 blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 left-0 w-80 h-80 rounded-full bg-[#d0e5fb]/30 blur-3xl pointer-events-none" />
+      <section
+        className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] py-12 lg:py-16 flex flex-col justify-center relative overflow-hidden bg-[#262820] bg-repeat text-white border-b border-[#3b3d32]"
+        style={{
+          backgroundImage: `url(${heroPattern})`,
+          backgroundRepeat: 'repeat',
+          backgroundSize: 'auto',
+        }}
+      >
+        {/* Subtle dark ambient glows */}
+        <div className="absolute -top-24 right-0 w-96 h-96 rounded-full bg-[#ffddb7]/10 blur-3xl pointer-events-none" />
+        <div className="absolute top-1/2 left-0 w-80 h-80 rounded-full bg-[#d0e5fb]/10 blur-3xl pointer-events-none" />
 
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-10 relative z-10">
+        <div className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-10 relative z-10 flex flex-col justify-between my-auto gap-8 lg:gap-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Column: Copy & Search */}
             <div className="lg:col-span-7 flex flex-col gap-5">
-              <div className="inline-flex items-center gap-2 self-start px-3 py-1 rounded-full bg-[#ffddb7]/50 text-[#3b270c] border border-[#3b270c]/10">
+              <div className="inline-flex items-center gap-2 self-start px-3.5 py-1 rounded-full bg-[#ffddb7]/20 text-[#ffddb7] border border-[#ffddb7]/40 backdrop-blur-sm shadow-xs">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
                 </span>
-                <span className="text-xs uppercase tracking-wider font-bold text-[#3b270c]">
+                <span className="text-xs uppercase tracking-wider font-bold text-[#ffddb7]">
                   Live Maharashtra Nutrition Coordination
                 </span>
               </div>
 
               <div className="flex flex-col gap-3">
-                <h1 className="text-4xl lg:text-5xl font-extrabold text-[#192d3e] tracking-tight leading-[1.12]">
+                <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.12]">
                   Make Every Food Donation More Meaningful
                 </h1>
-                <p className="text-base md:text-lg text-[#64707A] leading-relaxed max-w-xl">
+                <p className="text-base md:text-lg text-slate-200 leading-relaxed max-w-xl">
                   See where nutrition support is needed, understand why, and help directly.
                 </p>
               </div>
 
               {/* Inline Search Bar Card */}
-              <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-slate-200/80 flex flex-col gap-3">
+              <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 md:p-5 shadow-2xl border border-white/15 flex flex-col gap-3">
                 <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                   <div className="relative flex-1">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
@@ -150,34 +158,34 @@ export default function LandingPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search district, taluka, or PIN (e.g. Nashik, Nandurbar, Gadchiroli, 422001)"
-                      className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#192d3e]/20 border border-slate-200/60 text-sm font-medium transition-all"
+                      className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#1b1d16]/80 text-white placeholder:text-slate-400 focus:outline-none focus:bg-[#151711] focus:ring-2 focus:ring-[#ffddb7]/50 border border-white/10 text-sm font-medium transition-all"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleLocateMe}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-semibold text-xs transition-colors shrink-0 border border-slate-200/80 cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3a3d31]/90 hover:bg-[#474a3c] text-slate-200 font-semibold text-xs transition-colors shrink-0 border border-white/10 cursor-pointer shadow-xs"
                   >
-                    <Navigation className="w-3.5 h-3.5 text-slate-600" />
+                    <Navigation className="w-3.5 h-3.5 text-[#ffddb7]" />
                     <span>Locate Near Me</span>
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#192d3e] hover:bg-[#304355] text-white font-semibold text-xs transition-colors shrink-0 shadow-xs cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#ffddb7] hover:bg-[#ffe3c2] text-[#2a1801] font-bold text-xs transition-colors shrink-0 shadow-md cursor-pointer"
                   >
                     <span>Search</span>
                   </button>
                 </form>
 
                 {/* Quick Filter Pills */}
-                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-                  <span className="text-xs text-[#64707A] font-semibold">Priority Clusters:</span>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
+                  <span className="text-xs text-slate-300 font-semibold">Priority Clusters:</span>
                   {['Nashik', 'Nandurbar', 'Palghar', 'Gadchiroli', 'Pune Rural'].map((cluster) => (
                     <button
                       key={cluster}
                       type="button"
                       onClick={() => handleQuickSearch(cluster)}
-                      className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-[#192d3e] hover:text-white transition-all text-xs font-medium cursor-pointer"
+                      className="px-2.5 py-1 rounded-full bg-[#383b2e] text-slate-200 hover:bg-[#ffddb7] hover:text-[#2a1801] border border-white/10 transition-all text-xs font-medium cursor-pointer shadow-xs"
                     >
                       {cluster}
                     </button>
@@ -188,33 +196,33 @@ export default function LandingPage() {
 
             {/* Right Column: Hero Visual with Real-time Floating Tags */}
             <div className="lg:col-span-5 relative mt-4 lg:mt-0">
-              <div className="relative rounded-3xl overflow-hidden shadow-xl aspect-[4/3] bg-slate-100 border border-slate-200/60">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-900 border border-white/15">
                 <img
                   className="w-full h-full object-cover"
                   alt="Rural Maharashtra Ashram Shala children receiving wholesome warm khichdi meal"
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuAx9Ql887IFgi6EXlWrykhrrN4Bce0v0n66026dBaUtun-tcRnQyK-8_qBU-tRMTU1YmoPoiR2tNEQit3t5N7Z5H7BYVuv8dL86a-OVDNYmEzw_4RRqTxtcPL7DMQ3U62r73ek7gQNBYWGhkHE4xXqky2qU7oSIKENXgD6U0vHR_01iacmbVSfd6DZARHi5j9me3cf9FerB-yfEmkSSTKBdkHtHRwuWBHrbgw7jeq0"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#192d3e]/80 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1b1d16]/90 via-transparent to-transparent" />
 
                 {/* Floating Status Badges */}
-                <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-md flex items-center gap-2 border border-slate-100">
-                  <BadgeCheck className="text-emerald-600 w-4 h-4" />
-                  <span className="text-xs font-bold text-slate-900">Verified Ashram Shala • Trimbakeshwar</span>
+                <div className="absolute top-4 left-4 bg-[#2a2d22]/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-2 border border-white/15 text-white">
+                  <BadgeCheck className="text-emerald-400 w-4 h-4" />
+                  <span className="text-xs font-bold text-white">Verified Ashram Shala • Trimbakeshwar</span>
                 </div>
 
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 rounded-2xl shadow-lg flex items-center justify-between border border-slate-100">
+                <div className="absolute bottom-4 left-4 right-4 bg-[#2a2d22]/90 backdrop-blur-md p-3.5 rounded-2xl shadow-xl flex items-center justify-between border border-white/15 text-white">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                    <div className="w-8 h-8 rounded-lg bg-[#ffddb7]/20 flex items-center justify-center text-[#ffddb7]">
                       <Lock className="w-4 h-4" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-[#192d3e]">100% In-Kind Support</span>
-                      <span className="text-[11px] text-[#64707A]">Zero cash transactions handled</span>
+                      <span className="text-xs font-bold text-white">100% In-Kind Support</span>
+                      <span className="text-[11px] text-slate-300">Zero cash transactions handled</span>
                     </div>
                   </div>
                   <Link
                     to="/explore"
-                    className="px-3 py-1.5 rounded-full bg-[#192d3e] text-white text-xs font-semibold hover:bg-[#304355] transition-all shadow-xs"
+                    className="px-3.5 py-1.5 rounded-full bg-[#ffddb7] text-[#2a1801] text-xs font-bold hover:bg-[#ffe3c2] transition-all shadow-md"
                   >
                     Direct Handoff
                   </Link>
@@ -225,38 +233,38 @@ export default function LandingPage() {
 
           {/* Trust / Impact Stat Strip Directly Below Hero */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4 hover:shadow-md transition-all">
-              <div className="w-12 h-12 rounded-xl bg-[#ffddb7] text-[#3b270c] flex items-center justify-center shrink-0">
+            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
+              <div className="w-12 h-12 rounded-xl bg-[#ffddb7]/20 text-[#ffddb7] flex items-center justify-center shrink-0 border border-[#ffddb7]/30">
                 <Wheat className="w-6 h-6" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-[#192d3e]">1,420+ kg</span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="text-xl font-bold text-white">1,420+ kg</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                     LIVE SYNC
                   </span>
                 </div>
-                <span className="text-xs text-[#64707A]">Staples Matched This Month</span>
+                <span className="text-xs text-slate-300">Staples Matched This Month</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4 hover:shadow-md transition-all">
-              <div className="w-12 h-12 rounded-xl bg-slate-100 text-emerald-600 flex items-center justify-center shrink-0">
+            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-[#192d3e]">48 Verified</span>
-                <span className="text-xs text-[#64707A]">Ashram Shalas &amp; Anganwadis</span>
+                <span className="text-xl font-bold text-white">48 Verified</span>
+                <span className="text-xs text-slate-300">Ashram Shalas &amp; Anganwadis</span>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200/80 flex items-center gap-4 hover:shadow-md transition-all">
-              <div className="w-12 h-12 rounded-xl bg-[#d0e5fb] text-[#192d3e] flex items-center justify-center shrink-0">
+            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
+              <div className="w-12 h-12 rounded-xl bg-[#d0e5fb]/20 text-[#d0e5fb] flex items-center justify-center shrink-0 border border-[#d0e5fb]/30">
                 <MapPin className="w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-[#192d3e]">36 Districts</span>
-                <span className="text-xs text-[#64707A]">Monitored Weekly with ICDS Logs</span>
+                <span className="text-xl font-bold text-white">36 Districts</span>
+                <span className="text-xs text-slate-300">Monitored Weekly with ICDS Logs</span>
               </div>
             </div>
           </div>
