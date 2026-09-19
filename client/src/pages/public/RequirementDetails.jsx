@@ -87,7 +87,7 @@ export default function RequirementDetails() {
 
   if (loading) {
     return (
-      <div className="bg-[#E8E8E2] min-h-screen flex items-center justify-center text-[#64707A]">
+      <div className="bg-[#FAF8F6] min-h-screen flex items-center justify-center text-[#64707A]">
         <div className="text-center space-y-3">
           <Loader2 className="w-8 h-8 animate-spin text-[#304355] mx-auto" />
           <p className="text-sm">Loading requirement…</p>
@@ -98,7 +98,7 @@ export default function RequirementDetails() {
 
   if (error || !requirement) {
     return (
-      <div className="bg-[#E8E8E2] min-h-screen flex items-center justify-center px-6">
+      <div className="bg-[#FAF8F6] min-h-screen flex items-center justify-center px-6">
         <div className="bg-white rounded-2xl border border-red-200 p-10 max-w-md text-center space-y-4">
           <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
           <h1 className="text-xl font-bold text-[#304355]">Requirement not available</h1>
@@ -112,7 +112,7 @@ export default function RequirementDetails() {
   }
 
   return (
-    <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
+    <div className="bg-[#FAF8F6] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 space-y-10">
         <div className="space-y-4">
           <nav className="flex items-center gap-2 text-xs font-semibold text-[#64707A]">
@@ -174,7 +174,7 @@ export default function RequirementDetails() {
                     return (
                       <div
                         key={item.id || item.name}
-                        className="border border-slate-200/80 rounded-xl p-4 bg-[#FBF9FA] space-y-3"
+                        className="border border-slate-200/80 rounded-xl p-4 bg-[#FAF8F6] space-y-3"
                       >
                         <div className="flex justify-between items-start">
                           <div>
@@ -288,7 +288,7 @@ export default function RequirementDetails() {
                 </Button>
               </div>
 
-              <div className="bg-[#FBF9FA] rounded-xl p-3.5 border border-[#304355]/10 flex items-start gap-2 text-xs text-[#64707A]">
+              <div className="bg-[#FAF8F6] rounded-xl p-3.5 border border-[#304355]/10 flex items-start gap-2 text-xs text-[#64707A]">
                 <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#304355]" />
                 <p className="leading-tight">
                   PoshanSetu does not process payments or donations. Any donation is coordinated outside the platform.

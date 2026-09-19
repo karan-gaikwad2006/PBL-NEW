@@ -188,7 +188,7 @@ export default function FoodMatching() {
   }, [requirements, activeSort]);
 
   return (
-    <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
+    <div className="bg-[#FAF8F6] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-10 space-y-8">
         {/* Header */}
         <header className="space-y-2">
@@ -217,8 +217,8 @@ export default function FoodMatching() {
                   {Object.values(selectedFoods).map((food) => (
                     <div key={food.name} className="grid grid-cols-[1fr_5rem_6rem] items-center gap-2">
                       <span className="text-xs font-semibold text-[#304355]">{food.name}</span>
-                      <input type="number" min="1" value={food.quantity} onChange={(event) => updateSelectedFood(food.name, 'quantity', event.target.value)} placeholder="Qty" aria-label={`${food.name} quantity`} className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-lg p-2 text-xs" />
-                      <select value={food.unit} onChange={(event) => updateSelectedFood(food.name, 'unit', event.target.value)} aria-label={`${food.name} unit`} className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-lg p-2 text-xs">
+                      <input type="number" min="1" value={food.quantity} onChange={(event) => updateSelectedFood(food.name, 'quantity', event.target.value)} placeholder="Qty" aria-label={`${food.name} quantity`} className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-lg p-2 text-xs" />
+                      <select value={food.unit} onChange={(event) => updateSelectedFood(food.name, 'unit', event.target.value)} aria-label={`${food.name} unit`} className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-lg p-2 text-xs">
                         <option value="kg">kg</option>
                         <option value="grams">grams</option>
                         <option value="packets">packets</option>
@@ -235,12 +235,12 @@ export default function FoodMatching() {
                 <div className="grid grid-cols-2 gap-3">
                   {availableFoods.map((food) => {
                     const selected = Boolean(selectedFoods[normalizeFoodName(food)]);
-                    return <button key={food} type="button" onClick={() => toggleFood(food)} aria-pressed={selected} className={`text-left overflow-hidden rounded-xl border-2 transition focus:outline-none focus:ring-2 focus:ring-[#304355] ${selected ? 'border-[#304355] bg-[#EEF1EE]' : 'border-[#304355]/10 bg-[#FBF9FA] hover:border-[#304355]/40'}`}><FoodImage foodName={food} className="w-full h-20" /><span className="flex items-center gap-2 p-2 text-xs font-bold text-[#304355]"><span className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#304355] bg-[#304355] text-white' : 'border-[#64707A]'}`}>{selected ? '✓' : ''}</span>{food}</span></button>;
+                    return <button key={food} type="button" onClick={() => toggleFood(food)} aria-pressed={selected} className={`text-left overflow-hidden rounded-xl border-2 transition focus:outline-none focus:ring-2 focus:ring-[#304355] ${selected ? 'border-[#304355] bg-[#EEF1EE]' : 'border-[#304355]/10 bg-[#FAF8F6] hover:border-[#304355]/40'}`}><FoodImage foodName={food} className="w-full h-20" /><span className="flex items-center gap-2 p-2 text-xs font-bold text-[#304355]"><span className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${selected ? 'border-[#304355] bg-[#304355] text-white' : 'border-[#64707A]'}`}>{selected ? '✓' : ''}</span>{food}</span></button>;
                   })}
                 </div>
               </div>
 
-              <div className="space-y-2"><label className="block text-xs font-bold text-[#1F2933]">Have something else?</label><div className="relative"><Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64707A]" /><input type="text" value={otherFood} onChange={(event) => setOtherFood(event.target.value)} placeholder="Search another food item" className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl py-3 pl-10 pr-4 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]" /></div></div>
+              <div className="space-y-2"><label className="block text-xs font-bold text-[#1F2933]">Have something else?</label><div className="relative"><Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64707A]" /><input type="text" value={otherFood} onChange={(event) => setOtherFood(event.target.value)} placeholder="Search another food item" className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-xl py-3 pl-10 pr-4 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]" /></div></div>
 
               {/* Data Transparency Box */}
               <div className="bg-[#304355]/5 rounded-xl p-4 border border-[#304355]/10 space-y-2 text-xs">
@@ -266,7 +266,7 @@ export default function FoodMatching() {
                 </p>
               </div>
 
-              <div className="flex bg-[#FBF9FA] p-1 rounded-xl border border-[#304355]/15 self-start sm:self-auto">
+              <div className="flex bg-[#FAF8F6] p-1 rounded-xl border border-[#304355]/15 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setActiveSort('best')}
@@ -329,7 +329,7 @@ export default function FoodMatching() {
                         </p>
                       </div>
 
-                      <div className="bg-[#FBF9FA] px-4 py-2.5 rounded-xl border border-[#304355]/10 text-right sm:text-right">
+                      <div className="bg-[#FAF8F6] px-4 py-2.5 rounded-xl border border-[#304355]/10 text-right sm:text-right">
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A] block">
                           Matched food{req.matchedFoods.length > 1 ? 's' : ''}
                         </span>

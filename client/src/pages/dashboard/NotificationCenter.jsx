@@ -66,7 +66,7 @@ function NotificationItem({ notification, onMarkRead }) {
       className={`flex items-start gap-4 p-4 rounded-xl transition-colors ${
         !notification.isRead
           ? 'bg-white border border-[#304355]/15 shadow-sm'
-          : 'bg-[#E8E8E2]/50 border border-transparent'
+          : 'bg-[#FAF8F6]/50 border border-transparent'
       }`}
     >
       {/* Unread dot & Icon */}

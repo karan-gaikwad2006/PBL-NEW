@@ -66,7 +66,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-140px)] bg-[#E8E8E2] flex items-center justify-center p-6">
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F6] flex items-center justify-center p-6">
       {/* Decorative blurs */}
       <div className="absolute top-0 left-0 w-[40vw] h-[40vw] rounded-full bg-[#e3c19a]/20 blur-[100px] pointer-events-none" />
 
@@ -102,7 +102,7 @@ export default function ForgotPasswordPage() {
                   disabled={isSubmitting}
                   onChange={(e) => { setEmail(e.target.value); setError(''); }}
                   placeholder="name@example.com"
-                  className={`w-full bg-[#FBF9FA] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${error ? 'border-red-400' : 'border-[#304355]/20'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full bg-[#FAF8F6] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${error ? 'border-red-400' : 'border-[#304355]/20'} ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 />
               </div>
               {error && (

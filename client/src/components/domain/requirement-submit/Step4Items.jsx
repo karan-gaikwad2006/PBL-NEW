@@ -61,7 +61,7 @@ export default function Step4Items({ formData, updateData, onNext, onBack }) {
 
         <div className="space-y-4 mb-6">
           {formData.items.map((item, index) => (
-            <div key={index} className="bg-[#FBF9FA] rounded-lg p-4 border border-[#304355]/10 relative group">
+            <div key={index} className="bg-[#FAF8F6] rounded-lg p-4 border border-[#304355]/10 relative group">
               {formData.items.length > 1 && (
                 <button 
                   type="button"

@@ -88,7 +88,7 @@ export default function DistrictInsights() {
   const districtName = districtData?.name || formattedTitle;
 
   return (
-    <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
+    <div className="bg-[#FAF8F6] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 space-y-10">
         {/* Breadcrumb & Header */}
         <header className="space-y-4">
@@ -159,7 +159,7 @@ export default function DistrictInsights() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#304355]/10">
-                  <div className="bg-[#FBF9FA] p-4 rounded-xl border border-[#304355]/5 space-y-1">
+                  <div className="bg-[#FAF8F6] p-4 rounded-xl border border-[#304355]/5 space-y-1">
                     <Users className="w-5 h-5 text-[#304355]" />
                     <span className="text-2xl font-extrabold text-[#304355] block">36</span>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
@@ -167,7 +167,7 @@ export default function DistrictInsights() {
                     </span>
                   </div>
 
-                  <div className="bg-[#FBF9FA] p-4 rounded-xl border border-[#304355]/5 space-y-1">
+                  <div className="bg-[#FAF8F6] p-4 rounded-xl border border-[#304355]/5 space-y-1">
                     <HeartHandshake className="w-5 h-5 text-[#304355]" />
                     <span className="text-2xl font-extrabold text-[#304355] block">{districtRequirements.length}</span>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
@@ -270,7 +270,7 @@ export default function DistrictInsights() {
 
                   <div
                     onClick={() => setShowPulsesDetails(!showPulsesDetails)}
-                    className="bg-[#FBF9FA] px-6 py-3 border-t border-[#304355]/10 cursor-pointer flex justify-between items-center hover:bg-slate-100 transition"
+                    className="bg-[#FAF8F6] px-6 py-3 border-t border-[#304355]/10 cursor-pointer flex justify-between items-center hover:bg-slate-100 transition"
                   >
                     <span className="text-xs font-semibold text-[#304355]">
                       Nutrition Contribution: Moong Dal
@@ -283,7 +283,7 @@ export default function DistrictInsights() {
                   </div>
 
                   {showPulsesDetails && (
-                    <div className="bg-[#FBF9FA] px-6 pb-4 pt-2 border-t border-[#304355]/5 flex gap-2 flex-wrap">
+                    <div className="bg-[#FAF8F6] px-6 pb-4 pt-2 border-t border-[#304355]/5 flex gap-2 flex-wrap">
                       <span className="bg-white border border-[#304355]/10 px-3 py-1 rounded-full text-xs font-semibold text-[#1F2933]">
                         Protein
                       </span>
@@ -351,7 +351,7 @@ export default function DistrictInsights() {
                         </div>
 
                         {/* Progress Box */}
-                        <div className="bg-[#FBF9FA] rounded-xl p-4 border border-[#304355]/10 space-y-2">
+                        <div className="bg-[#FAF8F6] rounded-xl p-4 border border-[#304355]/10 space-y-2">
                           <div className="flex justify-between text-xs font-bold text-[#1F2933]">
                             <span>{primary.name || primary.item_name || 'Food Support'}</span>
                             <span>{required} {unit} Needed</span>

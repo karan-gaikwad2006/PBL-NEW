@@ -23,7 +23,7 @@ export default function LoginRequired() {
   const handleBack = () => navigate(-1);
 
   return (
-    <div className="min-h-[calc(100vh-140px)] bg-[#E8E8E2] flex items-center justify-center p-6">
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F6] flex items-center justify-center p-6">
       {/* Decorative blur */}
       <div className="absolute top-0 right-0 w-[30vw] h-[30vw] rounded-full bg-[#304355]/10 rounded-bl-full pointer-events-none" />
 
@@ -33,7 +33,7 @@ export default function LoginRequired() {
         <div className="absolute top-0 right-0 w-28 h-28 bg-[#304355]/5 rounded-bl-full pointer-events-none" />
 
         {/* Lock icon */}
-        <div className="w-16 h-16 rounded-full bg-[#FBF9FA] border border-[#304355]/10 flex items-center justify-center mb-5 text-[#304355]">
+        <div className="w-16 h-16 rounded-full bg-[#FAF8F6] border border-[#304355]/10 flex items-center justify-center mb-5 text-[#304355]">
           <LockKeyhole className="w-8 h-8" />
         </div>
 

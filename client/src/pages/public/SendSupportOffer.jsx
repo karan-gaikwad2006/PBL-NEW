@@ -190,7 +190,7 @@ export default function SendSupportOffer() {
                         className={`border rounded-xl p-4 transition-all ${
                           isSelected 
                             ? 'border-[#304355] bg-[#304355]/5 shadow-sm' 
-                            : 'border-slate-200 hover:border-slate-300 bg-[#FBF9FA]'
+                            : 'border-slate-200 hover:border-slate-300 bg-[#FAF8F6]'
                         }`}
                       >
                         <div className="flex items-start gap-4">
@@ -263,7 +263,7 @@ export default function SendSupportOffer() {
                   onChange={(e) => setMessage(e.target.value.slice(0, 500))}
                   placeholder="Add any details about drop-off, timing, or condition of the items..."
                   rows={4}
-                  className="w-full bg-[#FBF9FA] border border-slate-300 rounded-lg px-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors resize-none"
+                  className="w-full bg-[#FAF8F6] border border-slate-300 rounded-lg px-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors resize-none"
                 />
               </div>
 
@@ -275,7 +275,7 @@ export default function SendSupportOffer() {
                 <p className="text-xs text-[#64707A]">
                   This information from your profile will be shared with the requester to coordinate logistics.
                 </p>
-                <div className="bg-[#FBF9FA] rounded-xl p-4 border border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-[#FAF8F6] rounded-xl p-4 border border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-full bg-[#304355] text-white flex items-center justify-center font-bold text-sm">
                       KS
@@ -314,7 +314,7 @@ export default function SendSupportOffer() {
           {/* Right Column: Contextual Sidebar */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
             <div className="bg-white border border-[#304355]/10 rounded-2xl shadow-sm overflow-hidden">
-              <div className="bg-[#FBF9FA] px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+              <div className="bg-[#FAF8F6] px-6 py-4 border-b border-slate-100 flex items-center gap-2">
                 <ClipboardList className="w-5 h-5 text-[#304355]" />
                 <h2 className="font-bold text-base text-[#304355]">Original Requirement</h2>
               </div>

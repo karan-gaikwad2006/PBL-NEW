@@ -18,7 +18,7 @@ export default function Button({
 
   const variants = {
     primary: "bg-[#304355] text-white hover:bg-[#243342] active:bg-[#1a2530] focus:ring-[#304355] shadow-sm",
-    secondary: "bg-[#E8E8E2] text-[#1F2933] hover:bg-[#dcdcd4] active:bg-[#d0d0c6] focus:ring-[#304355]",
+    secondary: "bg-[#FAF8F6] text-[#1F2933] hover:bg-[#dcdcd4] active:bg-[#d0d0c6] focus:ring-[#304355]",
     outline: "border border-[#304355] text-[#304355] bg-transparent hover:bg-[#304355]/5 active:bg-[#304355]/10 focus:ring-[#304355]",
     ghost: "text-[#304355] bg-transparent hover:bg-slate-100 active:bg-slate-200 focus:ring-[#304355]",
     danger: "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-600 shadow-sm",

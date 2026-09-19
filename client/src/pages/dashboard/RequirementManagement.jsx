@@ -53,7 +53,7 @@ function ItemProgress({ item }) {
   const done = item.quantityRequired - item.quantityRemaining;
   const pct = item.quantityRequired > 0 ? Math.round((done / item.quantityRequired) * 100) : 0;
   return (
-    <div className="bg-[#E8E8E2] rounded-xl p-4">
+    <div className="bg-[#FAF8F6] rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-sm text-[#1F2933]">{item.name}</span>
         <span className="text-xs text-[#64707A]">{done} / {item.quantityRequired} {item.unit}</span>
@@ -280,7 +280,7 @@ export default function RequirementManagement() {
               <div className="space-y-2">
                 <Link
                   to={`/requester/requirements/${req.id}/status`}
-                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors"
                 >
                   View Lifecycle Status
                   <ChevronRight className="w-4 h-4 text-[#64707A]" />
@@ -288,7 +288,7 @@ export default function RequirementManagement() {
                 {req.status === 'active' && (
                   <Link
                     to={`/requirements/${req.id}`}
-                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors"
                   >
                     View Public Page
                     <ChevronRight className="w-4 h-4 text-[#64707A]" />
@@ -296,7 +296,7 @@ export default function RequirementManagement() {
                 )}
                 <Link
                   to="/requester/dashboard"
-                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors"
                 >
                   Back to Dashboard
                   <ChevronRight className="w-4 h-4 text-[#64707A]" />

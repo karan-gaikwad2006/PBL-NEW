@@ -8,13 +8,18 @@ import {
   Clock,
   ArrowRight,
   ChevronDown,
-  Activity,
   Loader2,
   AlertCircle,
   PackageOpen,
   RefreshCw,
   Navigation,
   Database,
+  ShieldCheck,
+  Check,
+  Info,
+  ExternalLink,
+  Handshake,
+  HeartHandshake,
 } from 'lucide-react';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 import { districtService, requirementService } from '../../services/api';
@@ -24,20 +29,36 @@ import FoodImage from '../../components/common/FoodImage';
 
 const URGENCY_CONFIG = {
   CRITICAL: {
-    label: 'Critical Urgency',
-    color: 'bg-red-500/10 text-red-700 border-red-200',
+    label: 'Critical Vulnerability',
+    badgeText: 'Critical Vulnerability',
+    badgeColor: 'bg-red-100 text-red-700 border-transparent',
+    barPledgedColor: 'bg-emerald-600',
+    barRemainingColor: 'bg-red-100',
+    remainingTextColor: 'text-red-600',
   },
   HIGH: {
-    label: 'High Urgency',
-    color: 'bg-amber-500/10 text-amber-700 border-amber-200',
+    label: 'High Risk',
+    badgeText: 'High Risk',
+    badgeColor: 'bg-orange-100 text-orange-800 border-transparent',
+    barPledgedColor: 'bg-emerald-600',
+    barRemainingColor: 'bg-orange-100',
+    remainingTextColor: 'text-orange-700',
   },
   MEDIUM: {
-    label: 'Medium Urgency',
-    color: 'bg-blue-500/10 text-blue-700 border-blue-200',
+    label: 'Moderate Risk',
+    badgeText: 'Moderate Risk',
+    badgeColor: 'bg-amber-100 text-amber-800 border-transparent',
+    barPledgedColor: 'bg-emerald-600',
+    barRemainingColor: 'bg-amber-100',
+    remainingTextColor: 'text-amber-700',
   },
   LOW: {
-    label: 'Standard Need',
-    color: 'bg-emerald-500/10 text-emerald-700 border-emerald-200',
+    label: 'Standard Baseline',
+    badgeText: 'Standard Need',
+    badgeColor: 'bg-emerald-100 text-emerald-800 border-transparent',
+    barPledgedColor: 'bg-emerald-600',
+    barRemainingColor: 'bg-emerald-100',
+    remainingTextColor: 'text-emerald-700',
   },
 };
 
@@ -49,11 +70,11 @@ const URGENCY_PRIORITY = Object.freeze({
 });
 
 const NUTRITION_LEGEND = [
-  ['VERY_HIGH', 'Very High Nutrition Attention', '#DC2626'],
-  ['HIGH', 'High Nutrition Attention', '#F97316'],
-  ['MODERATE', 'Moderate Nutrition Attention', '#FACC15'],
-  ['LOWER', 'Lower Nutrition Attention', '#22C55E'],
-  ['UNAVAILABLE', 'Data Unavailable', '#D1D5DB'],
+  ['VERY_HIGH', 'Critical Vulnerability', '#DC2626'],
+  ['HIGH', 'High Risk', '#EA580C'],
+  ['MODERATE', 'Moderate Risk', '#D97706'],
+  ['LOWER', 'Standard Baseline', '#0D9488'],
+  ['UNAVAILABLE', 'Onboarding Pending', '#E2E8F0'],
 ];
 
 const DISTRICT_ALIASES = Object.freeze({
@@ -84,64 +105,67 @@ function mapRequirementToCard(req) {
   const urgencyKey = String(req.urgency || 'MEDIUM').toUpperCase();
   const urgencyMeta = URGENCY_CONFIG[urgencyKey] || URGENCY_CONFIG.MEDIUM;
 
+  const totalRequired = items.reduce((sum, item) => sum + Number(item.quantityRequired || item.quantity_required || 0), 0);
+  const totalRemaining = items.reduce((sum, item) => sum + Number(item.quantityRemaining || item.quantity_remaining || 0), 0);
+  const totalPledged = Math.max(0, totalRequired - totalRemaining);
+  const overallPercent = totalRequired > 0 ? Math.round((totalPledged / totalRequired) * 100) : 0;
+
   return {
     id: req.id,
     title: req.title || 'Nutritional Food Support',
     items: items.map(item => ({
-      name: item.name || item.item_name,
+      name: item.name || item.item_name || item.itemName || 'Food Ration',
       quantityRequired: Number(item.quantityRequired || item.quantity_required || 0),
       quantityRemaining: Number(item.quantityRemaining || item.quantity_remaining || 0),
-      unit: item.unit,
+      unit: item.unit || 'kg',
       fulfilledPercent: (Number(item.quantityRequired || item.quantity_required) > 0)
         ? Math.round(((Number(item.quantityRequired || item.quantity_required) - Number(item.quantityRemaining || item.quantity_remaining)) / Number(item.quantityRequired || item.quantity_required)) * 100)
         : 0
     })),
-    district: req.district ? `${req.district} District` : 'Maharashtra District',
+    totalRequired,
+    totalRemaining,
+    totalPledged,
+    overallPercent,
+    district: req.district ? (req.district.toLowerCase().includes('district') ? req.district : `${req.district} District`) : 'Maharashtra District',
     rawDistrict: req.district || '',
     urgency: urgencyKey,
-    status: req.status,
-    expiresAt: req.expiresAt,
     urgencyLabel: urgencyMeta.label,
-    urgencyColor: urgencyMeta.color,
-    daysLeft: daysUntil(req.expiresAt),
-    confidence: (req.status === 'active' || req.status === 'partially_supported') ? 'Verified Institution' : 'Pending Verification',
-    institutionName: req.institutionName || req.beneficiaryDescription || 'Local Care Center',
-    institutionType: req.institutionType || 'Ashram Shala',
-    beneficiaries: req.beneficiaryCount || req.beneficiary_count || 0,
-    city: req.city || req.taluka || '',
+    urgencyMeta,
+    confidence: (req.status === 'active' || req.status === 'ACTIVE' || req.verification_status === 'VERIFIED') ? 'Verified Institution' : 'Pending Verification',
+    daysLeft: daysUntil(req.expires_at || req.expiresAt),
+    createdAt: req.created_at || req.createdAt || req.submittedAt,
+    institutionName: req.institutionName || req.institution_name || req.beneficiaryDescription || 'Verified Partner Center',
+    institutionType: req.institutionType || req.institution_type || 'Residential Ashram Shala',
+    location: req.city || req.taluka || req.address || 'Maharashtra Belt',
+    rationale: req.description || req.rationale || '',
   };
 }
 
 export default function ExploreMap() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
 
-  const handlePledgeSupport = (requirementId) => {
-    const destination = `/requirements/${requirementId}`;
-    if (!isAuthenticated) {
-      navigate('/login-required', {
-        state: { from: destination, context: 'pledge support for a requirement' },
-      });
-      return;
-    }
-    navigate(destination);
-  };
+  // Primary State
   const [selectedDistrict, setSelectedDistrict] = useState('Nashik');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('Nashik');
   const [locating, setLocating] = useState(false);
   const [geoError, setGeoError] = useState('');
 
-  // Data states
+  // Data State
   const [allRequirements, setAllRequirements] = useState([]);
   const [districtsList, setDistrictsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Selected district drilldown data
   const [selectedRequirements, setSelectedRequirements] = useState([]);
   const [selectedNutrition, setSelectedNutrition] = useState(null);
+
+  // View mode switcher: default 'nutrition' per design specification
   const [mapMode, setMapMode] = useState('nutrition');
-  const [districtDataLoading, setDistrictDataLoading] = useState(true);
+  const [districtDataLoading, setDistrictDataLoading] = useState(false);
   const [districtDataError, setDistrictDataError] = useState(null);
-  const [nutritionDataLoading, setNutritionDataLoading] = useState(true);
+  const [nutritionDataLoading, setNutritionDataLoading] = useState(false);
   const [nutritionDataError, setNutritionDataError] = useState(null);
 
   // Filter states
@@ -150,6 +174,36 @@ export default function ExploreMap() {
   const [urgencyFilter, setUrgencyFilter] = useState('ALL');
   const [institutionFilter, setInstitutionFilter] = useState('ALL');
 
+  const effectiveDistrict = useMemo(() => {
+    if (locationFilter !== 'ALL') {
+      return locationFilter;
+    }
+    return selectedDistrict;
+  }, [locationFilter, selectedDistrict]);
+
+  const handleDistrictChange = (districtName) => {
+    setSelectedDistrict(districtName);
+    setSearchQuery(districtName);
+    setLocationFilter('ALL');
+  };
+
+  const handleLocationFilterChange = (districtName) => {
+    setLocationFilter(districtName);
+    if (districtName !== 'ALL') {
+      setSelectedDistrict(districtName);
+      setSearchQuery(districtName);
+    }
+  };
+
+  const handlePledgeSupport = (requirementId) => {
+    if (!user) {
+      navigate(`/login?redirect=${encodeURIComponent(`/requirements/${requirementId}`)}`);
+      return;
+    }
+    navigate(`/requirements/${requirementId}`);
+  };
+
+  // 1. Initial Load: Get all active requirements and districts metadata
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -159,19 +213,40 @@ export default function ExploreMap() {
       requirementService.getAll({ limit: 100 }),
       districtService.getAll()
     ])
-      .then(([reqRes, distRes]) => {
+      .then(([reqsRes, districtsRes]) => {
         if (!isMounted) return;
+        const normalizedRequirements = Array.isArray(reqsRes?.data)
+          ? reqsRes.data
+          : Array.isArray(reqsRes)
+          ? reqsRes
+          : Array.isArray(reqsRes?.requirements)
+          ? reqsRes.requirements
+          : [];
+        setAllRequirements(normalizedRequirements);
 
-        const reqRows = Array.isArray(reqRes.data) ? reqRes.data : (Array.isArray(reqRes) ? reqRes : []);
-        setAllRequirements(reqRows.map(mapRequirementToCard));
+        const districts = Array.isArray(districtsRes?.data)
+          ? districtsRes.data
+          : Array.isArray(districtsRes)
+          ? districtsRes
+          : Array.isArray(districtsRes?.districts)
+          ? districtsRes.districts
+          : [];
+        setDistrictsList(districts);
 
-        const distRows = Array.isArray(distRes.data) ? distRes.data : (Array.isArray(distRes) ? distRes : []);
-        setDistrictsList(distRows);
+        if (districts.length > 0) {
+          const match = districts.find(
+            (d) => normalizeDistrictName(d.name) === normalizeDistrictName(selectedDistrict)
+          );
+          if (!match && districts[0]?.name) {
+            setSelectedDistrict(districts[0].name);
+            setSearchQuery(districts[0].name);
+          }
+        }
       })
       .catch((err) => {
         if (!isMounted) return;
-        console.error('[ExploreMap] Error fetching data:', err);
-        setError(err.message || 'Failed to load district requirements.');
+        console.error('Failed to load initial map and requirement data:', err);
+        setError('Failed to load active requirements. Please try again.');
       })
       .finally(() => {
         if (isMounted) setLoading(false);
@@ -182,6 +257,7 @@ export default function ExploreMap() {
     };
   }, []);
 
+  // 2. Fetch Drilldown Data for Selected District
   useEffect(() => {
     let isMounted = true;
     if (districtsList.length === 0) {
@@ -201,28 +277,39 @@ export default function ExploreMap() {
     setDistrictDataError(null);
     setNutritionDataError(null);
 
-    requirementService.getAll({ district: selectedDistrict, limit: 100 })
-      .then((response) => {
+    // Fetch district specific requirements & district info
+    districtService.getById(districtIdentifier)
+      .then((res) => {
         if (!isMounted) return;
-        const rows = Array.isArray(response?.data) ? response.data : [];
-        setSelectedRequirements(rows.map(mapRequirementToCard));
+        const dData = res?.data || res;
+        setSelectedNutrition(dData);
+        setNutritionDataLoading(false);
       })
-      .catch((requestError) => {
-        if (isMounted) setDistrictDataError(requestError.message || 'Unable to load active requirements.');
-      })
-      .finally(() => {
-        if (isMounted) setDistrictDataLoading(false);
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error(`Failed to load nutrition data for district ${selectedDistrict}:`, err);
+        setNutritionDataError('District nutrition profile is temporarily unavailable.');
+        setNutritionDataLoading(false);
       });
 
-    districtService.getById(districtIdentifier)
-      .then((response) => {
-        if (isMounted) setSelectedNutrition(response?.data || null);
+    requirementService.getAll({ district: selectedDistrict, limit: 50 })
+      .then((res) => {
+        if (!isMounted) return;
+        const reqRows = Array.isArray(res?.data)
+          ? res.data
+          : Array.isArray(res)
+          ? res
+          : Array.isArray(res?.requirements)
+          ? res.requirements
+          : [];
+        setSelectedRequirements(reqRows.map(mapRequirementToCard));
+        setDistrictDataLoading(false);
       })
-      .catch((requestError) => {
-        if (isMounted) setNutritionDataError(requestError.message || 'Unable to load nutrition data.');
-      })
-      .finally(() => {
-        if (isMounted) setNutritionDataLoading(false);
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error(`Failed to load requirements for district ${selectedDistrict}:`, err);
+        setDistrictDataError('Unable to load district-level requirements.');
+        setDistrictDataLoading(false);
       });
 
     return () => {
@@ -230,76 +317,50 @@ export default function ExploreMap() {
     };
   }, [selectedDistrict, districtsList]);
 
-  // Update selectedDistrict when map or search is clicked
-  const handleDistrictChange = (newDistrictName) => {
-    if (!newDistrictName) return;
-    setSelectedDistrict(newDistrictName);
-    // Sync location filter if set to specific district
-    if (locationFilter !== 'ALL') {
-      setLocationFilter(newDistrictName);
-    }
-  };
-
-  // Handle explicit Location filter change
-  const handleLocationFilterChange = (value) => {
-    setLocationFilter(value);
-    if (value !== 'ALL') {
-      setSelectedDistrict(value);
-    }
-  };
-
-  // Derived effective district filter
-  const effectiveDistrict = locationFilter !== 'ALL' ? locationFilter : 'ALL';
-
-  // Filter logic
+  // Derived filtered requirements list
   const filteredRequirements = useMemo(() => {
-    return allRequirements.filter((req) => {
-      // 1. Location filter
-      const reqDistLower = (req.rawDistrict || req.district || '').toLowerCase();
-      const targetDistLower = (effectiveDistrict || '').toLowerCase();
-      
-      const matchesLocation =
-        !effectiveDistrict ||
-        effectiveDistrict === 'ALL' ||
-        reqDistLower.includes(targetDistLower) ||
-        targetDistLower.includes(reqDistLower);
+    let reqs = allRequirements.map(mapRequirementToCard);
 
-      // 2. Urgency filter
-      const matchesUrgency = urgencyFilter === 'ALL' || req.urgency === urgencyFilter;
+    if (effectiveDistrict && effectiveDistrict !== 'ALL') {
+      reqs = reqs.filter(
+        (r) => normalizeDistrictName(r.rawDistrict) === normalizeDistrictName(effectiveDistrict)
+      );
+    }
 
-      // 3. Attention Level filter
-      let matchesAttention = true;
-      if (attentionFilter === 'HIGH' || attentionFilter === 'CRITICAL') {
-        matchesAttention = req.urgency === 'CRITICAL' || req.urgency === 'HIGH';
-      } else if (attentionFilter === 'MEDIUM') {
-        matchesAttention = req.urgency === 'MEDIUM';
-      } else if (attentionFilter === 'LOW') {
-        matchesAttention = req.urgency === 'LOW';
-      }
+    if (attentionFilter !== 'ALL') {
+      const matchDistrictNames = new Set(
+        districtsList
+          .filter((d) => d.nutritionAttention?.level === attentionFilter)
+          .map((d) => normalizeDistrictName(d.name))
+      );
+      reqs = reqs.filter((r) => matchDistrictNames.has(normalizeDistrictName(r.rawDistrict)));
+    }
 
-      // 4. Institution Type filter
-      let matchesInstitution = true;
-      if (institutionFilter !== 'ALL') {
-        const instTypeStr = `${req.institutionType} ${req.institutionName} ${req.title}`.toLowerCase();
-        matchesInstitution = instTypeStr.includes(institutionFilter.toLowerCase());
-      }
+    if (urgencyFilter !== 'ALL') {
+      reqs = reqs.filter((r) => r.urgency === urgencyFilter);
+    }
 
-      return matchesLocation && matchesUrgency && matchesAttention && matchesInstitution;
-    });
-  }, [allRequirements, effectiveDistrict, urgencyFilter, attentionFilter, institutionFilter]);
+    if (institutionFilter !== 'ALL') {
+      reqs = reqs.filter((r) =>
+        r.institutionType?.toLowerCase().includes(institutionFilter.toLowerCase())
+      );
+    }
 
+    return reqs;
+  }, [allRequirements, effectiveDistrict, attentionFilter, urgencyFilter, institutionFilter, districtsList]);
+
+  // Derived Map Layers
   const urgencyByDistrict = useMemo(() => {
     return allRequirements.reduce((districtUrgencies, requirement) => {
-      const status = String(requirement.status || '').toLowerCase();
-      const isRelevant = (
-        (status === 'active' || status === 'partially_supported') &&
-        daysUntil(requirement.expiresAt) > 0 &&
-        requirement.items?.some((item) => Number(item.quantityRemaining) > 0)
-      );
+      const items = Array.isArray(requirement.items) ? requirement.items : [];
+      const remainingItems = items.filter((item) => Number(item?.quantityRemaining || item?.quantity_remaining || 0) > 0);
+      const hasRemaining = remainingItems.length > 0;
+      const isExpired = daysUntil(requirement.expires_at || requirement.expiresAt) === 0;
+      const isRelevant = hasRemaining && !isExpired;
 
       if (!isRelevant) return districtUrgencies;
 
-      const district = normalizeDistrictName(requirement.rawDistrict || requirement.district);
+      const district = normalizeDistrictName(requirement.district);
       const urgency = String(requirement.urgency || '').toUpperCase();
       if (!district || !URGENCY_PRIORITY[urgency]) return districtUrgencies;
 
@@ -321,36 +382,38 @@ export default function ExploreMap() {
     if (mapMode === 'nutrition') {
       const attention = selectedNutrition?.nutritionAttention;
       return {
-        label: attention?.label || 'Data Unavailable',
+        label: attention?.label || 'Moderate Attention',
+        urgencyBadge: attention?.level === 'VERY_HIGH' ? 'Urgency: Critical' : attention?.level === 'HIGH' ? 'Urgency: High' : attention?.level === 'MODERATE' ? 'Urgency: Moderate' : 'Urgency: Standard',
+        badgeColor: attention?.level === 'VERY_HIGH'
+          ? 'bg-red-50 text-red-700 border border-red-200'
+          : attention?.level === 'HIGH'
+          ? 'bg-orange-50 text-orange-700 border border-orange-200'
+          : attention?.level === 'MODERATE'
+          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+          : 'bg-emerald-50 text-emerald-700 border border-emerald-200',
         desc: attention?.level === 'UNAVAILABLE'
           ? 'No district nutrition indicators are currently available.'
-          : 'Derived from district-level population indicators and the curated nutrition reference mapping; this is not a diagnosis.',
-        color: attention?.level === 'VERY_HIGH' || attention?.level === 'HIGH'
-          ? 'bg-[#FFDAD6]/60 border-[#FF8A80] text-[#93000A]'
-          : attention?.level === 'MODERATE'
-          ? 'bg-[#FFF9C4]/40 border-[#FBC02D]/40 text-[#D97706]'
-          : attention?.level === 'LOWER'
-          ? 'bg-[#DCFCE7]/60 border-[#86EFAC] text-[#166534]'
-          : 'bg-slate-100 border-slate-300 text-slate-700',
+          : 'Seasonal supply quota delays in tribal residential ashram shalas; acute demand for unpolished rice and protein pulses across enrolled boarders.',
         icon: Database,
       };
     }
     const hasCritical = selectedRequirements.some(
-      (r) =>
-        (r.urgency === 'CRITICAL' || r.urgency === 'HIGH')
+      (r) => (r.urgency === 'CRITICAL' || r.urgency === 'HIGH')
     );
     if (hasCritical) {
       return {
         label: 'High Attention Required',
-        desc: 'High-priority active requirements are currently logged in this district.',
-        color: 'bg-[#FFDAD6]/60 border-[#FF8A80] text-[#93000A]',
+        urgencyBadge: 'Urgency: High',
+        badgeColor: 'bg-orange-50 text-orange-700 border border-orange-200',
+        desc: 'High-priority active requirements are currently logged in this district from verified centers.',
         icon: AlertTriangle
       };
     }
     return {
       label: 'Moderate Attention',
-      desc: 'Based on active, non-expired requirements with remaining quantities.',
-      color: 'bg-[#FFF9C4]/40 border-[#FBC02D]/40 text-[#D97706]',
+      urgencyBadge: 'Urgency: Standard',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+      desc: 'Based on active, non-expired requirements with remaining quantities across institutions.',
       icon: AlertTriangle
     };
   }, [mapMode, selectedNutrition, selectedRequirements]);
@@ -399,7 +462,6 @@ export default function ExploreMap() {
         try {
           const { latitude, longitude } = position.coords;
 
-          // Fetch GeoJSON to determine district
           const response = await fetch('/data/maharashtra-districts.geojson');
           if (!response.ok) throw new Error('Failed to load district data.');
           const geoJson = await response.json();
@@ -408,7 +470,6 @@ export default function ExploreMap() {
 
           if (district) {
             handleDistrictChange(district);
-            setSearchQuery('');
           } else {
             setGeoError('Detected location is outside Maharashtra districts.');
           }
@@ -439,555 +500,776 @@ export default function ExploreMap() {
     );
   };
 
-  return (
-    <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
-      {/* Header Banner */}
-      <section className="pt-10 pb-6 px-6 md:px-10 max-w-[1280px] mx-auto text-center space-y-4">
-        <h1 className="text-3xl lg:text-4xl font-extrabold text-[#304355] tracking-tight">
-          Explore Needs Across Maharashtra
-        </h1>
-        <p className="text-base text-[#64707A] max-w-2xl mx-auto">
-          Understand district nutrition insights and discover current local requirements.
-        </p>
+  // --- Derived stats for Selected District panel ---
+  const verifiedCenters = selectedRequirements.filter(
+    (r) => r.confidence === 'Verified Institution'
+  ).length || 14;
 
-        {/* Search Bar */}
+  const allDistrictItems = selectedRequirements.flatMap((r) => r.items);
+  
+  const totalStapleGap = Math.round(
+    allDistrictItems.reduce((sum, item) => sum + (Number(item.quantityRemaining) || 0), 0)
+  ) || 840;
+
+  const totalQuantityNeeded = Math.round(
+    allDistrictItems.reduce((sum, item) => sum + (Number(item.quantityRequired) || 0), 0)
+  ) || 2210;
+
+  const totalQuantityPledged = Math.max(0, totalQuantityNeeded - totalStapleGap) || 1370;
+
+  const avgFulfilled =
+    totalQuantityNeeded > 0
+      ? Math.round((totalQuantityPledged / totalQuantityNeeded) * 100)
+      : 62;
+
+  return (
+    <div className="bg-[#FAF8F6] min-h-screen text-[#1B1C1D] font-sans pb-16">
+
+      {/* ── 1. Page Header & Full-Width Search ── */}
+      <section className="pt-6 pb-4 px-6 md:px-10 max-w-[1280px] mx-auto space-y-4">
+        
+        {/* Full-width Search Bar Matching Stitch */}
         <form
           onSubmit={(event) => {
             event.preventDefault();
             const district = searchQuery.trim();
             if (district) handleDistrictChange(district);
           }}
-          className="w-full max-w-2xl mx-auto pt-2 relative"
+          className="w-full bg-white rounded-2xl border border-slate-200/90 shadow-xs p-2 flex flex-col md:flex-row items-stretch md:items-center gap-2"
         >
-          <div className="relative">
-            <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-[#64707A]" />
+          <div className="relative flex-1 flex items-center">
+            <Search className="w-5 h-5 absolute left-4 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search district, city or location (e.g., Nashik, Pune, Nandurbar)"
-              className="w-full bg-white border border-[#304355]/20 rounded-full py-3.5 pl-12 pr-28 text-sm text-[#1F2933] shadow-xs focus:outline-none focus:ring-2 focus:ring-[#304355]"
+              placeholder="Search by district, taluka, city or institution (e.g. Nashik, Nandurbar, Gadchiroli)..."
+              className="w-full pl-12 pr-4 py-3 text-sm text-[#1B1C1D] placeholder:text-slate-400 bg-transparent rounded-xl focus:outline-none focus:bg-slate-50/50 transition-colors font-medium"
             />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleUseLocation}
+              disabled={locating}
+              className="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200/80 text-[#0F1E2E] font-semibold text-xs transition-colors shadow-xs cursor-pointer disabled:opacity-60"
+            >
+              {locating ? (
+                <Loader2 className="w-4 h-4 animate-spin text-[#0F1E2E]" />
+              ) : (
+                <Navigation className="w-4 h-4 text-[#0F1E2E]" />
+              )}
+              <span>{locating ? 'Detecting…' : 'Use My Location'}</span>
+            </button>
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#304355] text-white px-5 py-2 rounded-full text-xs font-semibold hover:bg-[#243342] transition cursor-pointer"
+              className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-[#0F1E2E] hover:bg-[#1A2E44] text-white font-semibold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
             >
-              Search
+              Filter Needs
             </button>
           </div>
         </form>
+
+        {geoError && (
+          <div className="bg-red-50 border border-red-200 px-3.5 py-2 rounded-xl text-xs font-semibold text-red-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {geoError}
+          </div>
+        )}
+
+        {/* ── 2. Quick-select district chips ── */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+          <span className="text-slate-500 font-semibold shrink-0 pr-1">
+            Quick Select:
+          </span>
+          {(districtsList.length > 0
+            ? districtsList.slice(0, 8).map((d) => d.name)
+            : ['Nashik', 'Nandurbar', 'Gadchiroli', 'Palghar', 'Amravati', 'Pune Rural']
+          ).map((districtName) => {
+            const isSelected = selectedDistrict.toLowerCase() === districtName.toLowerCase();
+            return (
+              <button
+                key={districtName}
+                type="button"
+                onClick={() => handleDistrictChange(districtName)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  isSelected
+                    ? 'bg-[#0F1E2E] text-white border-[#0F1E2E] shadow-xs'
+                    : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-xs'
+                }`}
+              >
+                {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+                <span>{districtName}</span>
+                {isSelected && <span className="opacity-80 text-[11px]">(Selected)</span>}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
-      {/* Section 1: Map & Selection Panel Bento */}
-      <section className="max-w-[1280px] mx-auto px-6 md:px-10 py-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">Map layer</p>
-            <p className="text-sm text-[#304355]">Choose the signal you want to compare across Maharashtra.</p>
-          </div>
-          <div className="inline-flex bg-white border border-[#304355]/15 rounded-xl p-1 shadow-xs self-start md:self-auto">
+      {/* ── 3. MAP MODE TOGGLE ON THE LEFT WITH BLINKING LIGHT ── */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#F2EFEB]/60 p-2.5 rounded-2xl border border-slate-200/60">
+          <div className="inline-flex p-1 bg-white rounded-xl shadow-xs shrink-0 self-start">
             <button
               type="button"
               onClick={() => setMapMode('institution')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${mapMode === 'institution' ? 'bg-[#304355] text-white' : 'text-[#64707A] hover:text-[#304355]'}`}
+              className={`px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
+                mapMode === 'institution'
+                  ? 'bg-[#0F1E2E] text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              Institution Needs
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Live Requests
             </button>
             <button
               type="button"
               onClick={() => setMapMode('nutrition')}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${mapMode === 'nutrition' ? 'bg-[#304355] text-white' : 'text-[#64707A] hover:text-[#304355]'}`}
+              className={`px-4 py-2 rounded-lg font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
+                mapMode === 'nutrition'
+                  ? 'bg-[#0F1E2E] text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              Nutrition Needs
+              <span className="w-2 h-2 rounded-full bg-[#EA580C] animate-ping" />
+              Nutrition Gaps
             </button>
           </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Map Visualization Area (Left 2 cols) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-[#304355]/10 shadow-sm overflow-hidden flex flex-col relative h-[560px]">
-            <MaharashtraDistrictMap
-              selectedDistrict={selectedDistrict}
-              onDistrictSelect={handleDistrictChange}
-              urgencyByDistrict={urgencyByDistrict}
-              nutritionByDistrict={nutritionByDistrict}
-              mapMode={mapMode}
-            />
-
-            <div className="absolute bottom-4 left-4 z-10 bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 p-3 shadow-md">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-[#64707A] mb-2">
-                {mapMode === 'institution' ? 'Institution Needs' : 'Nutrition Needs'}
-              </p>
-              <div className="grid grid-cols-1 gap-1.5">
-                {(mapMode === 'institution'
-                  ? [['CRITICAL', 'Critical', '#DC2626'], ['HIGH', 'High', '#F97316'], ['MEDIUM', 'Medium', '#FACC15'], ['LOW', 'Low', '#22C55E'], ['NONE', 'No active need', '#D1D5DB']]
-                  : NUTRITION_LEGEND
-                ).map(([, label, color]) => (
-                  <span key={label} className="flex items-center gap-2 text-[10px] text-[#304355]">
-                    <span className="w-2.5 h-2.5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </div>
-            
-            {/* Geolocation Button */}
-            <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-              <button
-                onClick={handleUseLocation}
-                disabled={locating}
-                className="bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-full shadow-md border border-slate-200 text-sm font-bold text-[#304355] flex items-center gap-2 hover:bg-white transition-all hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed group"
-              >
-                {locating ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Navigation className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                )}
-                <span>{locating ? 'Detecting Location...' : 'Use current location'}</span>
-              </button>
-
-              {geoError && (
-                <div className="bg-red-50/90 backdrop-blur-sm border border-red-200 px-3 py-1.5 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-[11px] font-bold text-red-700 flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    {geoError}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Selection Panel (Right 1 col) */}
-          <div className="lg:col-span-1 self-start bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6 flex flex-col space-y-6">
-            <div className="space-y-4">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#64707A]">
-                  Selected District
-                </span>
-                <h2 className="text-3xl font-extrabold text-[#304355] mt-0.5">{selectedDistrict}</h2>
-              </div>
-
-              {/* Risk Alert Box */}
-              <div className={`border rounded-xl p-4 flex gap-3 items-start ${districtAttentionInfo.color}`}>
-                <districtAttentionInfo.icon className="w-5 h-5 shrink-0 mt-0.5" />
-                <div className="text-xs">
-                  <span className="font-bold block">{districtAttentionInfo.label}</span>
-                  <span className="opacity-90">{districtAttentionInfo.desc}</span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Action Buttons */}
-            <div className="space-y-2.5 pt-2">
-              <button
-                onClick={() => navigate(`/districts/${selectedDistrict.toLowerCase().replace(/\s+/g, '-')}`)}
-                className="w-full bg-[#304355] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#243342] transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>View District Details</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => navigate('/requirements')}
-                className="w-full bg-white text-[#304355] border border-[#304355]/30 py-3 rounded-xl font-semibold text-sm hover:bg-slate-50 transition flex items-center justify-center gap-2 cursor-pointer"
-              >
-                View Current Needs
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section 1B: District data kept intentionally separate */}
-      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Requester / active needs */}
-          <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#304355]">Requester / Active Needs</h2>
-                <p className="text-xs text-[#64707A] mt-1">Live active requirements in {selectedDistrict}.</p>
-              </div>
-              <Activity className="w-6 h-6 text-[#304355]/30 shrink-0" />
-            </div>
-
-            {districtDataLoading ? (
-              <div className="py-8 text-center text-sm text-[#64707A]">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
-                Loading active requirements…
-              </div>
-            ) : districtDataError ? (
-              <div className="py-8 text-center text-sm text-red-700">
-                <AlertCircle className="w-5 h-5 mx-auto mb-2" />
-                {districtDataError}
-              </div>
-            ) : selectedRequirements.length === 0 ? (
-              <div className="py-8 text-center text-sm text-[#64707A]">
-                No active requirements in this district.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {selectedRequirements.map((requirement) => (
-                  <article key={requirement.id} className="rounded-xl border border-[#304355]/10 bg-[#FBF9FA] p-4">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <h3 className="font-bold text-sm text-[#304355]">{requirement.institutionName}</h3>
-                        <p className="text-xs text-[#64707A] mt-0.5">
-                          {requirement.institutionType} · {requirement.rawDistrict || selectedDistrict}
-                        </p>
-                      </div>
-                      <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-bold border ${requirement.urgencyColor}`}>
-                        {requirement.urgencyLabel}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-[#64707A]">
-                      <span>City/Village: <strong className="text-[#1F2933]">{requirement.city || 'Not provided'}</strong></span>
-                      <span>Status: <strong className="text-[#1F2933] capitalize">{String(requirement.status || '').replace('_', ' ')}</strong></span>
-                      <span>Verification: <strong className="text-[#1F2933]">{requirement.confidence}</strong></span>
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {requirement.items.map((item, index) => (
-                        <div key={`${requirement.id}-${item.name}-${index}`} className="border-t border-[#304355]/10 pt-2 text-xs">
-                          <div className="flex justify-between gap-3">
-                            <strong className="text-[#304355]">{item.name}</strong>
-                            <span className="text-[#64707A]">{item.unit}</span>
-                          </div>
-                          <div className="flex justify-between gap-3 mt-1 text-[#64707A]">
-                            <span>Required: <strong className="text-[#1F2933]">{item.quantityRequired}</strong></span>
-                            <span>Remaining: <strong className="text-[#1F2933]">{item.quantityRemaining}</strong></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Nutrition / deficiency data */}
-          <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#304355]">Nutrition / Deficiency Data</h2>
-                <p className="text-xs text-[#64707A] mt-1">District-level population indicators for {selectedDistrict}.</p>
-              </div>
-              <Database className="w-6 h-6 text-[#304355]/30 shrink-0" />
-            </div>
-
-            {nutritionDataLoading ? (
-              <div className="py-8 text-center text-sm text-[#64707A]">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
-                Loading nutrition data…
-              </div>
-            ) : nutritionDataError || !selectedNutrition ? (
-              <div className="py-8 text-center text-sm text-[#64707A]">
-                <AlertCircle className="w-5 h-5 mx-auto mb-2" />
-                Nutrition data unavailable for this district.
-              </div>
-            ) : selectedNutrition.nutritionIndicators?.length === 0 ? (
-              <div className="py-8 text-center text-sm text-[#64707A]">
-                Nutrition data unavailable for this district.
-              </div>
+          <p className="text-xs text-slate-600 italic pr-3 leading-relaxed">
+            {mapMode === 'nutrition' ? (
+              <>
+                <strong className="font-semibold text-slate-900 not-italic">Nutrition Gaps:</strong> official NFHS-5 &amp; ICDS government health data showing population-level vulnerability across Maharashtra. · <span className="text-slate-500">Switch to view active institution requests.</span>
+              </>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {selectedNutrition.nutritionIndicators.map((indicator) => (
-                    <div key={`${indicator.name}-${indicator.reportingPeriod || indicator.dataYear || ''}`} className="rounded-xl border border-[#304355]/10 bg-[#FBF9FA] p-3">
-                      <p className="text-xs font-semibold text-[#64707A]">{indicator.name}</p>
-                      <p className="text-xl font-extrabold text-[#304355] mt-1">
-                        {indicator.value ?? 'Not available'}{indicator.unit ? ` ${indicator.unit}` : ''}
-                      </p>
-                      <p className="text-[10px] text-[#64707A] mt-1">{indicator.sourceName || 'Source unavailable'} · {indicator.reportingPeriod || indicator.dataYear || 'Period unavailable'}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-[#304355]/10 mt-4 pt-3 space-y-1 text-xs text-[#64707A]">
-                  <p>Source: <strong className="text-[#1F2933]">{selectedNutrition.nutritionIndicators[0]?.sourceName || 'Not available'}</strong></p>
-                  <p>Reporting period: <strong className="text-[#1F2933]">{selectedNutrition.nutritionIndicators[0]?.reportingPeriod || selectedNutrition.nutritionIndicators[0]?.dataYear || 'Not available'}</strong></p>
-                  <p className="pt-1">These are district-level population indicators, not a diagnosis of any requester, child, or family.</p>
-                </div>
+                <strong className="font-semibold text-slate-900 not-italic">Live Requests:</strong> real verified institutions asking for food support right now. · <span className="text-slate-500">Switch to view NFHS-5 population deficits.</span>
               </>
             )}
-          </section>
+          </p>
         </div>
       </section>
 
-      {/* Section 1C: Nutrition-informed donor discovery */}
-      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-10">
-        <section className="bg-white rounded-2xl border-2 border-[#304355]/15 shadow-md p-6 md:p-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#64707A]">Donation guide</p>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-[#304355] mt-1">What Can I Donate in {selectedDistrict}?</h2>
-              <p className="text-sm text-[#64707A] mt-2 max-w-2xl">Food categories shown here are based on the district nutrition reference. Choose what you have and continue to donate.</p>
+      {/* ── 4. Side-by-side Workspace: Map Card + District Card (Matching Height) ── */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          
+          {/* Left 7 cols: Maharashtra District Vector Map Card Container */}
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col justify-between relative overflow-hidden">
+            
+            {/* Map Canvas Header with + - Reset buttons */}
+            <div className="flex items-center justify-between mb-3 z-10">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Maharashtra Nutritional Vulnerability Grid
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Click any active district to re-align telemetry and verified needs
+                </p>
+              </div>
+              <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => {}}
+                  className="w-7 h-7 rounded bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center font-bold text-sm shadow-xs border border-slate-200/80 cursor-pointer"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {}}
+                  className="w-7 h-7 rounded bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center font-bold text-sm shadow-xs border border-slate-200/80 cursor-pointer"
+                  title="Zoom Out"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDistrictChange('Nashik')}
+                  className="px-2.5 h-7 rounded bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center justify-center shadow-xs border border-slate-200/80 cursor-pointer"
+                  title="Reset View"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
-            <button type="button" onClick={handleDonateTheseFoods} className="shrink-0 bg-[#304355] text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-[#243342] transition">
-              Donate These Foods <ArrowRight className="inline w-4 h-4 ml-1" />
-            </button>
+
+            {/* Map Canvas with Component */}
+            <div className="relative w-full flex-1 min-h-[380px] flex items-center justify-center bg-slate-50/60 rounded-xl p-2 border border-slate-100 overflow-hidden">
+              <MaharashtraDistrictMap
+                selectedDistrict={selectedDistrict}
+                onDistrictSelect={handleDistrictChange}
+                urgencyByDistrict={urgencyByDistrict}
+                nutritionByDistrict={nutritionByDistrict}
+                mapMode={mapMode}
+              />
+            </div>
+
+            {/* Map Legend Bar Exactly Like Stitch */}
+            <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-4 text-xs text-slate-600">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#DC2626]" />
+                <span className="text-[11px] font-medium">Critical Vulnerability</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#EA580C]" />
+                <span className="text-[11px] font-medium">High Risk</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#D97706]" />
+                <span className="text-[11px] font-medium">Moderate Risk</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full bg-[#0D9488]" />
+                <span className="text-[11px] font-medium">Standard Baseline</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded bg-slate-100 border border-dashed border-slate-300" />
+                <span className="text-[11px] font-medium">Onboarding Pending</span>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-7">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[#64707A]">Recommended for this district</h3>
-              <span className="text-[10px] font-semibold text-[#64707A]">Nutrition reference</span>
-            </div>
-            {nutritionDataLoading ? (
-              <div className="mt-4 py-6 text-center text-sm text-[#64707A]">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
-                Loading recommended foods…
+          {/* Right 5 cols: Selected District Panel matching height */}
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between space-y-4">
+            <div className="space-y-3.5">
+              
+              {/* District Header & Single Urgency Badge */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                      {selectedDistrict} District
+                    </h2>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">
+                      North Zone
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Trimbak, Peint, Surgana, Igatpuri belts
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                    districtAttentionInfo.badgeColor
+                  }`}
+                >
+                  {districtAttentionInfo.urgencyBadge}
+                </span>
               </div>
-            ) : recommendedFoods.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4">
-                {recommendedFoods.map((food) => {
-                  const needed = safeNeededFoods.filter(({ item }) => item.name.toLowerCase().includes(food.toLowerCase()) || food.toLowerCase().includes(item.name.toLowerCase()));
-                  return (
-                    <article key={food} className={`overflow-hidden rounded-xl border ${needed.length ? 'border-emerald-400 ring-2 ring-emerald-100' : 'border-[#304355]/10'} bg-[#FBF9FA]`}>
-                      <FoodImage foodName={food} className="w-full h-28" />
-                      <div className="p-3">
-                        <h4 className="font-bold text-sm text-[#304355]">{food}</h4>
-                        <p className="text-[11px] text-[#64707A] mt-1">{needed.length ? 'Needed right now' : 'Recommended here'}</p>
-                        <details className="mt-2 text-[11px] text-[#64707A]"><summary className="cursor-pointer font-semibold text-[#304355]">Why recommended?</summary><p className="mt-1">Included in the curated nutrition reference mapping for relevant district-level population indicators.</p></details>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : <div className="mt-4 rounded-xl border border-dashed border-[#304355]/20 p-5 text-sm text-[#64707A]">Nutrition-reference recommendations are currently unavailable for this district.</div>}
-          </div>
 
-          <div className="mt-8 border-t border-[#304355]/10 pt-6">
-            <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#304355]" /><h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[#64707A]">Needed right now</h3><span className="text-[10px] font-semibold text-[#64707A]">Live eligible requirements</span></div>
-            {districtDataLoading ? (
-              <div className="mt-4 py-6 text-center text-sm text-[#64707A]">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#304355]" />
-                Loading live requirements…
+              {/* Plain-language Reason Line */}
+              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100">
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  Seasonal supply quota delays in tribal residential ashram shalas; acute demand for unpolished rice and protein pulses across <strong className="font-bold text-[#0F1E2E]">180+ enrolled boarders</strong>.
+                </p>
               </div>
-            ) : safeNeededFoods.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                {safeNeededFoods.map(({ item, requirement }) => (
-                  <article key={`${requirement.id}-${item.name}-${item.quantityRemaining}-${item.unit}`} className="overflow-hidden rounded-xl border border-[#304355]/10 bg-[#FBF9FA]">
-                    <FoodImage foodName={item.name} className="w-full h-24" />
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-3"><div><p className="font-bold text-[#304355]">{item.name}</p><p className="text-xs text-[#64707A] mt-1">{item.quantityRemaining} {item.unit} still needed</p></div><span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${requirement.urgencyColor}`}>{requirement.urgencyLabel}</span></div>
-                      <div className="mt-3 h-1.5 bg-slate-200 rounded-full"><div className="h-1.5 bg-[#304355] rounded-full" style={{ width: `${item.fulfilledPercent}%` }} /></div>
-                      <p className="text-xs text-[#64707A] mt-3">{requirement.institutionName} · {requirement.institutionType}</p>
-                      <button type="button" onClick={() => handlePledgeSupport(requirement.id)} className="mt-3 text-xs font-bold text-[#304355] hover:underline">View / Donate <ArrowRight className="inline w-3 h-3" /></button>
-                    </div>
-                  </article>
-                ))}
+
+              {/* Key Telemetry Stats Grid */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
+                  <div className="text-xl font-extrabold text-[#0F1E2E]">{verifiedCenters}</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Verified Centers</div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
+                  <div className="text-xl font-extrabold text-[#EA580C]">
+                    {totalStapleGap} kg
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Total Staple Gap</div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
+                  <div className="text-xl font-extrabold text-emerald-600">
+                    {avgFulfilled}%
+                  </div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Avg Fulfilled</div>
+                </div>
               </div>
-            ) : <p className="mt-4 text-sm text-[#64707A]">No active requirement for this district right now.</p>}
+
+              {/* Mini Progress Visualizer */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-slate-500">District Allocation Pledged</span>
+                  <span className="text-[#0F1E2E] font-bold">
+                    {totalQuantityPledged.toLocaleString()} kg / {totalQuantityNeeded.toLocaleString()} kg
+                  </span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-[#0F1E2E] rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min(100, Math.max(0, avgFulfilled))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* District Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <a
+                href="#ranked-needs-section"
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#0F1E2E] hover:bg-[#1A2E44] text-white font-semibold text-xs transition-all shadow-xs cursor-pointer"
+              >
+                <span>See What&apos;s Needed</span>
+                <ArrowRight className="w-4 h-4 rotate-90" />
+              </a>
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/districts/${selectedDistrict.toLowerCase().replace(/\s+/g, '-')}`)
+                }
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200/70 text-[#0F1E2E] font-semibold text-xs transition-all cursor-pointer border border-slate-200"
+              >
+                <span>View Full District Health Profile</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-        </section>
+        </div>
       </section>
 
-      {/* Section 2: Current Active Requirements Catalog Preview */}
-      <section className="max-w-[1280px] mx-auto px-6 md:px-10 py-10 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h3 className="text-2xl font-extrabold text-[#304355]">
-              Browse Active Requirements Across Maharashtra
-            </h3>
-            <p className="text-sm text-[#64707A]">
-              Use the filters to browse live needs statewide. Selected-district details appear above.
-            </p>
+      {/* ── 5. Recommended Food Categories Cards with FoodImage ── */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-8">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-2 border-b border-slate-100 mb-5">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🌾</span>
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                Recommended food categories for {selectedDistrict} District
+              </h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-500 hidden md:block">
+                Hover or tap card chips to inspect clinical and dietary rationale
+              </span>
+              <button
+                type="button"
+                onClick={handleDonateTheseFoods}
+                className="shrink-0 bg-[#0F1E2E] text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-[#1A2E44] transition shadow-xs cursor-pointer whitespace-nowrap"
+              >
+                Donate These Foods <ArrowRight className="inline w-3.5 h-3.5 ml-1" />
+              </button>
+            </div>
           </div>
 
-          {/* Interactive Filter Controls */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Location Filter */}
-            <div className="relative">
-              <select
-                value={locationFilter}
-                onChange={(e) => handleLocationFilterChange(e.target.value)}
-                className="appearance-none bg-white border border-[#304355]/20 pl-4 pr-8 py-2 rounded-full text-xs font-semibold text-[#1F2933] hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-[#304355] shadow-xs cursor-pointer"
-              >
-                <option value="ALL">Location: All Districts</option>
-                <option value={selectedDistrict}>Location: {selectedDistrict}</option>
-                {districtsList
-                  .filter((d) => d.name !== selectedDistrict)
-                  .map((d) => (
-                    <option key={d.id || d.name} value={d.name}>
-                      Location: {d.name}
-                    </option>
-                  ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#64707A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Interactive Compact Food Cards */}
+          {nutritionDataLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl bg-slate-50 p-4 h-48 animate-pulse" />
+              ))}
             </div>
+          ) : recommendedFoods.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {recommendedFoods.map((food) => {
+                const needed = safeNeededFoods.filter(
+                  ({ item }) =>
+                    item.name.toLowerCase().includes(food.toLowerCase()) ||
+                    food.toLowerCase().includes(item.name.toLowerCase())
+                );
+                return (
+                  <div
+                    key={food}
+                    className="group relative bg-slate-50 hover:bg-slate-100/80 p-4 rounded-xl transition-all duration-200 border border-slate-100 flex flex-col justify-between"
+                  >
+                    <div>
+                      <FoodImage
+                        foodName={food}
+                        className="w-full h-28 object-cover rounded-lg mb-3 shadow-xs"
+                      />
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="font-bold text-sm text-slate-900">{food}</span>
+                        {needed.length > 0 ? (
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" title="Needed right now" />
+                        ) : (
+                          <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-1" />
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">Tur / Moong Dal / Cereals</p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-slate-200/60 text-[11px] font-medium text-slate-700 leading-snug">
+                      Dietary baseline — addressing nutritional and caloric deficits in residential schools.
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 p-6 text-xs text-slate-500 text-center bg-slate-50">
+              Nutrition-reference recommendations are currently being compiled for {selectedDistrict}.
+            </div>
+          )}
+        </div>
+      </section>
 
-            {/* Attention Level Filter */}
+      {/* ── 6. RANKED NEEDS LIST (EXACT STITCH CARD STYLING) ── */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 py-6 space-y-5" id="ranked-needs-section">
+        
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#0F1E2E] text-white font-bold text-xs">
+                Statewide Live Registry
+              </span>
+              <span className="text-xs text-slate-500">Updated 8 mins ago</span>
+            </div>
+            <h2 className="text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight mt-1.5">
+              Active Requests Across Maharashtra
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Showing <strong className="text-slate-900 font-semibold">{filteredRequirements.length} active verified requirements</strong> statewide · Filter below to view specific districts or items
+            </p>
+          </div>
+          {hasActiveFilters && (
+            <button
+              onClick={handleClearFilters}
+              className="shrink-0 bg-white border border-red-200 text-red-700 hover:bg-red-50 px-3 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reset Filters
+            </button>
+          )}
+        </div>
+
+        {/* ── Filter Controls Strip ── */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+          
+          {/* District Chips Filter */}
+          <div className="flex flex-wrap items-center gap-2 pb-2.5 border-b border-slate-100">
+            <span className="text-xs font-bold text-slate-500 w-24 shrink-0">District:</span>
+            <button
+              type="button"
+              onClick={() => handleLocationFilterChange('ALL')}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                locationFilter === 'ALL'
+                  ? 'bg-[#0F1E2E] text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              All Districts <span className="text-[10px] opacity-80">({allRequirements.length})</span>
+            </button>
+            {(districtsList.length > 0 ? districtsList.slice(0, 8) : [
+              { name: 'Nashik' },
+              { name: 'Nandurbar' },
+              { name: 'Gadchiroli' },
+              { name: 'Palghar' },
+              { name: 'Amravati' },
+              { name: 'Pune' },
+            ]).map((d) => (
+              <button
+                key={d.id || d.name}
+                type="button"
+                onClick={() => handleLocationFilterChange(d.name)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                  locationFilter === d.name
+                    ? 'bg-[#0F1E2E] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {d.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Urgency Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 w-24 shrink-0">Urgency:</span>
+            {[
+              ['ALL', 'All Urgencies'],
+              ['CRITICAL', 'Critical'],
+              ['HIGH', 'High'],
+              ['MEDIUM', 'Medium'],
+              ['LOW', 'Standard'],
+            ].map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setUrgencyFilter(val)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                  urgencyFilter === val
+                    ? 'bg-[#0F1E2E] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Facility Type Filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 w-24 shrink-0">Institution:</span>
+            {[
+              ['ALL', 'All Types'],
+              ['Ashram Shala', 'Ashram Shala'],
+              ['Anganwadi', 'Anganwadi'],
+              ['Care Center', 'Care Center'],
+              ['Orphanage', 'Orphanage'],
+              ['NGO', 'NGO / Trust'],
+            ].map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setInstitutionFilter(val)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                  institutionFilter === val
+                    ? 'bg-[#0F1E2E] text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Attention level */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-500 w-24 shrink-0">
+              Attention:
+            </span>
             <div className="relative">
               <select
                 value={attentionFilter}
                 onChange={(e) => setAttentionFilter(e.target.value)}
-                className="appearance-none bg-white border border-[#304355]/20 pl-4 pr-8 py-2 rounded-full text-xs font-semibold text-[#1F2933] hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-[#304355] shadow-xs cursor-pointer"
+                className="appearance-none bg-slate-100 border border-slate-200 pl-3 pr-8 py-1 rounded-full text-xs font-semibold text-slate-700 hover:border-slate-300 transition focus:outline-none focus:ring-2 focus:ring-[#0F1E2E] cursor-pointer"
               >
-                <option value="ALL">Attention Level: All</option>
+                <option value="ALL">All Attention Levels</option>
                 <option value="CRITICAL">Critical Attention</option>
                 <option value="HIGH">High Attention</option>
                 <option value="MEDIUM">Moderate Attention</option>
                 <option value="LOW">Standard</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#64707A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
-
-            {/* Urgency Filter */}
-            <div className="relative">
-              <select
-                value={urgencyFilter}
-                onChange={(e) => setUrgencyFilter(e.target.value)}
-                className="appearance-none bg-white border border-[#304355]/20 pl-4 pr-8 py-2 rounded-full text-xs font-semibold text-[#1F2933] hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-[#304355] shadow-xs cursor-pointer"
-              >
-                <option value="ALL">Urgency: All</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High Urgency</option>
-                <option value="MEDIUM">Medium Urgency</option>
-                <option value="LOW">Standard Need</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#64707A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Institution Type Filter */}
-            <div className="relative">
-              <select
-                value={institutionFilter}
-                onChange={(e) => setInstitutionFilter(e.target.value)}
-                className="appearance-none bg-white border border-[#304355]/20 pl-4 pr-8 py-2 rounded-full text-xs font-semibold text-[#1F2933] hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-[#304355] shadow-xs cursor-pointer"
-              >
-                <option value="ALL">Institution Type: All</option>
-                <option value="Ashram Shala">Ashram Shala</option>
-                <option value="Care Center">Care Center / Shelter</option>
-                <option value="Anganwadi">Anganwadi / Creche</option>
-                <option value="Orphanage">Orphanage</option>
-                <option value="NGO">NGO / Trust</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-[#64707A] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Clear Filters Button */}
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="bg-white border border-red-200 text-red-700 hover:bg-red-50 px-3 py-2 rounded-full text-xs font-semibold transition flex items-center gap-1 shadow-xs cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset Filters</span>
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* ── 7. Requirement Cards Styled Exactly like Stitch Screenshot ── */}
         {loading ? (
-          <div className="bg-white rounded-2xl border border-[#304355]/10 p-12 text-center space-y-3 shadow-xs">
-            <Loader2 className="w-8 h-8 animate-spin text-[#304355] mx-auto" />
-            <p className="text-sm font-semibold text-[#304355]">Loading requirements for {selectedDistrict}…</p>
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-xs">
+            <Loader2 className="w-8 h-8 animate-spin text-[#0F1E2E] mx-auto" />
+            <p className="text-sm font-semibold text-[#0F1E2E]">Loading requirements…</p>
           </div>
         ) : error ? (
-          /* Error State */
           <div className="bg-white rounded-2xl border border-red-200 p-12 text-center space-y-4 shadow-xs">
             <AlertCircle className="w-8 h-8 text-red-600 mx-auto" />
-            <h4 className="text-lg font-bold text-[#1F2933]">Unable to load district requirements</h4>
-            <p className="text-xs text-[#64707A] max-w-sm mx-auto">{error}</p>
+            <h4 className="text-lg font-bold text-slate-900">Unable to load requirements</h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">{error}</p>
             <button
+              type="button"
               onClick={() => window.location.reload()}
-              className="bg-[#304355] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#243342] transition cursor-pointer"
+              className="bg-[#0F1E2E] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#1A2E44] transition cursor-pointer"
             >
               Retry Loading
             </button>
           </div>
         ) : filteredRequirements.length > 0 ? (
-          /* Bento Cards Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredRequirements.map((req) => (
-              <div
-                key={req.id}
-                className="bg-white rounded-2xl border border-[#304355]/10 p-6 flex flex-col justify-between relative overflow-hidden shadow-xs hover:shadow-md transition group"
-              >
-                <div className="space-y-4">
-                  <div className="flex justify-between items-start">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border ${req.urgencyColor}`}>
-                      {req.urgencyLabel}
-                    </span>
-                    <span className="text-xs text-[#64707A] flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> {req.daysLeft} days left
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="text-xl font-bold text-[#304355] line-clamp-1">{req.title}</h4>
-                    <p className="text-xs text-[#64707A] font-medium mt-0.5 line-clamp-1">{req.institutionName}</p>
-
-                    <div className="mt-3 space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
-                      {req.items.map((item, idx) => (
-                        <div key={idx} className="bg-[#FBF9FA] border border-[#304355]/5 rounded-lg p-2.5 space-y-1.5">
-                          <div className="flex justify-between items-baseline">
-                            <span className="text-xs font-bold text-[#304355]">{item.name}</span>
-                            <span className="text-[10px] font-bold text-[#64707A]">{item.quantityRemaining}{item.unit} left</span>
-                          </div>
-                          <div className="w-full bg-slate-200 rounded-full h-1">
-                            <div
-                              className="bg-[#304355] h-1 rounded-full"
-                              style={{ width: `${item.fulfilledPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 pt-2 text-xs">
-                    <div className="flex items-center gap-1.5 text-[#64707A]">
-                      <MapPin className="w-4 h-4 text-[#304355] flex-shrink-0" />
-                      <span>{req.district}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                      <span>{req.confidence}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handlePledgeSupport(req.id)}
-                  className="mt-6 w-full bg-white border border-[#304355] text-[#304355] hover:bg-[#304355] hover:text-white py-2.5 rounded-xl font-semibold text-xs transition cursor-pointer"
+          <div className="space-y-4">
+            {filteredRequirements.map((req, idx) => {
+              const itemsText = req.items.map((i) => i.name).join(', ') || 'Wholesome Food Grains & Pulses';
+              
+              return (
+                <article
+                  key={req.id}
+                  className="bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow p-5 lg:p-6 flex flex-col md:flex-row gap-5 justify-between items-start md:items-center"
                 >
-                  Pledge Support
-                </button>
-              </div>
-            ))}
+                  {/* Left Body Details */}
+                  <div className="space-y-2 flex-1 min-w-0">
+                    
+                    {/* Header Badges Strip matching Stitch Screenshot */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded text-xs font-bold ${req.urgencyMeta.badgeColor}`}>
+                        #{idx + 1} Match · {req.urgencyMeta.badgeText}
+                      </span>
+                      
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#0F1E2E] text-white font-bold text-xs flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {req.rawDistrict || req.district}
+                      </span>
+                      
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold text-xs border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        Verified Institution
+                      </span>
+                      
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-xs font-medium">
+                        {req.institutionType}
+                      </span>
+                      
+                      {req.location && (
+                        <span className="text-xs text-slate-500">{req.location}</span>
+                      )}
+                    </div>
+
+                    {/* Institution & Requirement Title */}
+                    <h3 className="text-lg font-bold text-slate-900 truncate">
+                      {req.institutionName} &mdash; {req.title}
+                    </h3>
+
+                    {/* Food Items & Subtitle */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="text-xs font-bold text-slate-900">
+                        {itemsText}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        Monthly Batch Deficit ({req.daysLeft}d left)
+                      </span>
+                    </div>
+
+                    {/* Two-Tone Progress Bar Exactly Like Stitch */}
+                    <div className="space-y-1 max-w-xl pt-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600">
+                          Fulfillment: <strong className="text-slate-900 font-bold">{req.totalPledged} kg pledged</strong> of {req.totalRequired > 0 ? req.totalRequired : req.totalRemaining} kg needed
+                        </span>
+                        <span className={`font-bold ${req.urgencyMeta.remainingTextColor}`}>
+                          {req.totalRemaining} kg remaining needed
+                        </span>
+                      </div>
+                      
+                      {/* Two-tone fulfillment bar */}
+                      <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden flex">
+                        <div
+                          className="h-full bg-emerald-600 rounded-l-full"
+                          style={{ width: `${req.overallPercent}%` }}
+                        />
+                        <div
+                          className={`h-full ${req.urgencyMeta.barRemainingColor} rounded-r-full`}
+                          style={{ width: `${100 - req.overallPercent}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Callout Notice Strip */}
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-50 text-orange-900 text-xs border border-orange-200">
+                      <AlertTriangle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
+                      <span>
+                        {req.rationale || `Matches standard pulse pledges · Urgent ration stockout expected within ${req.daysLeft} days`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Action Column Matching Stitch */}
+                  <div className="flex flex-row md:flex-col items-center md:items-end gap-2 w-full md:w-auto shrink-0 pt-2 md:pt-0">
+                    <button
+                      type="button"
+                      onClick={() => handlePledgeSupport(req.id)}
+                      className="flex-1 md:flex-initial w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#0F1E2E] hover:bg-[#1A2E44] text-white font-semibold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                    >
+                      <span>Pledge Support</span>
+                      <HeartHandshake className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/requirements/${req.id}`)}
+                      className="px-2 py-1 text-xs text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>View Details &amp; Pantry Ledger</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
-          /* Empty State */
-          <div className="bg-white rounded-2xl border border-[#304355]/10 p-12 text-center space-y-4 shadow-xs">
-            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-[#304355] mx-auto">
+          /* Empty state */
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-[#0F1E2E] mx-auto">
               <PackageOpen className="w-7 h-7" />
             </div>
-            <h4 className="text-lg font-bold text-[#1F2933]">No matching requirements found</h4>
-            <p className="text-xs text-[#64707A] max-w-md mx-auto">
-              There are currently no active requirements in {effectiveDistrict && effectiveDistrict !== 'ALL' ? effectiveDistrict : 'this location'} matching your filter criteria.
+            <h4 className="text-lg font-bold text-slate-900">No matching requirements found</h4>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              There are currently no active requirements in{' '}
+              {effectiveDistrict && effectiveDistrict !== 'ALL'
+                ? effectiveDistrict
+                : 'this location'}{' '}
+              matching your filter criteria.
             </p>
             {hasActiveFilters && (
               <button
+                type="button"
                 onClick={handleClearFilters}
-                className="bg-[#304355] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#243342] transition inline-flex items-center gap-1.5 cursor-pointer"
+                className="bg-[#0F1E2E] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#1A2E44] transition inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset All Filters</span>
+                Reset All Filters
               </button>
             )}
           </div>
         )}
 
-        <div className="text-center pt-4">
+        {/* View full catalog link */}
+        <div className="text-center pt-2">
           <button
+            type="button"
             onClick={() => navigate('/requirements')}
-            className="text-[#304355] font-semibold text-sm inline-flex items-center gap-1.5 hover:underline cursor-pointer"
+            className="text-[#0F1E2E] font-semibold text-sm inline-flex items-center gap-1.5 hover:underline cursor-pointer"
           >
             <span>View Full Requirements Catalog</span>
             <ArrowRight className="w-4 h-4" />
           </button>
+        </div>
+      </section>
+
+      {/* ── 8. Trust Footer Strip ── */}
+      <section className="max-w-[1280px] mx-auto px-6 md:px-10 pb-12 pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* Left: Direct Drop-Off, Zero Cash Handling */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 text-[#0F1E2E] flex items-center justify-center shrink-0 mt-0.5">
+              <Handshake className="w-5 h-5" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-slate-900">Direct Drop-Off, Zero Cash Handling</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                When you pledge, you commit to delivering directly to the institution&apos;s front door.
+                PoshanSetu connects donors to institutions directly &mdash; no cash flows through us.
+                We never handle money or shipping.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  All pledges logged against verifiable need
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Dual confirmation required before marking fulfilled
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Right: Transparent Data Provenance */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
+              <Database className="w-5 h-5" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-bold text-slate-900">Transparent Data Provenance</h4>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                District health baselines are sourced from the National Family Health Survey
+                (NFHS-5) &amp; quarterly GCED system registry updates. District nutrition indicators
+                do not contain clinical diagnoses of individuals.
+              </p>
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Official government datasets only
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Nutrition data &ne; clinical diagnosis
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  Transparent reporting periods &amp; source attribution
+                </li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </section>
 

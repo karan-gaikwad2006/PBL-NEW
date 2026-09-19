@@ -63,7 +63,7 @@ export default function App() {
     <AuthProvider>
       <Router>
         <ScrollToTop />
-        <div className="min-h-screen bg-[#E8E8E2] text-[#1F2933] flex flex-col justify-between font-sans">
+        <div className="min-h-screen bg-[#FAF8F6] text-[#1F2933] flex flex-col justify-between font-sans">
           <Navbar />
           <main className="flex-grow">
             <Routes>

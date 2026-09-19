@@ -347,7 +347,7 @@ export default function AdminReview() {
                       {URGENCY_CONFIG[item.urgency]?.label} Urgency
                     </span>
                   )}
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#E8E8E2] text-[#304355] border border-slate-200 capitalize">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#FAF8F6] text-[#304355] border border-slate-200 capitalize">
                     Status: {STATUS_LABELS[item.status] || item.status}
                   </span>
                 </div>
@@ -382,7 +382,7 @@ export default function AdminReview() {
                   <p className="text-xs font-semibold text-[#64707A] uppercase tracking-wider mb-2">Requested Items</p>
                   <div className="flex flex-wrap gap-2">
                     {item.items?.map((itm) => (
-                      <span key={itm.id || itm.name} className="text-xs bg-[#E8E8E2] text-[#304355] px-2.5 py-1 rounded-full font-medium">
+                      <span key={itm.id || itm.name} className="text-xs bg-[#FAF8F6] text-[#304355] px-2.5 py-1 rounded-full font-medium">
                         {itm.name} — {itm.quantityRequired} {itm.unit}
                       </span>
                     ))}
@@ -531,7 +531,7 @@ export default function AdminReview() {
                 onChange={(e) => setReviewNote(e.target.value)}
                 placeholder="Add review notes (recorded in the audit history)..."
                 rows={4}
-                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm text-[#1F2933] bg-[#FBF9FA] resize-none focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors mb-4"
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm text-[#1F2933] bg-[#FAF8F6] resize-none focus:outline-none focus:border-[#304355] focus:ring-1 focus:ring-[#304355] transition-colors mb-4"
               />
 
               {actionError && (
@@ -606,10 +606,10 @@ export default function AdminReview() {
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-4">
               <h3 className="font-bold text-sm text-[#304355] mb-3">Navigation</h3>
               <div className="space-y-1">
-                <Link to="/admin/dashboard" className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors">
+                <Link to="/admin/dashboard" className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors">
                   Admin Dashboard <ChevronRight className="w-4 h-4 text-[#64707A]" />
                 </Link>
-                <Link to="/requirements" className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors">
+                <Link to="/requirements" className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors">
                   Requirements Catalog <ChevronRight className="w-4 h-4 text-[#64707A]" />
                 </Link>
               </div>

@@ -37,7 +37,7 @@ export default function SupportOfferSuccess() {
 
         {/* Offer Summary Card */}
         <div className="bg-white border border-[#304355]/10 rounded-2xl overflow-hidden text-left max-w-md mx-auto shadow-sm">
-          <div className="bg-[#FBF9FA] px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+          <div className="bg-[#FAF8F6] px-4 py-3 border-b border-slate-100 flex justify-between items-center">
             <span className="text-xs font-bold text-[#304355] uppercase tracking-wider">Offered Items</span>
             <span className="text-xs text-[#64707A]">{items.length} item{items.length !== 1 ? 's' : ''}</span>
           </div>

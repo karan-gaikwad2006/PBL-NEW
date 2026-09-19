@@ -113,7 +113,7 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="bg-[#E8E8E2] min-h-[calc(100vh-140px)] flex items-center justify-center py-10 px-4">
+    <div className="bg-[#FAF8F6] min-h-[calc(100vh-140px)] flex items-center justify-center py-10 px-4">
       <div className="max-w-2xl w-full bg-white shadow-md border border-[#304355]/10 rounded-2xl overflow-hidden">
         <div className="bg-[#304355] text-white p-8 sm:p-10 text-center space-y-2">
           <div className="flex justify-center mb-2">

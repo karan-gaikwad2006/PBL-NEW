@@ -4,8 +4,8 @@
   --color-poshan-navy: #304355;
   --color-poshan-navy-hover: #243342;
   --color-poshan-navy-light: #43586d;
-  --color-poshan-cream: #E8E8E2;
-  --color-poshan-bg: #FBF9FA;
+  --color-poshan-cream: #FAF8F6;
+  --color-poshan-bg: #FAF8F6;
   --color-poshan-card: #FFFFFF;
   --color-poshan-text: #1F2933;
   --color-poshan-muted: #64707A;
@@ -20,7 +20,7 @@
 }
 
 body {
-  background-color: var(--color-poshan-bg, #FBF9FA);
+  background-color: var(--color-poshan-bg, #FAF8F6);
   color: var(--color-poshan-text, #1F2933);
   font-family: var(--font-sans);
   margin: 0;

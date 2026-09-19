@@ -146,7 +146,7 @@ export default function RequirementsCatalog() {
   };
 
   return (
-    <div className="bg-[#E8E8E2] min-h-screen text-[#1F2933] font-sans pb-16">
+    <div className="bg-[#FAF8F6] min-h-screen text-[#1F2933] font-sans pb-16">
       <main className="max-w-[1280px] mx-auto px-6 md:px-10 py-8 space-y-8">
         <header className="space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -191,14 +191,14 @@ export default function RequirementsCatalog() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search keyword or institution..."
-                    className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl py-2.5 pl-10 pr-3 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
+                    className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-xl py-2.5 pl-10 pr-3 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
                   />
                 </div>
 
                 <select
                   value={districtFilter}
                   onChange={(e) => setDistrictFilter(e.target.value)}
-                  className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
+                  className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
                 >
                   <option value="ALL">All Districts</option>
                   {districtOptions.map((name) => (
@@ -211,7 +211,7 @@ export default function RequirementsCatalog() {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
+                  className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
                 >
                   <option value="ALL">All Food Categories</option>
                   <option value="PULSES">Pulses & Dal</option>
@@ -223,7 +223,7 @@ export default function RequirementsCatalog() {
                 <select
                   value={urgencyFilter}
                   onChange={(e) => setUrgencyFilter(e.target.value)}
-                  className="w-full bg-[#FBF9FA] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
+                  className="w-full bg-[#FAF8F6] border border-[#304355]/20 rounded-xl px-3 py-2.5 text-xs text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355]"
                 >
                   <option value="ALL">All Urgencies</option>
                   <option value="CRITICAL">Critical</option>
@@ -282,7 +282,7 @@ export default function RequirementsCatalog() {
                         <p className="text-xs text-[#64707A] font-medium">{req.requester}</p>
                       </div>
 
-                      <div className="space-y-2 bg-[#FBF9FA] p-3 rounded-xl border border-[#304355]/10 max-h-36 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-2 bg-[#FAF8F6] p-3 rounded-xl border border-[#304355]/10 max-h-36 overflow-y-auto custom-scrollbar">
                         {req.items.map((item, idx) => (
                           <div key={item.id || idx} className="space-y-1 pb-2 last:pb-0 border-b border-[#304355]/5 last:border-0">
                             <div className="flex justify-between text-[11px] font-bold text-[#1F2933]">

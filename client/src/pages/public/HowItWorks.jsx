@@ -25,7 +25,7 @@ import {
 
 export default function HowItWorks() {
   return (
-    <div className="bg-[#E8E8E2] text-[#1F2933] font-[Manrope,sans-serif] min-h-screen">
+    <div className="bg-[#FAF8F6] text-[#1F2933] font-[Manrope,sans-serif] min-h-screen">
 
       {/* ── Top Intro Section ───────────────────────────────────────────────── */}
       <section className="w-full py-12">

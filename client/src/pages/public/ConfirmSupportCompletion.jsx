@@ -155,7 +155,7 @@ export default function ConfirmSupportCompletion() {
                 {isDonor ? 'Confirm Delivery' : 'Confirm Receipt'}
               </h1>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FBF9FA] p-6 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF8F6] p-6 rounded-xl border border-slate-100">
                 <div>
                   <span className="text-xs text-[#64707A] uppercase tracking-wider block mb-1">Requirement</span>
                   <span className="font-semibold text-sm text-[#1F2933]">{offer.requirementTitle}</span>
@@ -224,7 +224,7 @@ export default function ConfirmSupportCompletion() {
                 <div className="hidden md:block absolute top-1/2 left-1/4 right-1/4 h-[2px] bg-slate-200 -translate-y-1/2 z-0" />
                 
                 {/* Donor Status */}
-                <div className={`bg-[#FBF9FA] relative z-10 p-5 rounded-xl border flex flex-col items-center text-center ${
+                <div className={`bg-[#FAF8F6] relative z-10 p-5 rounded-xl border flex flex-col items-center text-center ${
                   confirmedByDonor ? 'border-emerald-200' : 'border-amber-200'
                 }`}>
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
@@ -239,7 +239,7 @@ export default function ConfirmSupportCompletion() {
                 </div>
 
                 {/* Requester Status */}
-                <div className={`bg-[#FBF9FA] relative z-10 p-5 rounded-xl border flex flex-col items-center text-center transition-all duration-300 ${
+                <div className={`bg-[#FAF8F6] relative z-10 p-5 rounded-xl border flex flex-col items-center text-center transition-all duration-300 ${
                   confirmedByRequester 
                     ? 'border-emerald-200' 
                     : notReceived
@@ -325,7 +325,7 @@ export default function ConfirmSupportCompletion() {
                     <button
                       onClick={handleNotReceived}
                       disabled={submitting}
-                      className="bg-[#E8E8E2] border border-[#304355] text-[#304355] font-bold text-sm px-6 py-3 rounded-lg hover:bg-slate-200 transition-colors w-full sm:w-auto flex justify-center items-center gap-2 disabled:opacity-50"
+                      className="bg-[#FAF8F6] border border-[#304355] text-[#304355] font-bold text-sm px-6 py-3 rounded-lg hover:bg-slate-200 transition-colors w-full sm:w-auto flex justify-center items-center gap-2 disabled:opacity-50"
                     >
                       <X className="w-4 h-4" />
                       Not yet received
@@ -371,7 +371,7 @@ export default function ConfirmSupportCompletion() {
             </div>
 
             {/* Platform disclaimer */}
-            <div className="bg-[#FBF9FA] border border-[#304355]/10 rounded-2xl p-5 flex items-start gap-3">
+            <div className="bg-[#FAF8F6] border border-[#304355]/10 rounded-2xl p-5 flex items-start gap-3">
               <Info className="w-5 h-5 text-[#304355] shrink-0 mt-0.5" />
               <p className="text-xs text-[#64707A] leading-relaxed">
                 <strong className="text-[#1F2933]">PoshanSetu helps connect people with needs.</strong> Dual confirmation ensures transparency and protects both donors and institutions.

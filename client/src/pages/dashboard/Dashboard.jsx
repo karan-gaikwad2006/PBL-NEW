@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#E8E8E2]">
+      <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#FAF8F6]">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#304355]"></div>
           <p className="text-sm font-medium text-[#304355]">Loading dashboard…</p>
@@ -42,7 +42,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#E8E8E2] p-6">
+    <div className="min-h-[calc(100vh-140px)] flex items-center justify-center bg-[#FAF8F6] p-6">
       <div className="bg-white rounded-2xl shadow-md border border-[#304355]/10 max-w-md w-full p-8 text-center">
         <h2 className="text-xl font-extrabold text-[#304355] mb-2">Account role not recognized</h2>
         <p className="text-sm text-[#64707A] mb-4">

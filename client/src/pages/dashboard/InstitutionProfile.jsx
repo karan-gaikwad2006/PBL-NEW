@@ -558,7 +558,7 @@ export default function InstitutionProfile() {
                   <Link
                     key={link.to}
                     to={link.to}
-                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#E8E8E2] transition-colors"
+                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors"
                   >
                     {link.label}
                     <ChevronRight className="w-4 h-4 text-[#64707A]" />

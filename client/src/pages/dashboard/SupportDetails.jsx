@@ -149,15 +149,15 @@ export default function SupportDetails() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-5">
-                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center">
+                <div className="bg-[#FAF8F6] rounded-xl p-4 text-center">
                   <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Item Offered</p>
                   <p className="text-lg font-extrabold text-[#304355]">{support.item}</p>
                 </div>
-                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center">
+                <div className="bg-[#FAF8F6] rounded-xl p-4 text-center">
                   <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Quantity</p>
                   <p className="text-lg font-extrabold text-[#304355]">{support.quantityOffered} {support.unit}</p>
                 </div>
-                <div className="bg-[#E8E8E2] rounded-xl p-4 text-center col-span-2 md:col-span-1">
+                <div className="bg-[#FAF8F6] rounded-xl p-4 text-center col-span-2 md:col-span-1">
                   <p className="text-xs text-[#64707A] uppercase tracking-wider font-semibold mb-1">Status</p>
                   <p className="text-lg font-extrabold text-[#304355] capitalize">{support.status}</p>
                 </div>
@@ -171,7 +171,7 @@ export default function SupportDetails() {
                   <MessageSquare className="w-4 h-4" />
                   Your Message to Requester
                 </h3>
-                <div className="bg-[#E8E8E2] rounded-xl px-4 py-3 text-sm text-[#1F2933] italic">
+                <div className="bg-[#FAF8F6] rounded-xl px-4 py-3 text-sm text-[#1F2933] italic">
                   "{support.donorMessage}"
                 </div>
               </div>

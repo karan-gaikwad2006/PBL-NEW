@@ -88,7 +88,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-140px)] bg-[#E8E8E2] flex items-center justify-center p-6">
+    <div className="min-h-[calc(100vh-140px)] bg-[#FAF8F6] flex items-center justify-center p-6">
       <div className="absolute top-0 left-0 w-[40vw] h-[40vw] rounded-full bg-[#e3c19a]/20 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[30vw] h-[30vw] rounded-full bg-[#b5c9df]/20 blur-[80px] pointer-events-none" />
 
@@ -132,7 +132,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
                 placeholder="name@example.com"
-                className={`w-full bg-[#FBF9FA] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${errors.email ? 'border-red-400' : 'border-[#304355]/20'}`}
+                className={`w-full bg-[#FAF8F6] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${errors.email ? 'border-red-400' : 'border-[#304355]/20'}`}
               />
             </div>
             {errors.email && (
@@ -159,7 +159,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
                 placeholder="••••••••"
-                className={`w-full bg-[#FBF9FA] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${errors.password ? 'border-red-400' : 'border-[#304355]/20'}`}
+                className={`w-full bg-[#FAF8F6] border rounded-xl pl-10 pr-4 py-3 text-sm text-[#1F2933] focus:outline-none focus:ring-2 focus:ring-[#304355] transition ${errors.password ? 'border-red-400' : 'border-[#304355]/20'}`}
               />
             </div>
             {errors.password && (

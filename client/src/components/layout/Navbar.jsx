@@ -27,7 +27,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#E8E8E2] border-b border-[#304355]/10 shadow-xs sticky top-0 z-50">
+    <header className="bg-[#FAF8F6] border-b border-[#304355]/10 shadow-xs sticky top-0 z-50">
       <div className="flex justify-between items-center px-6 md:px-10 py-0 max-w-[1280px] mx-auto w-full">
         {/* Brand — overflow clips the "Bridge of Nutrition" tagline */}
         <div className="flex items-center">
