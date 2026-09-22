@@ -30,6 +30,7 @@ import {
   Compass
 } from 'lucide-react';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
+import maharashtraMapWatermark from '../../assets/maharashtra-map-watermark.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -109,14 +110,30 @@ export default function LandingPage() {
   const matchSnippet = getMatchSnippet();
 
   return (
-    <div className="bg-[#FAF8F6] text-[#1F2933] font-sans selection:bg-[#d0e5fb] selection:text-[#081d2e] min-h-screen">
+    <div className="bg-[#e9eddc] text-[#1F2933] font-sans selection:bg-[#d0e5fb] selection:text-[#081d2e] min-h-screen">
       {/* 1. HERO SECTION */}
       <section
-        className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] py-12 lg:py-16 flex flex-col justify-center relative overflow-hidden bg-[#F5F0E8] border-b border-[#e2ddd4]"
+        className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] py-12 lg:py-16 flex flex-col justify-center relative overflow-hidden bg-[#f3f7e6] border-b border-[#e2ddd4]"
       >
         {/* Subtle warm ambient glow */}
         <div className="absolute -top-32 right-10 w-[500px] h-[500px] rounded-full bg-[#d4e8c4]/40 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[#e8f0dc]/50 blur-3xl pointer-events-none" />
+
+        {/* Maharashtra map watermark — fixed to right side of the section */}
+        <img
+          src={maharashtraMapWatermark}
+          alt=""
+          aria-hidden="true"
+          className="absolute pointer-events-none select-none object-contain"
+          style={{
+            width: '95%',
+            right: '-20%',
+            top: '48%',
+            transform: 'translateY(-50%)',
+            opacity: 0.5,
+            zIndex: 1,
+          }}
+        />
 
         <div className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-10 relative z-10 flex flex-col justify-between my-auto gap-8 lg:gap-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
@@ -159,7 +176,7 @@ export default function LandingPage() {
                   <button
                     type="button"
                     onClick={handleLocateMe}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2d5540]/80 hover:bg-[#3a6b52] text-[#c8e6d0] font-semibold text-xs transition-colors shrink-0 border border-[#3a6b52] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#F5F3E6] hover:bg-[#E5E0CE] text-[#1C3326] font-bold text-xs transition-colors shrink-0 border border-[#E0DAA8]/40 hover:border-[#D4CDAA] cursor-pointer shadow-sm"
                   >
                     <Navigation className="w-3.5 h-3.5 text-[#7aab8a]" />
                     <span>Locate Near Me</span>
@@ -189,22 +206,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Column: Maharashtra map watermark + Hero Image */}
-            <div className="lg:col-span-5 relative mt-4 lg:mt-0 flex items-center justify-center">
-              {/* Maharashtra map SVG silhouette watermark */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                <svg
-                  viewBox="0 0 500 420"
-                  className="w-[115%] h-[115%] opacity-[0.12]"
-                  fill="#4a7a5a"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M 60 200 C 55 180 65 160 80 145 C 95 130 115 125 130 115 C 145 105 155 90 170 85 C 185 80 200 88 215 82 C 230 76 240 60 258 58 C 276 56 285 72 300 78 C 315 84 332 80 348 88 C 364 96 370 115 382 128 C 394 141 408 148 418 162 C 428 176 428 195 432 212 C 436 229 442 245 438 262 C 434 279 420 290 410 304 C 400 318 395 335 382 346 C 369 357 350 360 336 368 C 322 376 310 386 295 390 C 280 394 264 390 249 388 C 234 386 220 388 205 384 C 190 380 177 370 163 362 C 149 354 133 350 120 340 C 107 330 98 315 88 302 C 78 289 68 274 63 258 C 58 242 65 220 60 200 Z" />
-                </svg>
-              </div>
-
-              {/* Image Card */}
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] w-full border-4 border-white/80 bg-slate-100">
+            {/* Right Column: Hero Image */}
+            <div className="lg:col-span-5 relative mt-4 lg:mt-0">
+              {/* Image Card — sits on top of the watermark */}
+              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] w-full border-1 border-white/80 bg-slate-100">
                 <img
                   className="w-full h-full object-cover"
                   alt="Children receiving food support — Finding a solution for Malnutrition"
@@ -212,7 +217,7 @@ export default function LandingPage() {
                 />
                 {/* Bottom caption overlay */}
                 <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm px-4 py-3 border-t border-white/60">
-                  <p className="text-[#1a2e1a] text-sm font-semibold text-center">
+                  <p className="text-[#1a2e1a] text-sm font-bold text-center">
                     Finding a solution for Malnutrition
                   </p>
                 </div>
