@@ -30,7 +30,6 @@ import {
   Compass
 } from 'lucide-react';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
-import heroPattern from '../../assets/hero-pattern.png';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -113,79 +112,75 @@ export default function LandingPage() {
     <div className="bg-[#FAF8F6] text-[#1F2933] font-sans selection:bg-[#d0e5fb] selection:text-[#081d2e] min-h-screen">
       {/* 1. HERO SECTION */}
       <section
-        className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] py-12 lg:py-16 flex flex-col justify-center relative overflow-hidden bg-[#262820] bg-repeat text-white border-b border-[#3b3d32]"
-        style={{
-          backgroundImage: `url(${heroPattern})`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: 'auto',
-        }}
+        className="w-full min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] py-12 lg:py-16 flex flex-col justify-center relative overflow-hidden bg-[#F5F0E8] border-b border-[#e2ddd4]"
       >
-        {/* Subtle dark ambient glows */}
-        <div className="absolute -top-24 right-0 w-96 h-96 rounded-full bg-[#ffddb7]/10 blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 left-0 w-80 h-80 rounded-full bg-[#d0e5fb]/10 blur-3xl pointer-events-none" />
+        {/* Subtle warm ambient glow */}
+        <div className="absolute -top-32 right-10 w-[500px] h-[500px] rounded-full bg-[#d4e8c4]/40 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-[#e8f0dc]/50 blur-3xl pointer-events-none" />
 
-        <div className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-10 relative z-10 flex flex-col justify-between my-auto gap-8 lg:gap-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        <div className="max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-10 relative z-10 flex flex-col justify-between my-auto gap-8 lg:gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             {/* Left Column: Copy & Search */}
             <div className="lg:col-span-7 flex flex-col gap-5">
-              <div className="inline-flex items-center gap-2 self-start px-3.5 py-1 rounded-full bg-[#ffddb7]/20 text-[#ffddb7] border border-[#ffddb7]/40 backdrop-blur-sm shadow-xs">
+              {/* Live Badge */}
+              <div className="inline-flex items-center gap-2 self-start px-3.5 py-1.5 rounded-full bg-[#e8f4e8] text-[#2d6a2d] border border-[#b8ddb8] shadow-xs">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
-                <span className="text-xs uppercase tracking-wider font-bold text-[#ffddb7]">
+                <span className="text-[11px] uppercase tracking-widest font-bold text-[#2d6a2d]">
                   Live Maharashtra Nutrition Coordination
                 </span>
               </div>
 
               <div className="flex flex-col gap-3">
-                <h1 className="text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-[1.12]">
-                  Make Every Food Donation More Meaningful
+                <h1 className="text-4xl lg:text-[3.25rem] font-extrabold text-[#1a2e1a] tracking-tight leading-[1.1]">
+                  Make Every Food Donation<br />More Meaningful
                 </h1>
-                <p className="text-base md:text-lg text-slate-200 leading-relaxed max-w-xl">
+                <p className="text-base md:text-lg text-[#4a5a4a] leading-relaxed max-w-lg">
                   See where nutrition support is needed, understand why, and help directly.
                 </p>
               </div>
 
-              {/* Inline Search Bar Card */}
-              <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 md:p-5 shadow-2xl border border-white/15 flex flex-col gap-3">
+              {/* Search Card — dark forest green */}
+              <div className="bg-[#1e3a2a] rounded-2xl p-4 md:p-5 shadow-xl border border-[#2d5540] flex flex-col gap-3">
                 <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7aab8a] w-4.5 h-4.5" />
                     <input
                       id="hero-search-input"
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search district, taluka, or PIN (e.g. Nashik, Nandurbar, Gadchiroli, 422001)"
-                      className="w-full pl-11 pr-4 py-2.5 rounded-xl bg-[#1b1d16]/80 text-white placeholder:text-slate-400 focus:outline-none focus:bg-[#151711] focus:ring-2 focus:ring-[#ffddb7]/50 border border-white/10 text-sm font-medium transition-all"
+                      placeholder="Search district, taluka, or PIN (e.g. Nashik, Nandurbar,)"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#152b1e] text-white placeholder:text-[#6a9078] focus:outline-none focus:bg-[#0f2016] focus:ring-2 focus:ring-[#5aa870]/50 border border-[#2d5540] text-sm font-medium transition-all"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleLocateMe}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#3a3d31]/90 hover:bg-[#474a3c] text-slate-200 font-semibold text-xs transition-colors shrink-0 border border-white/10 cursor-pointer shadow-xs"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2d5540]/80 hover:bg-[#3a6b52] text-[#c8e6d0] font-semibold text-xs transition-colors shrink-0 border border-[#3a6b52] cursor-pointer"
                   >
-                    <Navigation className="w-3.5 h-3.5 text-[#ffddb7]" />
+                    <Navigation className="w-3.5 h-3.5 text-[#7aab8a]" />
                     <span>Locate Near Me</span>
                   </button>
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#ffddb7] hover:bg-[#ffe3c2] text-[#2a1801] font-bold text-xs transition-colors shrink-0 shadow-md cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#c17f24] hover:bg-[#d4902e] text-white font-bold text-xs transition-colors shrink-0 shadow-md cursor-pointer"
                   >
                     <span>Search</span>
                   </button>
                 </form>
 
                 {/* Quick Filter Pills */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10">
-                  <span className="text-xs text-slate-300 font-semibold">Priority Clusters:</span>
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#2d5540]">
+                  <span className="text-xs text-[#7aab8a] font-semibold">Priority Clusters:</span>
                   {['Nashik', 'Nandurbar', 'Palghar', 'Gadchiroli', 'Pune Rural'].map((cluster) => (
                     <button
                       key={cluster}
                       type="button"
                       onClick={() => handleQuickSearch(cluster)}
-                      className="px-2.5 py-1 rounded-full bg-[#383b2e] text-slate-200 hover:bg-[#ffddb7] hover:text-[#2a1801] border border-white/10 transition-all text-xs font-medium cursor-pointer shadow-xs"
+                      className="px-2.5 py-1 rounded-full bg-[#2d5540]/60 text-[#c8e6d0] hover:bg-[#c17f24] hover:text-white border border-[#3a6b52]/60 transition-all text-xs font-medium cursor-pointer"
                     >
                       {cluster}
                     </button>
@@ -194,77 +189,71 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right Column: Hero Visual with Real-time Floating Tags */}
-            <div className="lg:col-span-5 relative mt-4 lg:mt-0">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] bg-slate-900 border border-white/15">
+            {/* Right Column: Maharashtra map watermark + Hero Image */}
+            <div className="lg:col-span-5 relative mt-4 lg:mt-0 flex items-center justify-center">
+              {/* Maharashtra map SVG silhouette watermark */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                <svg
+                  viewBox="0 0 500 420"
+                  className="w-[115%] h-[115%] opacity-[0.12]"
+                  fill="#4a7a5a"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M 60 200 C 55 180 65 160 80 145 C 95 130 115 125 130 115 C 145 105 155 90 170 85 C 185 80 200 88 215 82 C 230 76 240 60 258 58 C 276 56 285 72 300 78 C 315 84 332 80 348 88 C 364 96 370 115 382 128 C 394 141 408 148 418 162 C 428 176 428 195 432 212 C 436 229 442 245 438 262 C 434 279 420 290 410 304 C 400 318 395 335 382 346 C 369 357 350 360 336 368 C 322 376 310 386 295 390 C 280 394 264 390 249 388 C 234 386 220 388 205 384 C 190 380 177 370 163 362 C 149 354 133 350 120 340 C 107 330 98 315 88 302 C 78 289 68 274 63 258 C 58 242 65 220 60 200 Z" />
+                </svg>
+              </div>
+
+              {/* Image Card */}
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] w-full border-4 border-white/80 bg-slate-100">
                 <img
                   className="w-full h-full object-cover"
-                  alt="Rural Maharashtra Ashram Shala children receiving wholesome warm khichdi meal"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAx9Ql887IFgi6EXlWrykhrrN4Bce0v0n66026dBaUtun-tcRnQyK-8_qBU-tRMTU1YmoPoiR2tNEQit3t5N7Z5H7BYVuv8dL86a-OVDNYmEzw_4RRqTxtcPL7DMQ3U62r73ek7gQNBYWGhkHE4xXqky2qU7oSIKENXgD6U0vHR_01iacmbVSfd6DZARHi5j9me3cf9FerB-yfEmkSSTKBdkHtHRwuWBHrbgw7jeq0"
+                  alt="Children receiving food support — Finding a solution for Malnutrition"
+                  src="https://childhelpfoundation.in/blog/assets/images/posts/Fighting_Malnutrition.jpg"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1b1d16]/90 via-transparent to-transparent" />
-
-                {/* Floating Status Badges */}
-                <div className="absolute top-4 left-4 bg-[#2a2d22]/90 backdrop-blur-md px-3.5 py-1.5 rounded-xl shadow-lg flex items-center gap-2 border border-white/15 text-white">
-                  <BadgeCheck className="text-emerald-400 w-4 h-4" />
-                  <span className="text-xs font-bold text-white">Verified Ashram Shala • Trimbakeshwar</span>
-                </div>
-
-                <div className="absolute bottom-4 left-4 right-4 bg-[#2a2d22]/90 backdrop-blur-md p-3.5 rounded-2xl shadow-xl flex items-center justify-between border border-white/15 text-white">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#ffddb7]/20 flex items-center justify-center text-[#ffddb7]">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-white">100% In-Kind Support</span>
-                      <span className="text-[11px] text-slate-300">Zero cash transactions handled</span>
-                    </div>
-                  </div>
-                  <Link
-                    to="/explore"
-                    className="px-3.5 py-1.5 rounded-full bg-[#ffddb7] text-[#2a1801] text-xs font-bold hover:bg-[#ffe3c2] transition-all shadow-md"
-                  >
-                    Direct Handoff
-                  </Link>
+                {/* Bottom caption overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm px-4 py-3 border-t border-white/60">
+                  <p className="text-[#1a2e1a] text-sm font-semibold text-center">
+                    Finding a solution for Malnutrition
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Trust / Impact Stat Strip Directly Below Hero */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-[#ffddb7]/20 text-[#ffddb7] flex items-center justify-center shrink-0 border border-[#ffddb7]/30">
-                <Wheat className="w-6 h-6" />
+          {/* Trust / Impact Stat Strip */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2ddd4] flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="w-11 h-11 rounded-xl bg-[#f0f7e8] text-[#3a6b2a] flex items-center justify-center shrink-0 border border-[#c8e0b0]">
+                <Wheat className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-bold text-white">1,420+ kg</span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="text-xl font-bold text-[#1a2e1a]">1,420+ kg</span>
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                     LIVE SYNC
                   </span>
                 </div>
-                <span className="text-xs text-slate-300">Staples Matched This Month</span>
+                <span className="text-xs text-[#6a7a6a]">Staples Matched This Month</span>
               </div>
             </div>
 
-            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
-                <ShieldCheck className="w-6 h-6" />
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2ddd4] flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="w-11 h-11 rounded-xl bg-[#edf7f0] text-emerald-700 flex items-center justify-center shrink-0 border border-[#b8dfc8]">
+                <ShieldCheck className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">48 Verified</span>
-                <span className="text-xs text-slate-300">Ashram Shalas &amp; Anganwadis</span>
+                <span className="text-xl font-bold text-[#1a2e1a]">48 Verified</span>
+                <span className="text-xs text-[#6a7a6a]">Ashram Shalas &amp; Anganwadis</span>
               </div>
             </div>
 
-            <div className="bg-[#2a2d22]/85 backdrop-blur-xl rounded-2xl p-4 shadow-xl border border-white/15 flex items-center gap-4 hover:border-white/25 hover:bg-[#33362a]/90 transition-all">
-              <div className="w-12 h-12 rounded-xl bg-[#d0e5fb]/20 text-[#d0e5fb] flex items-center justify-center shrink-0 border border-[#d0e5fb]/30">
-                <MapPin className="w-6 h-6" />
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-[#e2ddd4] flex items-center gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className="w-11 h-11 rounded-xl bg-[#edf2f8] text-[#2d5a8a] flex items-center justify-center shrink-0 border border-[#b8ccdf]">
+                <MapPin className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold text-white">36 Districts</span>
-                <span className="text-xs text-slate-300">Monitored Weekly with ICDS Logs</span>
+                <span className="text-xl font-bold text-[#1a2e1a]">36 Districts</span>
+                <span className="text-xs text-[#6a7a6a]">Monitored Weekly with ICDS Logs</span>
               </div>
             </div>
           </div>
