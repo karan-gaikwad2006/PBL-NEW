@@ -70,6 +70,25 @@ export function AuthProvider({ children }) {
         lastSyncedUidRef.current = fUser.uid;
         return response.data;
       } catch (err) {
+        const msg = String(err.message || '').toLowerCase();
+        const shouldBootstrapProfile = msg.includes('profile not found') || msg.includes('not found') || msg.includes('404');
+
+        if (shouldBootstrapProfile) {
+          try {
+            const token = await fUser.getIdToken(true);
+            const fallbackRole = 'donor';
+            const fallbackName = fUser.displayName || (fUser.email ? fUser.email.split('@')[0] : 'Community Member');
+            const response = await userService.sync(token, fallbackRole, fallbackName);
+            setUser(response.data);
+            lastSyncedUidRef.current = fUser.uid;
+            return response.data;
+          } catch (bootstrapErr) {
+            console.error('[AUTH] Profile bootstrap failed:', bootstrapErr.message);
+            setUser(null);
+            return null;
+          }
+        }
+
         console.error('[AUTH] Profile fetch failed:', err.message);
         setUser(null);
         return null;

@@ -8,6 +8,10 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
 
+### 2026-10-02 — Donor Dashboard visual refresh
+- Reworked the donor dashboard card styling to align with the supplied mockup while preserving the existing live donor stats and support logic.
+- Added the missing middle wavy donation trend chart as a lightweight SVG overlay, with no changes to API/data-fetching logic.
+
 ### 2026-09-19 — Food Images & Nutrition Attention Map Calibration
 - Replaced mismatched stock photos for food categories (`moong dal` was mason jar salad, `mixed dal` was peanuts, `jowar` duplicated wheat, `wheat`, `bajra`, and `ragi` all shared the same wheat image). Added dedicated, high-resolution local photography assets in `client/public/images/foods/` and registered clean aliases in `foodImageMap.js`.
 - Calibrated `calculateNutritionAttention` thresholds in `server/src/services/nutritionAttention.js` based on actual NFHS-5 Maharashtra composite vulnerability scores (`>= 0.31` for VERY_HIGH, `>= 0.27` for HIGH, `>= 0.245` for MODERATE, `< 0.245` for LOWER).
