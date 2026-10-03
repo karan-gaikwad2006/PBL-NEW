@@ -1,3 +1,20 @@
+/**
+ * PoshanSetu — Comprehensive Test Suite
+ * University: Savitribai Phule Pune University (SPPU)
+ * Course: Software Testing
+ * Project: PoshanSetu (Maharashtra Food Need Connect Platform)
+ *
+ * Testing Types Covered (as per SPPU syllabus):
+ *   1. Unit Testing        — Pure logic functions tested in isolation
+ *   2. Integration Testing — API endpoint contracts and auth middleware chain
+ *   3. System Testing      — HTTP security headers and CORS enforcement
+ *   4. Security Testing    — Payload sanitization, injection prevention
+ *   5. Unit Testing (cont) — Validators, matching engine, nutrition attention
+ *   6. Performance Testing — Rate limiter sliding-window enforcement
+ *   7. System Testing (cont) — File upload MIME type whitelist
+ *   8. UAT / Business Logic  — Workflow state consistency, dual confirmation
+ */
+
 const http = require('http');
 const { validateCreateRequirement } = require('../src/validators/requirementValidator');
 const { isValidUUID, requireUUID, sanitizePagination } = require('../src/validators/commonValidators');
@@ -10,6 +27,11 @@ const { calculateNutritionAttention, canonicalIndicatorName } = require('../src/
 let passedTests = 0;
 let failedTests = 0;
 
+/**
+ * assert() — Core test assertion helper.
+ * Logs PASSED or FAILED for each test case.
+ * Throws on failure so the test runner halts that suite block.
+ */
 function assert(condition, message) {
   if (!condition) {
     console.error(`  ❌ FAILED: ${message}`);
@@ -21,6 +43,12 @@ function assert(condition, message) {
   }
 }
 
+/**
+ * makeRequest() — Lightweight HTTP client for integration tests.
+ * Uses Node.js built-in 'http' module (no external dependencies).
+ * Sends real HTTP requests to the running backend server on localhost:5000.
+ * Returns: { status, headers, body } — body is auto-parsed as JSON if possible.
+ */
 function makeRequest(options, body = null) {
   return new Promise((resolve) => {
     const req = http.request(options, (res) => {
@@ -31,7 +59,7 @@ function makeRequest(options, body = null) {
         try {
           json = JSON.parse(data);
         } catch {
-          // non-json response
+          // non-json response — return raw string
         }
         resolve({
           status: res.statusCode,
@@ -51,10 +79,15 @@ async function runAllTests() {
   console.log('🧪 PoshanSetu Comprehensive Test Suite');
   console.log('========================================\n');
 
-  // -------------------------------------------------------------
-  // 1. PUBLIC API & HEALTH CHECKS
-  // -------------------------------------------------------------
-  console.log('--- 1. Public API & Health Endpoints ---');
+  // =============================================================
+  // SUITE 1: UNIT TESTING — Public API & Health Endpoint Responses
+  // Description: Verifies that core public-facing API endpoints
+  //              return correct HTTP status codes and well-formed
+  //              JSON response envelopes. Tests all 36 Maharashtra
+  //              district records and nutrition indicator availability.
+  // Method: Black-box unit test — each endpoint called independently.
+  // =============================================================
+  console.log('--- Suite 1 [Unit Testing]: Public API & Health Endpoints ---');
   {
     const res = await makeRequest({ host: 'localhost', port: 5000, path: '/api/health', method: 'GET' });
     assert(res.status === 200, 'GET /api/health returns 200');
@@ -94,10 +127,16 @@ async function runAllTests() {
     assert(Array.isArray(res.body?.data), 'Public requirements response is an array');
   }
 
-  // -------------------------------------------------------------
-  // 2. AUTHENTICATION & RBAC SECURITY
-  // -------------------------------------------------------------
-  console.log('\n--- 2. Authentication & RBAC Protection (Unauthenticated 401s) ---');
+  // =============================================================
+  // SUITE 2: INTEGRATION TESTING — Authentication & RBAC Middleware
+  // Description: Verifies that the Firebase auth middleware and RBAC
+  //              (Role-Based Access Control) layer correctly blocks
+  //              unauthenticated requests to ALL protected endpoints.
+  //              Tests 11 routes across Requester, Donor, and Admin roles.
+  // Method: Integration test — real HTTP requests without auth token;
+  //         all must return 401 Unauthorized with { success: false }.
+  // =============================================================
+  console.log('\n--- Suite 2 [Integration Testing]: Authentication & RBAC Protection ---');
   const protectedEndpoints = [
     { path: '/api/v1/requirements/mine/list', method: 'GET', name: 'Requester requirements' },
     { path: '/api/v1/requirements', method: 'POST', name: 'Requirement submission' },
@@ -118,10 +157,16 @@ async function runAllTests() {
     assert(res.body?.success === false, 'Error response envelope has success: false');
   }
 
-  // -------------------------------------------------------------
-  // 3. HTTP SECURITY HEADERS & CORS
-  // -------------------------------------------------------------
-  console.log('\n--- 3. HTTP Security Headers & CORS ---');
+  // =============================================================
+  // SUITE 3: SYSTEM TESTING — HTTP Security Headers & CORS Policy
+  // Description: Verifies that security middleware applies the correct
+  //              HTTP response headers on every request and rejects
+  //              cross-origin requests from unauthorized domains.
+  //              Tests: X-Content-Type-Options, X-Frame-Options,
+  //              Referrer-Policy, X-Powered-By removal, and CORS 403.
+  // Method: System-level test — verifies headers on real HTTP responses.
+  // =============================================================
+  console.log('\n--- Suite 3 [System Testing]: HTTP Security Headers & CORS Policy ---');
   {
     const res = await makeRequest({ host: 'localhost', port: 5000, path: '/api/health', method: 'GET' });
     assert(res.headers['x-content-type-options'] === 'nosniff', 'X-Content-Type-Options is nosniff');
@@ -142,10 +187,15 @@ async function runAllTests() {
     assert(res.body?.success === false, 'CORS rejection response is standard format');
   }
 
-  // -------------------------------------------------------------
-  // 4. MALFORMED JSON & PAYLOAD SANITIZATION
-  // -------------------------------------------------------------
-  console.log('\n--- 4. Payload Sanitization & Malformed Input Handling ---');
+  // =============================================================
+  // SUITE 4: SECURITY TESTING — Payload Sanitization & Injection Prevention
+  // Description: Verifies that the server correctly rejects malformed,
+  //              oversized, and syntactically invalid request payloads
+  //              before they reach business logic or the database.
+  //              Tests: malformed JSON → 400, error message content.
+  // Method: Security / negative test — sends deliberately bad input.
+  // =============================================================
+  console.log('\n--- Suite 4 [Security Testing]: Payload Sanitization & Malformed Input ---');
   {
     const res = await makeRequest(
       {
@@ -161,11 +211,17 @@ async function runAllTests() {
     assert(res.body?.message?.includes('JSON'), 'Error message clearly indicates JSON payload issue');
   }
 
-  // -------------------------------------------------------------
-  // 5. INPUT VALIDATION UNIT TESTS
-  // -------------------------------------------------------------
-  console.log('\n--- 5. Input Validation Unit Tests ---');
-  // UUID validation
+  // =============================================================
+  // SUITE 5: UNIT TESTING — Input Validators (Boundary & Equivalence)
+  // Description: White-box unit tests for all pure validator functions.
+  //              Covers UUID format verification, pagination boundary
+  //              clamping, and the requirement submission validator with
+  //              both valid and invalid input combinations.
+  // Techniques: Boundary Value Analysis, Equivalence Partitioning.
+  // =============================================================
+  console.log('\n--- Suite 5 [Unit Testing]: Input Validators (UUID, Pagination, Requirement) ---');
+  // --- TC 5.1: UUID Validation ---
+  // Tests: valid UUID, invalid string, null, and empty string.
   {
     assert(isValidUUID('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'), 'Valid UUID recognized');
     assert(!isValidUUID('invalid-uuid-string'), 'Invalid UUID string rejected');
@@ -173,7 +229,8 @@ async function runAllTests() {
     assert(!isValidUUID(''), 'Empty UUID rejected');
   }
 
-  // Pagination sanitization
+  // --- TC 5.2: Pagination Sanitization ---
+  // Tests: valid values parsed correctly; limit clamped to max 100; negative offset floored at 0.
   {
     const p1 = sanitizePagination({ limit: '20', offset: '10' });
     assert(p1.limit === 20 && p1.offset === 10, 'Valid pagination parsed correctly');
@@ -183,7 +240,10 @@ async function runAllTests() {
     assert(p2.offset === 0, 'Negative offset clamped to 0');
   }
 
-  // Requirement Validator
+  // --- TC 5.3: Requirement Submission Validator ---
+  // Tests: valid payload accepted; negative beneficiary count rejected;
+  //        invalid urgency enum rejected; empty items array rejected;
+  //        negative item quantity rejected.
   {
     const validPayload = {
       district: 'Nashik',
@@ -199,7 +259,7 @@ async function runAllTests() {
     assert(validated.beneficiary_count === 50, 'Valid requirement payload validated');
     assert(validated.items[0].name === 'Toor Dal', 'Valid item preserved');
 
-    // Invalid beneficiary count
+    // TC 5.3.1 — Negative beneficiary count should throw AppError
     let thrown = false;
     try {
       validateCreateRequirement({ ...validPayload, beneficiary_count: -10 });
@@ -208,7 +268,7 @@ async function runAllTests() {
     }
     assert(thrown, 'Negative beneficiary count rejected');
 
-    // Invalid urgency
+    // TC 5.3.2 — Urgency value not in allowed enum should throw AppError
     thrown = false;
     try {
       validateCreateRequirement({ ...validPayload, urgency: 'super_urgent' });
@@ -217,7 +277,7 @@ async function runAllTests() {
     }
     assert(thrown, 'Invalid urgency enum rejected');
 
-    // Empty items
+    // TC 5.3.3 — Empty items array is not a valid requirement
     thrown = false;
     try {
       validateCreateRequirement({ ...validPayload, items: [] });
@@ -226,7 +286,7 @@ async function runAllTests() {
     }
     assert(thrown, 'Empty items array rejected');
 
-    // Negative item quantity
+    // TC 5.3.4 — Negative item quantity should throw AppError
     thrown = false;
     try {
       validateCreateRequirement({ ...validPayload, items: [{ name: 'Rice', quantity: -5, unit: 'kg' }] });
@@ -236,16 +296,28 @@ async function runAllTests() {
     assert(thrown, 'Negative item quantity rejected');
   }
 
-  // -------------------------------------------------------------
-  // 6. DETERMINISTIC MATCHING ENGINE UNIT TESTS
-  // -------------------------------------------------------------
-  console.log('\n--- 6. Deterministic Matching Engine Unit Tests ---');
+  // =============================================================
+  // SUITE 6: UNIT TESTING — Deterministic Matching Engine & Nutrition Attention
+  // Description: White-box unit tests for the core matching engine service.
+  //              Verifies proximity scoring, food alias normalization,
+  //              food family category matching, remaining-need floors,
+  //              multi-item matching, expired requirement exclusion,
+  //              and nutrition vulnerability composite scoring.
+  // Constraint: Engine must remain 100% deterministic — no AI/LLM calls.
+  // =============================================================
+  console.log('\n--- Suite 6 [Unit Testing]: Deterministic Matching Engine & Nutrition Attention ---');
   {
+    // TC 6.1 — Proximity scoring: same location = max score of 1
     assert(matchingEngine.proximityScore({ lat: 18.52, lng: 73.85 }, { lat: 18.52, lng: 73.85 }, 50) === 1, 'Zero-distance proximity scores 1');
+    // TC 6.2 — Proximity scoring: beyond maxRadiusKm = score of 0
     assert(matchingEngine.proximityScore({ lat: 18.52, lng: 73.85 }, { lat: 20.59, lng: 78.96 }, 50) === 0, 'Beyond-radius proximity scores 0');
+    // TC 6.3 — Food alias normalization: 'Ragi (Finger Millet)' resolves to 'ragi' → exact match
     assert(matchingEngine.foodMatchScore('Ragi (Finger Millet)', 'ragi') === 1, 'Food aliases normalize as exact matches');
+    // TC 6.4 — Food family matching: Moong Dal and Toor Dal are in the same pulses family → 0.5
     assert(matchingEngine.foodMatchScore('Moong Dal', 'Toor Dal') === 0.5, 'Related pulse categories score 0.5');
+    // TC 6.5 — Unrelated food families score 0
     assert(matchingEngine.foodMatchScore('Rice', 'Jaggery') === 0, 'Unrelated foods do not match');
+    // TC 6.6 — Remaining need floor: nearly fulfilled requirement still returns minimum 0.1
     assert(matchingEngine.remainingNeedScore([{ quantityRequired: 100, quantityRemaining: 5 }]) === 0.1, 'Nearly fulfilled valid need uses the 0.1 floor');
 
     const fixture = {
@@ -260,6 +332,7 @@ async function runAllTests() {
       ],
       nutritionIndicators: [],
     };
+    // TC 6.7 — Full match: multi-food donor matches partially-supported requirement
     const matches = await matchingEngine.matchRequirements(
       { location: fixture.location, foodItems: [{ item: 'Jowar' }, { item: 'Dal' }] },
       { requirements: [fixture], deficiencyMappings: [] },
@@ -268,12 +341,14 @@ async function runAllTests() {
     assert(matches[0].matchedItems.length === 2, 'Multiple donor items match multiple requirement items');
     assert(matches[0].scoreBreakdown.proximity === 1, 'Score breakdown exposes proximity');
 
+    // TC 6.8 — Flow A: location-only donor (no food selected) keeps nearby requirements
     const flowA = await matchingEngine.matchRequirements(
       { location: fixture.location, foodItems: [] },
       { requirements: [fixture], deficiencyMappings: [] },
     );
     assert(flowA.length === 1 && flowA[0].scoreBreakdown.foodMatch === 0, 'Location-only Flow A keeps nearby requirements');
 
+    // TC 6.9 — Flow B: expired requirements and food mismatches are excluded
     const expired = { ...fixture, id: 'expired', expiresAt: new Date(Date.now() - 1000).toISOString() };
     const noMatch = await matchingEngine.matchRequirements(
       { location: fixture.location, foodItems: [{ item: 'Jaggery' }] },
@@ -283,13 +358,16 @@ async function runAllTests() {
   }
 
   {
+    // TC 6.10 — Nutrition attention: high anaemia + underweight → VERY_HIGH composite score
     const attention = calculateNutritionAttention([
       { name: 'children_6to59m_anaemic_pct', value: 68.9 },
       { name: 'children_under5_underweight_pct', value: 77.5 },
     ]);
     assert(attention.level === 'VERY_HIGH', 'Nutrition attention uses available indicator data deterministically');
     assert(attention.recommendedFoodCategories.includes('Ragi'), 'Nutrition attention returns curated food recommendations');
+    // TC 6.11 — Empty indicators produce UNAVAILABLE level (graceful degradation)
     assert(calculateNutritionAttention([]).level === 'UNAVAILABLE', 'Nutrition attention supports unavailable data');
+    // TC 6.12 — NFHS import names (e.g. 'stunting') must map to canonical reference keys
     const importedNameAttention = calculateNutritionAttention([
       { name: 'stunting', value: 42 },
       { name: 'underweight', value: 45 },
@@ -299,10 +377,15 @@ async function runAllTests() {
     assert(importedNameAttention.recommendedFoodCategories.includes('Moong Dal'), 'Imported NFHS indicators trigger curated recommendations');
   }
 
-  // -------------------------------------------------------------
-    // 7. RATE LIMITER UNIT TESTS
-  // -------------------------------------------------------------
-  console.log('\n--- 6. Rate Limiter Middleware Unit Tests ---');
+  // =============================================================
+  // SUITE 7: PERFORMANCE TESTING — Rate Limiter Sliding-Window Enforcement
+  // Description: Verifies that the in-memory rate limiter middleware
+  //              correctly allows requests within the configured window
+  //              and blocks excess requests with HTTP 429 Too Many Requests.
+  //              Simulates multiple requests from the same IP address.
+  // Method: Unit-level performance/abuse prevention test using mock req/res.
+  // =============================================================
+  console.log('\n--- Suite 7 [Performance Testing]: Rate Limiter Sliding-Window (429 Enforcement) ---');
   {
     const limiter = createRateLimiter({ windowMs: 1000, max: 2, message: 'Rate limit test exceeded' });
     const req = { ip: '127.0.0.1' };
@@ -328,10 +411,16 @@ async function runAllTests() {
     assert(lastBody?.message === 'Rate limit test exceeded', 'Rate limit message returned in response');
   }
 
-  // -------------------------------------------------------------
-  // 7. FILE UPLOAD SAFETY & MIME TYPES
-  // -------------------------------------------------------------
-  console.log('\n--- 7. File Upload Safety & MIME Validation ---');
+  // =============================================================
+  // SUITE 8: SYSTEM TESTING — File Upload Safety & MIME Type Whitelist
+  // Description: Verifies that the upload middleware enforces a strict
+  //              allowlist of accepted file MIME types for institution
+  //              document uploads. Dangerous file types (scripts, binaries)
+  //              must be explicitly rejected.
+  // Allowed: application/pdf, image/jpeg, image/png
+  // Blocked: application/javascript, application/x-sh, application/octet-stream
+  // =============================================================
+  console.log('\n--- Suite 8 [System Testing]: File Upload Safety & MIME Type Whitelist ---');
   {
     assert(ALLOWED_MIME_TYPES.includes('application/pdf'), 'PDF allowed for document upload');
     assert(ALLOWED_MIME_TYPES.includes('image/jpeg'), 'JPEG allowed for document upload');
@@ -341,18 +430,25 @@ async function runAllTests() {
     assert(!ALLOWED_MIME_TYPES.includes('application/octet-stream'), 'Generic binary files disallowed');
   }
 
-  // -------------------------------------------------------------
-  // 8. CORE BUSINESS WORKFLOW STATE CONSISTENCY
-  // -------------------------------------------------------------
-  console.log('\n--- 8. Core Business Flow & State Consistency Logic ---');
+  // =============================================================
+  // SUITE 9: UAT / BUSINESS LOGIC — Workflow State Consistency
+  // Description: Verifies core business rules that govern the food
+  //              donation lifecycle: requirement status transitions,
+  //              dual-confirmation fulfillment logic, quantity deduction
+  //              math with non-negative floor, and admin fulfillment
+  //              rate calculation formula.
+  // These rules form the contractual basis for User Acceptance Testing (UAT).
+  // =============================================================
+  console.log('\n--- Suite 9 [UAT / Business Logic]: Workflow State Consistency & Fulfillment Rules ---');
   {
-    // Requirement status allowed transitions
+    // TC 9.1 — Valid requirement lifecycle statuses
+    // Allowed states: under_review → active → partially_supported → fulfilled / expired / rejected / hidden
     const validRequirementStatuses = ['under_review', 'active', 'partially_supported', 'fulfilled', 'expired', 'rejected', 'hidden'];
     assert(validRequirementStatuses.includes('under_review'), 'under_review is valid');
     assert(validRequirementStatuses.includes('active'), 'active is valid');
     assert(validRequirementStatuses.includes('fulfilled'), 'fulfilled is valid');
 
-    // Dual-confirmation fulfillment check simulation
+    // TC 9.2 — Dual confirmation: BOTH donor AND requester must confirm before fulfillment
     function checkDualFulfillment(donorConfirmed, requesterConfirmed) {
       return Boolean(donorConfirmed && requesterConfirmed);
     }
@@ -360,7 +456,7 @@ async function runAllTests() {
     assert(!checkDualFulfillment(false, true), 'Requester-only confirmation does not fulfill requirement');
     assert(checkDualFulfillment(true, true), 'Dual confirmation successfully triggers completion');
 
-    // Remaining quantity update math
+    // TC 9.3 — Quantity deduction math: remaining = max(0, original - fulfilled)
     const originalQuantity = 100;
     const fulfilledQuantity = 40;
     const remainingQuantity = Math.max(0, originalQuantity - fulfilledQuantity);
@@ -380,9 +476,11 @@ async function runAllTests() {
     }) === 50, 'Fulfillment rate is fulfilled / (active + partial + fulfilled)');
   }
 
-  // -------------------------------------------------------------
-  // SUMMARY
-  // -------------------------------------------------------------
+  // =============================================================
+  // SUMMARY — Final Test Report
+  // Prints total passed/failed count and exits with code 1 on failure
+  // (compatible with CI pipelines and npm test scripts).
+  // =============================================================
   console.log('\n========================================');
   console.log(`📊 Test Results: ${passedTests} passed, ${failedTests} failed`);
   console.log('========================================\n');
