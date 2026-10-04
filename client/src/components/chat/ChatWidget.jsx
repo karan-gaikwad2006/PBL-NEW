@@ -273,7 +273,10 @@ export default function ChatWidget() {
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.11em] leading-tight">POSHANSETU</p>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-white/75">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#a8d597] motion-reduce:animate-none" />
+              <span className="relative flex h-2.5 w-2.5 flex-shrink-0 items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
               Digital Assistant
             </p>
           </div>
