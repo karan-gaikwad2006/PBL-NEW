@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import { AuthProvider } from './context/AuthContext';
+import { ChatProvider } from './context/ChatContext';
+import ChatWidget from './components/chat/ChatWidget';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import RequirementSubmit from './pages/public/RequirementSubmit';
 
@@ -62,9 +64,13 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <ScrollToTop />
-        <div className="min-h-screen bg-[#FAF8F6] text-[#1F2933] flex flex-col justify-between font-sans">
-          <Navbar />
+        <ChatProvider>
+          <ScrollToTop />
+          {/* ChatWidget is rendered once at the app root so it persists across
+              all routes without remounting or resetting its open/closed state. */}
+          <ChatWidget />
+          <div className="min-h-screen bg-[#FAF8F6] text-[#1F2933] flex flex-col justify-between font-sans">
+            <Navbar />
           <main className="flex-grow">
             <Routes>
               {/* Public */}
@@ -227,11 +233,12 @@ export default function App() {
                 />
               }
             />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+            </Routes>
+          </main>
+          <Footer />
+          </div>
+        </ChatProvider>
+      </Router>
     </AuthProvider>
   );
 }

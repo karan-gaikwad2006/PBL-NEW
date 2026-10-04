@@ -2,12 +2,14 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { getDashboardForRole } from '../../context/AuthContext';
+import { useChat } from '../../context/ChatContext';
 import logo from '../../assets/logo.png';
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const { open: openChat, isOpen: isChatOpen } = useChat();
 
   const isActive = (path) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -100,6 +102,24 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
+              {/* Chat icon — secondary entry point that opens the global ChatContext panel */}
+              <button
+                id="navbar-chat-button"
+                onClick={openChat}
+                aria-label="Open chat assistant"
+                aria-pressed={isChatOpen}
+                title="Ask the assistant"
+                className={[
+                  'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
+                  isChatOpen
+                    ? 'bg-[#304355] text-white'
+                    : 'text-[#304355]/70 hover:bg-[#304355]/10 hover:text-[#304355]',
+                ].join(' ')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </button>
               <Link 
                 to={getDashboardPath()} 
                 className="text-[#304355] font-bold text-base hover:underline"

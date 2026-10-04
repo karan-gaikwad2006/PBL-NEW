@@ -263,5 +263,20 @@ export const adminFraudService = {
     }, token),
 };
 
+export const chatService = {
+  /**
+   * Send a chat message to the backend assistant.
+   * @param {string} token Firebase ID token
+   * @param {string} message User message text
+   * @param {Array} [conversationHistory] Previous turns [{ role, content }]
+   * @param {{ lat: number, lng: number }} [location] Optional donor location
+   */
+  sendMessage: (token, message, conversationHistory = [], location = null) =>
+    apiRequest('/v1/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message, conversationHistory, location }),
+    }, token),
+};
+
 export default apiRequest;
 

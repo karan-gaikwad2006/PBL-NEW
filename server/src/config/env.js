@@ -14,6 +14,12 @@ const REQUIRED_FOR_FIREBASE = [
   'FIREBASE_PRIVATE_KEY',
 ];
 
+const REQUIRED_FOR_AI = [
+  'GEMINI_API_KEY',
+];
+
+const AI_DISABLED_VALUES = ['false', '0', 'no', 'off'];
+
 function parseNodeEnv(value) {
   const env = (value || 'development').toLowerCase();
   if (['development', 'test', 'production'].includes(env)) {
@@ -61,6 +67,19 @@ function validateRequiredEnv() {
     }
   });
 
+  // The AI layer is optional: when it is off, or when the key is absent outside
+  // production, the explanation service degrades to a deterministic template and
+  // the parser returns an empty array. It is only a hard startup requirement in
+  // production AND only when AI has been explicitly switched on.
+  if (isProduction && isAiEnabled()) {
+    REQUIRED_FOR_AI.forEach((varName) => {
+      const value = process.env[varName];
+      if (!value) {
+        missing.push(varName);
+      }
+    });
+  }
+
   if (missing.length > 0) {
     const msg = `Missing required environment variables: ${missing.join(', ')}. ` +
       `Check server/.env and copy from server/.env.example if needed.`;
@@ -86,9 +105,26 @@ function isDevelopmentEnv() {
   return getEnv('NODE_ENV', 'development') === 'development';
 }
 
+/**
+ * Whether the optional AI narration/parsing layer is switched on.
+ *
+ * An explicit AI_ENABLED value always wins. When it is unset the layer is enabled
+ * in development/test (so the feature is reachable locally) and DISABLED in
+ * production (so an existing deployment can never fail to boot because a new,
+ * optional key has not been provisioned yet).
+ */
+function isAiEnabled() {
+  const configured = process.env.AI_ENABLED;
+  if (configured !== undefined && configured !== null && configured !== '') {
+    return !AI_DISABLED_VALUES.includes(String(configured).trim().toLowerCase());
+  }
+  return !isProductionEnv();
+}
+
 module.exports = {
   validateRequiredEnv,
   getEnv,
   isProductionEnv,
   isDevelopmentEnv,
+  isAiEnabled,
 };

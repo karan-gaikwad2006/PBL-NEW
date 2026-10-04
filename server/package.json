@@ -8,6 +8,9 @@
     "dev": "nodemon src/index.js",
     "build": "node --check src/index.js",
     "test": "node test/testRunner.js",
+    "test:ai": "node test/aiLayerTests.js",
+    "test:chat": "node test/aiChatTests.js",
+    "verify:ai": "node scripts/verifyAiLayer.js",
     "migrate": "node src/db/runMigrations.js",
     "import:nfhs5": "node src/db/importNfhs5.js"
   },

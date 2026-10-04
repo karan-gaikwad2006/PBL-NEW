@@ -4,9 +4,27 @@ Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
 ## Active Phase & Goal
-**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE
+**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE + Chat Assistant COMPLETE
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
-**Current Task:** Connected donor support flow to Neon DB so donors can offer support for active requirements.
+**Current Task:** Added a retrieval-grounded AI chat assistant (backend endpoint + floating frontend widget).
+
+### 2026-10-04 — Chat Assistant Visual Refresh
+- Updated `client/src/components/chat/ChatWidget.jsx` to align the launcher and open chat with the supplied reference: forest-green robot badge, branded online header, cream conversation surface, four quick-topic prompt cards, and a cleaner message composer.
+- Kept existing authentication, chat request, suggested-action navigation, and keyboard handling. Quick topics populate the composer; the user remains in control of sending.
+- Made the panel responsive on narrow viewports and inert while closed. Replaced the moving first-visit bounce with a static focus ring so the launcher remains easy to activate.
+- Client production build passes. Component lint reports two pre-existing warnings (`open` unused and state update in the first-visit effect); no build errors.
+
+### 2026-10-04 — Conversational Chat Assistant (POST /api/v1/ai/chat + ChatWidget)
+- Created `server/src/services/aiChatService.js`: rule-based intent classifier (6 categories: find_donation_location, describe_supply, district_info, institution_status, general_help, out_of_scope). out_of_scope returns a static response — the LLM is never called for medical/bypass messages. All other intents do live data retrieval first (matchingEngine, districtRepository, institutionRepository) then pass real results to the LLM for narration. History capped at 6 turns. AIServiceError → FALLBACK_REPLY, never throws.
+- Created `server/src/controllers/aiChatController.js`: thin transport layer, validates input, trims history, delegates to service.
+- Extended `server/src/routes/v1/ai.js`: added POST /api/v1/ai/chat with tighter rate limit (10/min vs 30/15min for explain/parse). Firebase auth required.
+- Created `server/test/aiChatTests.js`: 7 suites, 67 assertions (intent classification for all 6 categories, out_of_scope LLM-not-called assertions, AIServiceError fallback, history cap, suggestedAction defaults, 401 integration test). All 67 pass.
+- Created `client/src/context/ChatContext.jsx`: global open/closed + message state via React context. Messages are MVP-only React state (intentional, not an oversight — clears on refresh).
+- Created `client/src/components/chat/ChatWidget.jsx`: floating FAB + expandable panel (~360px, max 70vh). First-visit bounce animation + dismissible tooltip (localStorage flag). Typing indicator. suggestedAction inline navigation button (user-initiated, no auto-navigate). Focus on open, Escape to close, aria-label, role=log, keyboard-reachable send. Uses existing #304355/#FAF8F6 color palette.
+- Updated `client/src/App.jsx`: wrapped with ChatProvider inside AuthProvider+Router; ChatWidget rendered once at root (persists across routes).
+- Updated `client/src/components/layout/Navbar.jsx`: added chat icon button next to Dashboard link (authenticated only) — opens same ChatContext state, no second instance.
+- Updated `client/src/services/api.js`: added chatService.sendMessage().
+- Server syntax: ✅ OK. Client build: ✅ 0 errors.
 
 ### 2026-10-02 — Donor Dashboard visual refresh
 - Reworked the donor dashboard card styling to align with the supplied mockup while preserving the existing live donor stats and support logic.
@@ -522,3 +540,11 @@ A race condition occurred where the Firebase user was authenticated (`isAuthenti
 - Updated `LoginPage.jsx` and `RegisterPage.jsx` with logo image in the card headers.
 - Verified client production build (`vite build` passes with 0 errors) and Oxlint (0 errors).
 
+
+### 2026-10-04 - Production Model Swap to gemini-3.7-flash
+- Swapped the production Gemini model from `gemini-3.8-flash` to `gemini-3.7-flash`: one generation back, chosen because it has more free-tier quota headroom for PoshanSetu's request volume. (`gemini-2.5-flash` remains retired - HTTP 404 for new users.)
+- Single source of truth for the model name: `DEFAULT_MODEL` + `getModel()` in `server/src/services/geminiClient.js` (both now exported). Callers must go through `getModel()`; `aiExplanationService.js` / `aiParserService.js` never name a model, and `verifyAiLayer.js` / `aiLayerTests.js` read the resolved model instead of repeating the literal. `GEMINI_MODEL` in `server/.env.example` documents the same value.
+- `generateText` gained an optional `maxAttempts` (default 3, unchanged) so callers can disable the single 503 retry.
+- Added `npm run verify:ai -- --model-smoke-test`: one live request per case, retries disabled, logs the resolved model AND the outbound request URL. Deliberately frugal to avoid burning free-tier quota.
+- `DEFAULT_MAX_OUTPUT_TOKENS` is still 1024 and is NOT yet validated against 3.7 Flash's thinking-token consumption. It carries a RE-VALIDATE comment in `geminiClient.js`; confirm with the smoke test before trusting it, and raise rather than lower it if explanations return `MAX_TOKENS`.
+- Automated suite: 107 passed, 0 failed, 0 skipped (`npm run test:ai`). Transport guards TC-AI-24a-29b are stubbed and model-independent; new TC-AI-24c/24e assert single-source-of-truth and the unchanged attempt cap.
