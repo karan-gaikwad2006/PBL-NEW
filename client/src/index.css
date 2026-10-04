@@ -17,6 +17,16 @@
   --color-status-positive: #16A34A;
 
   --font-sans: 'Manrope', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Gentle attention bounce for the chat launcher on the landing page.
+     Deliberately shallow (-6px) and slow (2.4s) so it reads as a soft float
+     rather than a jumpy bounce. */
+  --animate-bounce-soft: bounce-soft 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes bounce-soft {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
 }
 
 body {

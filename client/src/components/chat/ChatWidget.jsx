@@ -28,7 +28,7 @@ import {
   Sprout,
   X,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../../context/ChatContext';
 import useAuth from '../../hooks/useAuth';
 
@@ -63,8 +63,13 @@ export default function ChatWidget() {
     appendMessage,
   } = useChat();
 
-  const { user, firebaseUser } = useAuth();
+  const { user, firebaseUser, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Soft bounce is a landing-page-only call to action. Everywhere else the launcher
+  // stays still so it does not distract from the page content.
+  const isLandingPage = pathname === '/';
 
   const [inputValue, setInputValue] = useState('');
   const [showTooltip, setShowTooltip] = useState(false);
@@ -188,15 +193,19 @@ export default function ChatWidget() {
     inputRef.current?.focus();
   };
 
-  // ── Welcome message on first open ────────────────────────────────────────
+  // ── Welcome message ───────────────────────────────────────────────────────
+  // Seeded as soon as the auth profile resolves instead of on first open, so the
+  // unread badge on the launcher has real content to count on initial page load.
+  // Gating on `authLoading` preserves the personalised first-name greeting: the
+  // Postgres profile resolves after Firebase auth, so seeding on mount would
+  // permanently drop the name for that session.
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      appendMessage(
-        'assistant',
-        `Hello${user?.full_name ? ', ' + user.full_name.split(' ')[0] : ''}! 👋 I can help you find where to donate food, learn about district nutrition needs, or check institution status. What would you like to know?`,
-      );
-    }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (authLoading || messages.length > 0) return;
+    appendMessage(
+      'assistant',
+      `Hello${user?.full_name ? ', ' + user.full_name.split(' ')[0] : ''}! 👋 I can help you find where to donate food, learn about district nutrition needs, or check institution status. What would you like to know?`,
+    );
+  }, [authLoading, messages.length, user?.full_name, appendMessage]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -229,6 +238,7 @@ export default function ChatWidget() {
             'transition-colors duration-200 hover:bg-[#193b2a]',
             'focus:outline-none focus-visible:ring-4 focus-visible:ring-[#6f9b69]/50',
             firstVisit && !isOpen ? 'ring-4 ring-[#a8d597]/50' : '',
+            isLandingPage && !isOpen ? 'animate-bounce-soft motion-reduce:animate-none' : '',
           ].join(' ')}
         >
           {isOpen ? (
