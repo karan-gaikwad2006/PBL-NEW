@@ -545,8 +545,8 @@ async function runAllTests() {
       const urlModel = seen[0].url.split('/models/')[1]?.split(':')[0];
       assertEqual(urlModel, geminiClient.getModel(),
         'TC-AI-24c | Request URL uses the resolved model, not a per-call literal');
-      assertEqual(geminiClient.DEFAULT_MODEL, 'gemini-3.7-flash',
-        'TC-AI-24d | Production model constant is gemini-3.7-flash');
+      assertEqual(geminiClient.DEFAULT_MODEL, 'gemini-3.5-flash-lite',
+        'TC-AI-24d | Production model constant is gemini-3.5-flash-lite');
       assertEqual(geminiClient.MAX_ATTEMPTS, 3,
         'TC-AI-24e | Default attempt cap is unchanged by the model swap');
     } finally {

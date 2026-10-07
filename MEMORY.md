@@ -6,13 +6,16 @@ Update this file after each major milestone, structural change, or resolved bug.
 ## Active Phase & Goal
 **Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE + Chat Assistant COMPLETE
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
-**Current Task:** Added a retrieval-grounded AI chat assistant (backend endpoint + floating frontend widget).
+**Current Task:** Switched Gemini to `gemini-3.5-flash-lite` for chatbot reliability.
 
-### 2026-10-07 — Chatbot Gemini Availability Diagnosis
-- Confirmed the local `server/.env` contains a Gemini key without reading or logging its value. `AI_ENABLED` is blank, which is enabled in the local non-production environment; the configured model is `gemini-3.7-flash`.
-- `npm run verify:ai -- --model-smoke-test` reached Gemini, which returned HTTP 503 `UNAVAILABLE` (“currently experiencing high demand”) for both one-attempt smoke-test requests. The chat suite passes (65 passed, 1 integration test skipped because the server was not running).
+### 2026-10-07 — Chatbot Gemini Reliability Model Update
+- Verified `GEMINI_API_KEY` loads from `server/.env` without displaying it; Google's model metadata endpoint returned HTTP 200 for the key and confirmed `gemini-3.5-flash-lite` supports `generateContent`.
+- Updated only Gemini model configuration/default, its config example, matching test expectation, and model documentation from `gemini-3.7-flash` to `gemini-3.5-flash-lite`. The API key and Firebase auth, frontend, routes, and chatbot behavior were not changed.
+- Before the model update, `npm run verify:ai -- --model-smoke-test` against `gemini-3.7-flash` returned HTTP 503 `UNAVAILABLE` (“currently experiencing high demand”) for both one-attempt smoke-test requests. Chat tests passed (65 passed, 1 integration test skipped because the server was not running).
+- Nodemon restarted the backend after the model change; `/api/health` returned HTTP 200. The post-change Gemini smoke test passed both live generation/parsing checks using `gemini-3.5-flash-lite`; `npm run test:ai`, `npm run test:chat` (67/67), and `npm run build` passed.
+- Completed a real signed-in chatbot UI test in localhost: authenticated POST `/api/v1/ai/chat` returned HTTP 200, `success: true`, and `source: ai` with a generated reply.
 - Follow-up localhost check: Vite (5173) and Express (5000) are now listening; `/api/health` returns 200 and an unauthenticated POST to `/api/v1/ai/chat` returns the expected 401, confirming the chat route is mounted and requires Firebase sign-in.
-- No application code was changed: this run points to temporary upstream model availability, not a missing local key. For a production deployment, set `AI_ENABLED=true` in the backend host environment as well as `GEMINI_API_KEY`; production defaults AI off when `AI_ENABLED` is unset.
+- For a production deployment, set `AI_ENABLED=true` in the backend host environment as well as `GEMINI_API_KEY`; production defaults AI off when `AI_ENABLED` is unset.
 
 ### 2026-10-04 — Chat Assistant Visual Refresh
 - Updated `client/src/components/chat/ChatWidget.jsx` to align the launcher and open chat with the supplied reference: forest-green robot badge, branded online header, cream conversation surface, four quick-topic prompt cards, and a cleaner message composer.

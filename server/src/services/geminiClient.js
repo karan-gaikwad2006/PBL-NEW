@@ -17,14 +17,14 @@ const { getEnv, isAiEnabled } = require('../config/env');
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ─── SINGLE SOURCE OF TRUTH FOR THE MODEL NAME ───────────────────────────────
-// Production model: gemini-3.7-flash. One generation back from 3.8 Flash, chosen
-// because it leaves more free-tier quota headroom for PoshanSetu's request volume.
+// Production model: gemini-3.5-flash-lite, selected for reliability rather than
+// maximum model capability.
 // Nothing else in the codebase may hardcode a model string: every caller must go
 // through getModel(), which resolves GEMINI_MODEL from the environment and falls
 // back to this constant. See docs/PRD-PoshanSetu-MVP-v2.md (Gemini Flash, free tier).
 //   - gemini-2.5-flash is retired (HTTP 404 "no longer available to new users").
 //   - Set GEMINI_MODEL=gemini-flash-latest to auto-track the newest Flash instead.
-const DEFAULT_MODEL = 'gemini-3.7-flash';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 const DEFAULT_TIMEOUT_MS = 15000;
 
 // Gemini 2.5+ Flash models spend "thinking" tokens from the SAME output budget as the
@@ -33,10 +33,10 @@ const DEFAULT_TIMEOUT_MS = 15000;
 //
 // !! RE-VALIDATE THIS BUDGET FOR THE CURRENT MODEL !!
 // 1024 was raised as generic headroom after a truncation incident, but it was NOT
-// validated against gemini-3.7-flash's actual behaviour. The original evidence
+// validated against gemini-3.5-flash-lite's actual behaviour. The original evidence
 // (188 thought tokens + 8 answer tokens on a 200-token budget) was captured on
-// 3.7 Flash, and thinking-token consumption is not guaranteed to be identical across
-// Flash generations. Re-confirm with a single live call before trusting it:
+// gemini-3.7-flash, and thinking-token consumption is not guaranteed to be identical
+// across Flash generations. Re-confirm with a single live call before trusting it:
 //     npm run verify:ai -- --model-smoke-test
 // If explanations still return MAX_TOKENS, RAISE this value — never lower it, since
 // a too-small budget silently degrades every explanation to the fallback template.
@@ -77,7 +77,7 @@ class AIServiceError extends Error {
  * Callers must use this (or the exported DEFAULT_MODEL) instead of repeating the
  * model literal, so changing production model stays a one-line change here.
  *
- * @returns {string} e.g. 'gemini-3.7-flash'
+ * @returns {string} e.g. 'gemini-3.5-flash-lite'
  */
 function getModel() {
   return getEnv('GEMINI_MODEL', DEFAULT_MODEL) || DEFAULT_MODEL;

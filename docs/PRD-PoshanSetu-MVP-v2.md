@@ -225,7 +225,7 @@ Do not add any nutrition claim not present in the input.
 
 **Free-tier AI providers:** Google Gemini (Flash tier, free quota) as primary; Groq (free tier, open models) as fallback/secondary if rate limits are hit.
 
-**Production model:** `gemini-3.7-flash` (set via `GEMINI_MODEL`, default constant in `server/src/services/geminiClient.js`). Chosen over the newer 3.8 Flash because it leaves more free-tier quota headroom for PoshanSetu's request volume. Note `gemini-2.5-flash` is retired and returns HTTP 404 for new users.
+**Production model:** `gemini-3.5-flash-lite` (set via `GEMINI_MODEL`, default constant in `server/src/services/geminiClient.js`), selected for reliability rather than maximum model capability.
 
 **UI note carried from v1:** AI should operate behind the scenes on the primary flows (Flow A/B). The chatbot is a secondary, optional entry point — not the primary way a first-time user is expected to interact with the platform.
 
@@ -276,7 +276,7 @@ TrustScoreEvent
 | File storage | Cloudinary | Free tier (~25 credits/mo — sufficient for MVP volume) |
 | OCR | Tesseract.js | Open-source, no API cost |
 | Geocoding/maps | OpenStreetMap + Nominatim | Free, avoid Google Maps API (not free at scale) |
-| AI | Gemini Flash — `gemini-3.7-flash` (primary), Groq (fallback) | Free tiers; 3.7 has more quota headroom than 3.8 |
+| AI | Gemini Flash Lite — `gemini-3.5-flash-lite` (primary), Groq (fallback) | Free tiers |
 | Notifications | In-app only for MVP | Email/SMS deferred — first cost center to add post-MVP |
 | Scheduled jobs (expiry, reminders) | Node cron / Render cron jobs | Free tier compatible |
 
