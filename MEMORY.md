@@ -8,6 +8,12 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Added a retrieval-grounded AI chat assistant (backend endpoint + floating frontend widget).
 
+### 2026-10-07 — Chatbot Gemini Availability Diagnosis
+- Confirmed the local `server/.env` contains a Gemini key without reading or logging its value. `AI_ENABLED` is blank, which is enabled in the local non-production environment; the configured model is `gemini-3.7-flash`.
+- `npm run verify:ai -- --model-smoke-test` reached Gemini, which returned HTTP 503 `UNAVAILABLE` (“currently experiencing high demand”) for both one-attempt smoke-test requests. The chat suite passes (65 passed, 1 integration test skipped because the server was not running).
+- Follow-up localhost check: Vite (5173) and Express (5000) are now listening; `/api/health` returns 200 and an unauthenticated POST to `/api/v1/ai/chat` returns the expected 401, confirming the chat route is mounted and requires Firebase sign-in.
+- No application code was changed: this run points to temporary upstream model availability, not a missing local key. For a production deployment, set `AI_ENABLED=true` in the backend host environment as well as `GEMINI_API_KEY`; production defaults AI off when `AI_ENABLED` is unset.
+
 ### 2026-10-04 — Chat Assistant Visual Refresh
 - Updated `client/src/components/chat/ChatWidget.jsx` to align the launcher and open chat with the supplied reference: forest-green robot badge, branded online header, cream conversation surface, four quick-topic prompt cards, and a cleaner message composer.
 - Kept existing authentication, chat request, suggested-action navigation, and keyboard handling. Quick topics populate the composer; the user remains in control of sending.
