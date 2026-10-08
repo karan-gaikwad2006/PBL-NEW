@@ -81,15 +81,15 @@ function getUrgencyBadge(urgencyKey) {
 
 function StatCard({ icon: Icon, value, label, color = 'text-slate-700', unit = '' }) {
   return (
-    <div className="bg-white rounded-xl p-3 sm:p-3.5 shadow-xs border border-slate-200/90 hover:border-slate-300 transition-all flex flex-col justify-between">
+    <div className="bg-white rounded-xl p-2 sm:p-2.5 shadow-xs border border-slate-200/90 hover:border-slate-300 transition-all flex flex-col justify-between">
       <div className="flex items-center justify-between gap-1.5 mb-1.5">
-        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</span>
-        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-          <Icon className={`w-3.5 h-3.5 ${color}`} />
+        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</span>
+        <div className="w-6 h-6 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+          <Icon className={`w-3 h-3 ${color}`} />
         </div>
       </div>
       <div>
-        <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+        <span className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
           {value}{unit}
         </span>
       </div>
@@ -177,8 +177,12 @@ export default function AdminDashboard() {
     }
 
     load();
+    const intervalId = setInterval(() => {
+      if (!cancelled) load();
+    }, 30000);
     return () => {
       cancelled = true;
+      clearInterval(intervalId);
     };
   }, [firebaseUser]);
 
@@ -406,7 +410,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* ── 2. STATS (8 compact cards with reduced horizontal & vertical spacing) ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
           <StatCard
             icon={ClipboardList}
             value={statsLoading ? '…' : (stats?.totalRequirements ?? 0)}
@@ -494,7 +498,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Side-by-side matching height workspace with reduced horizontal gap */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 items-stretch">
             {/* Left 7 cols: Maharashtra Vector Map */}
             <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col justify-between">
               <div>
@@ -700,7 +704,7 @@ export default function AdminDashboard() {
         </section>
 
         {/* ── 4. TWO-COLUMN ROW: INSTITUTION QUEUE & REVIEW SIGNALS (Reduced horizontal gap) ── */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-2.5 sm:gap-3 items-stretch">
           {/* Left: Institution Verification Queue */}
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col justify-between">
             <div>
