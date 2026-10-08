@@ -4,9 +4,19 @@ Update this file after each major milestone, structural change, or resolved bug.
 
 ## Active Phase & Goal
 ## Active Phase & Goal
-**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE + Chat Assistant COMPLETE
+**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE + Chat Assistant COMPLETE + Admin Dashboard Stitch Refactor COMPLETE
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
-**Current Task:** Switched Gemini to `gemini-3.5-flash-lite` for chatbot reliability.
+**Current Task:** Admin Dashboard visual & layout refactor to Stitch design reference.
+
+### 2026-10-08 — Admin Dashboard Stitch Visual & Layout Refactor
+- Refactored `client/src/pages/admin/AdminDashboard.jsx` to match the Stitch reference design while preserving all auth tokens, handlers (`handleResolveSignal`), existing state (`pendingRequirements`, `institutionQueue`, `fraudSignals`, `stats`), and routes (`/admin/review/:id`, `/admin/institution-review/:id`).
+- Header: added time-of-day greeting based on `firebaseUser.displayName` (falling back to "Admin") and subline displaying institutions awaiting verification and signals needing review with fallbacks.
+- Stats: two rows of 4 compact cards with clean borders, shadows, and existing KPI indicators and fallback placeholders (`…`).
+- Request Severity by District: integrated `MaharashtraDistrictMap` component with live urgency telemetry calculated via `requirementService.getAll({ limit: 100 })` in `Promise.allSettled`. Added client-side time-range filter (Last 7 days, Last 30 days, All open), "Districts needing attention" ranked list with row hover/click synchronization, and Selected District summary telemetry with urgency breakdown, total remaining quantity, oldest unfulfilled request days, and "View requests" navigation to Explore.
+- Two-column equal height layout: Institution Verification Queue with client-side filter chips (All, Pending, Verified, Rejected) and "Review" links; Review Signals with pending count badge, disclaimer notice, severity styling, target links, and Resolve/Dismiss actions.
+- Full-width Requirements Awaiting Review list, compact Queue Snapshot card, and static NFHS-5/offline donation disclaimer footer.
+- Added explicit placeholders/comments for future features (Platform Trend, Top Institutions, Disputes & Flagged Handoffs, Search/Export Audit).
+- Verified: `oxlint` reports 0 warnings, 0 errors; `vite build` builds cleanly.
 
 ### 2026-10-07 — Chatbot Gemini Reliability Model Update
 - Verified `GEMINI_API_KEY` loads from `server/.env` without displaying it; Google's model metadata endpoint returned HTTP 200 for the key and confirmed `gemini-3.5-flash-lite` supports `generateContent`.
