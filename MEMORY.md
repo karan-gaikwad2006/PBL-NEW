@@ -8,15 +8,11 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Admin Dashboard visual & layout refactor to Stitch design reference.
 
-### 2026-10-08 — Admin Dashboard Stitch Visual & Layout Refactor
-- Refactored `client/src/pages/admin/AdminDashboard.jsx` to match the Stitch reference design while preserving all auth tokens, handlers (`handleResolveSignal`), existing state (`pendingRequirements`, `institutionQueue`, `fraudSignals`, `stats`), and routes (`/admin/review/:id`, `/admin/institution-review/:id`).
-- Header: added time-of-day greeting based on `firebaseUser.displayName` (falling back to "Admin") and subline displaying institutions awaiting verification and signals needing review with fallbacks.
-- Stats: two rows of 4 compact cards with clean borders, shadows, and existing KPI indicators and fallback placeholders (`…`).
-- Request Severity by District: integrated `MaharashtraDistrictMap` component with live urgency telemetry calculated via `requirementService.getAll({ limit: 100 })` in `Promise.allSettled`. Added client-side time-range filter (Last 7 days, Last 30 days, All open), "Districts needing attention" ranked list with row hover/click synchronization, and Selected District summary telemetry with urgency breakdown, total remaining quantity, oldest unfulfilled request days, and "View requests" navigation to Explore.
-- Two-column equal height layout: Institution Verification Queue with client-side filter chips (All, Pending, Verified, Rejected) and "Review" links; Review Signals with pending count badge, disclaimer notice, severity styling, target links, and Resolve/Dismiss actions.
-- Full-width Requirements Awaiting Review list, compact Queue Snapshot card, and static NFHS-5/offline donation disclaimer footer.
-- Added explicit placeholders/comments for future features (Platform Trend, Top Institutions, Disputes & Flagged Handoffs, Search/Export Audit).
-- Verified: `oxlint` reports 0 warnings, 0 errors; `vite build` builds cleanly.
+### 2026-10-08 — Admin Dashboard Compact Cards & Clean UI Spacing Polish
+- Compact Top 8 Stats: updated `StatCard` to use compact padding (`p-3 sm:p-3.5`), `rounded-xl`, smaller typography (`text-xl sm:text-2xl`), concise icon badges (`w-7 h-7`), and consolidated them into a unified responsive grid (`grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3`) to reduce both horizontal and vertical gap between cards.
+- Reduced Horizontal Spacing Across the Page: tightened grid gaps across all sections from `gap-6` (24px) down to `gap-3.5 sm:gap-4` (14-16px) for the District Map vs Telemetry side-by-side workspace and Institution Queue vs Review Signals two-column section.
+- ExploreMap-grade Clean Design: aligned borders (`border-slate-200/90`), shadows (`shadow-xs`), dark brand badges/buttons (`#0F1E2E` and hover `#1A2E44`), tab pill containers (`bg-slate-100/90 p-1 border-slate-200/60`), and typography with the clean visual standard established in `ExploreMap.jsx`.
+- Verified: `npm run lint` reports 0 errors; `npm run build` succeeds cleanly.
 
 ### 2026-10-07 — Chatbot Gemini Reliability Model Update
 - Verified `GEMINI_API_KEY` loads from `server/.env` without displaying it; Google's model metadata endpoint returned HTTP 200 for the key and confirmed `gemini-3.5-flash-lite` supports `generateContent`.

@@ -79,17 +79,17 @@ function getUrgencyBadge(urgencyKey) {
   return URGENCY_CONFIG[normalized] || URGENCY_CONFIG.medium;
 }
 
-function StatCard({ icon: Icon, value, label, color = 'text-[#304355]', unit = '' }) {
+function StatCard({ icon: Icon, value, label, color = 'text-slate-700', unit = '' }) {
   return (
-    <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_rgba(25,45,62,0.04)] border border-[#304355]/10 hover:shadow-md transition-shadow flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-[#64707A] uppercase tracking-wider">{label}</span>
-        <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-          <Icon className={`w-4 h-4 ${color}`} />
+    <div className="bg-white rounded-xl p-3 sm:p-3.5 shadow-xs border border-slate-200/90 hover:border-slate-300 transition-all flex flex-col justify-between">
+      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+        <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</span>
+        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+          <Icon className={`w-3.5 h-3.5 ${color}`} />
         </div>
       </div>
       <div>
-        <span className="text-2xl sm:text-3xl font-extrabold text-[#1F2933] tracking-tight">
+        <span className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {value}{unit}
         </span>
       </div>
@@ -384,20 +384,20 @@ export default function AdminDashboard() {
   const adminDisplayName = firebaseUser?.displayName || 'Admin';
 
   return (
-    <PageContainer>
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <PageContainer maxWidth="max-w-[1280px]" className="!py-6 sm:!py-8">
+      <div className="space-y-6">
 
         {/* ── 1. HEADER ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="inline-flex items-center gap-1.5 bg-[#304355] text-white text-xs font-bold px-3 py-1 rounded-full mb-2.5">
+            <div className="inline-flex items-center gap-1.5 bg-[#0F1E2E] text-white text-xs font-semibold px-2.5 py-1 rounded-full mb-2 shadow-xs">
               <ShieldCheck className="w-3.5 h-3.5" />
               Administrative Telemetry
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1F2933] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               {getGreeting()}, {adminDisplayName}
             </h1>
-            <p className="text-xs sm:text-sm text-[#64707A] mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               {statsLoading ? (institutionQueue.length || '…') : (stats?.verificationQueue ?? institutionQueue.length)} institutions awaiting verification • {statsLoading ? (fraudSignals.length || '…') : (stats?.flaggedSignals ?? fraudSignals.length)} signals need review
             </p>
           </div>
@@ -405,82 +405,73 @@ export default function AdminDashboard() {
           {/* FUTURE FEATURE: Search, Filter, and Export Audit controls will be rendered here once audit service is ready */}
         </div>
 
-        {/* ── 2. STATS (Two rows of 4 compact cards) ── */}
-        <div className="space-y-4">
-          {/* Row 1 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              icon={ClipboardList}
-              value={statsLoading ? '…' : (stats?.totalRequirements ?? 0)}
-              label="Total Requirements"
-            />
-            <StatCard
-              icon={Clock}
-              value={statsLoading ? '…' : (stats?.pendingReview ?? pendingRequirements.length)}
-              label="Pending Review"
-              color="text-amber-500"
-            />
-            <StatCard
-              icon={Building2}
-              value={statsLoading ? '…' : (stats?.verificationQueue ?? institutionQueue.length)}
-              label="Verification Queue"
-              color="text-blue-500"
-            />
-            <StatCard
-              icon={AlertTriangle}
-              value={statsLoading ? '…' : (stats?.flaggedSignals ?? fraudSignals.length)}
-              label="Flagged Signals"
-              color="text-red-500"
-            />
-          </div>
-
-          {/* Row 2 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              icon={CheckCircle2}
-              value={statsLoading ? '…' : (stats?.activeRequirements ?? 0)}
-              label="Active Requirements"
-              color="text-emerald-500"
-            />
-            <StatCard
-              icon={Users}
-              value={statsLoading ? '…' : (stats?.totalDonors ?? 0)}
-              label="Total Donors"
-            />
-            <StatCard
-              icon={Users}
-              value={statsLoading ? '…' : (stats?.totalRequesters ?? 0)}
-              label="Requesters"
-            />
-            <StatCard
-              icon={TrendingUp}
-              value={statsLoading ? '…' : (stats?.fulfillmentRate ?? 0)}
-              label="Fulfillment Rate"
-              unit={statsLoading ? '' : '%'}
-              color="text-purple-500"
-            />
-          </div>
-
-          {/* FUTURE KPI STATS: Open Disputes and Completed Handoffs stats will be added here once handoff dispute service is connected */}
+        {/* ── 2. STATS (8 compact cards with reduced horizontal & vertical spacing) ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3">
+          <StatCard
+            icon={ClipboardList}
+            value={statsLoading ? '…' : (stats?.totalRequirements ?? 0)}
+            label="Total Requirements"
+          />
+          <StatCard
+            icon={Clock}
+            value={statsLoading ? '…' : (stats?.pendingReview ?? pendingRequirements.length)}
+            label="Pending Review"
+            color="text-amber-500"
+          />
+          <StatCard
+            icon={Building2}
+            value={statsLoading ? '…' : (stats?.verificationQueue ?? institutionQueue.length)}
+            label="Verification Queue"
+            color="text-blue-500"
+          />
+          <StatCard
+            icon={AlertTriangle}
+            value={statsLoading ? '…' : (stats?.flaggedSignals ?? fraudSignals.length)}
+            label="Flagged Signals"
+            color="text-red-500"
+          />
+          <StatCard
+            icon={CheckCircle2}
+            value={statsLoading ? '…' : (stats?.activeRequirements ?? 0)}
+            label="Active Requirements"
+            color="text-emerald-500"
+          />
+          <StatCard
+            icon={Users}
+            value={statsLoading ? '…' : (stats?.totalDonors ?? 0)}
+            label="Total Donors"
+          />
+          <StatCard
+            icon={Users}
+            value={statsLoading ? '…' : (stats?.totalRequesters ?? 0)}
+            label="Requesters"
+          />
+          <StatCard
+            icon={TrendingUp}
+            value={statsLoading ? '…' : (stats?.fulfillmentRate ?? 0)}
+            label="Fulfillment Rate"
+            unit={statsLoading ? '' : '%'}
+            color="text-purple-500"
+          />
         </div>
 
         {/* FUTURE SECTION: Platform Trend chart will be rendered here once daily aggregation telemetry is ready */}
 
         {/* ── 3. REQUEST SEVERITY BY DISTRICT (MAP SECTION) ── */}
-        <section className="space-y-4">
+        <section className="space-y-3.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-[#1F2933] tracking-tight flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-[#304355]" />
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-slate-700" />
                 Request Severity by District
               </h2>
-              <p className="text-xs text-[#64707A] mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Live geographic telemetry of open food requirements and urgency clusters
               </p>
             </div>
 
             {/* Time-range filter */}
-            <div className="flex items-center gap-1 bg-[#FAF8F6] p-1 rounded-xl border border-[#304355]/10 shrink-0">
+            <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0">
               {[
                 { id: '7d', label: 'Last 7 days' },
                 { id: '30d', label: 'Last 30 days' },
@@ -492,8 +483,8 @@ export default function AdminDashboard() {
                   onClick={() => setTimeRange(tab.id)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                     timeRange === tab.id
-                      ? 'bg-[#304355] text-white shadow-xs'
-                      : 'text-[#64707A] hover:text-[#1F2933] hover:bg-slate-100'
+                      ? 'bg-[#0F1E2E] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
                   }`}
                 >
                   {tab.label}
@@ -502,30 +493,30 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Side-by-side matching height workspace */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Side-by-side matching height workspace with reduced horizontal gap */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-stretch">
             {/* Left 7 cols: Maharashtra Vector Map */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5 flex flex-col justify-between">
+            <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="text-sm font-bold text-[#1F2933] tracking-tight">
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                       Maharashtra District Urgency Grid
                     </h3>
-                    <p className="text-xs text-[#64707A] mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Select any district to inspect open requirements and telemetry
                     </p>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-[#304355]">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/60">
                     Selected: {selectedDistrict}
                   </span>
                 </div>
 
                 {/* Map Canvas with Component */}
-                <div className="relative w-full h-[400px] sm:h-[430px] rounded-xl overflow-hidden border border-slate-100 bg-slate-50/60">
+                <div className="relative w-full h-[390px] sm:h-[410px] rounded-xl overflow-hidden border border-slate-100 bg-slate-50/60">
                   {activeReqsLoading ? (
-                    <div className="flex h-full w-full items-center justify-center gap-2 text-xs text-[#64707A]">
-                      <span className="w-4 h-4 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+                    <div className="flex h-full w-full items-center justify-center gap-2 text-xs text-slate-500">
+                      <span className="w-4 h-4 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
                       Loading geographic telemetry…
                     </div>
                   ) : (
@@ -540,40 +531,40 @@ export default function AdminDashboard() {
               </div>
 
               {/* Map Legend Bar */}
-              <div className="mt-3.5 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-4 text-xs text-[#64707A]">
+              <div className="mt-3 pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-4 text-xs text-slate-500">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#DC2626]" />
-                  <span className="font-medium text-[#1F2933]">Critical</span>
+                  <span className="font-medium text-slate-900">Critical</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />
-                  <span className="font-medium text-[#1F2933]">High</span>
+                  <span className="font-medium text-slate-900">High</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#FACC15]" />
-                  <span className="font-medium text-[#1F2933]">Medium</span>
+                  <span className="font-medium text-slate-900">Medium</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" />
-                  <span className="font-medium text-[#1F2933]">Standard</span>
+                  <span className="font-medium text-slate-900">Standard</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded bg-slate-300" />
-                  <span className="font-medium text-[#64707A]">No Open Needs</span>
+                  <span className="font-medium text-slate-500">No Open Needs</span>
                 </div>
               </div>
             </div>
 
             {/* Right 5 cols: Selected District Telemetry & Districts Needing Attention */}
-            <div className="lg:col-span-5 flex flex-col gap-5">
+            <div className="lg:col-span-5 flex flex-col gap-3 sm:gap-3.5">
               {/* Selected District Summary Card */}
-              <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5">
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <h3 className="text-base font-bold text-[#1F2933] tracking-tight">
+                    <h3 className="text-base font-bold text-slate-900 tracking-tight">
                       {selectedDistrictSummary.name} District
                     </h3>
-                    <p className="text-xs text-[#64707A] mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       {selectedDistrictSummary.openRequestsCount} active request(s) logged
                     </p>
                   </div>
@@ -589,17 +580,17 @@ export default function AdminDashboard() {
 
                 {/* Breakdown Grid */}
                 <div className="grid grid-cols-2 gap-2.5 my-3">
-                  <div className="bg-[#FAF8F6] rounded-xl p-3 border border-[#304355]/5">
-                    <span className="text-xs text-[#64707A] block">Total Remaining</span>
-                    <span className="text-lg font-extrabold text-[#1F2933]">
+                  <div className="bg-[#FAF8F6] rounded-xl p-3 border border-slate-200/60">
+                    <span className="text-xs text-slate-500 block">Total Remaining</span>
+                    <span className="text-lg font-extrabold text-slate-900">
                       {selectedDistrictSummary.totalRemaining.toLocaleString()}{' '}
-                      <span className="text-xs font-semibold text-[#64707A]">kg / units</span>
+                      <span className="text-xs font-semibold text-slate-500">kg / units</span>
                     </span>
                   </div>
 
-                  <div className="bg-[#FAF8F6] rounded-xl p-3 border border-[#304355]/5">
-                    <span className="text-xs text-[#64707A] block">Oldest Unfulfilled</span>
-                    <span className="text-lg font-extrabold text-[#1F2933]">
+                  <div className="bg-[#FAF8F6] rounded-xl p-3 border border-slate-200/60">
+                    <span className="text-xs text-slate-500 block">Oldest Unfulfilled</span>
+                    <span className="text-lg font-extrabold text-slate-900">
                       {selectedDistrictSummary.oldestDays !== null ? `${selectedDistrictSummary.oldestDays} days` : 'None'}
                     </span>
                   </div>
@@ -607,7 +598,7 @@ export default function AdminDashboard() {
 
                 {/* Urgency breakdown chips */}
                 <div className="flex items-center gap-2 flex-wrap py-2 border-y border-slate-100 text-xs">
-                  <span className="text-[#64707A] font-semibold">Severity:</span>
+                  <span className="text-slate-500 font-semibold">Severity:</span>
                   <span className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-semibold">
                     {selectedDistrictSummary.criticalCount} Critical
                   </span>
@@ -624,13 +615,13 @@ export default function AdminDashboard() {
 
                 {/* Verified institutions stat & Action button */}
                 <div className="mt-3.5 flex items-center justify-between gap-3 flex-wrap">
-                  <div className="text-xs text-[#64707A]">
-                    <span className="font-bold text-[#1F2933]">{selectedDistrictSummary.verifiedInstitutionsCount}</span> verified institutions (in loaded queue)
+                  <div className="text-xs text-slate-500">
+                    <span className="font-bold text-slate-900">{selectedDistrictSummary.verifiedInstitutionsCount}</span> verified institutions (in loaded queue)
                   </div>
                   <button
                     type="button"
                     onClick={() => navigate(`/explore?district=${encodeURIComponent(selectedDistrict)}`)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#304355] text-white text-xs font-semibold hover:bg-[#1A2E44] transition-colors cursor-pointer shadow-xs"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0F1E2E] hover:bg-[#1A2E44] text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
                   >
                     View requests
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -639,26 +630,26 @@ export default function AdminDashboard() {
               </div>
 
               {/* Districts Needing Attention ranked list */}
-              <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5 flex-1 flex flex-col justify-between">
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-[#1F2933] tracking-tight">
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">
                       Districts Needing Attention
                     </h3>
-                    <span className="text-xs font-medium text-[#64707A]">
+                    <span className="text-xs font-medium text-slate-500">
                       {districtsNeedingAttention.length} districts with open needs
                     </span>
                   </div>
 
                   {activeReqsLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-[#64707A] py-6">
-                      <span className="w-3.5 h-3.5 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+                    <div className="flex items-center gap-2 text-xs text-slate-500 py-6">
+                      <span className="w-3.5 h-3.5 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
                       Loading ranked districts…
                     </div>
                   ) : districtsNeedingAttention.length === 0 ? (
                     <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl">
                       <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1" />
-                      <p className="text-xs font-semibold text-[#64707A]">No open requirements in selected time window</p>
+                      <p className="text-xs font-semibold text-slate-500">No open requirements in selected time window</p>
                     </div>
                   ) : (
                     <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">
@@ -671,27 +662,27 @@ export default function AdminDashboard() {
                             onClick={() => setSelectedDistrict(dist.name)}
                             className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                               isSelected
-                                ? 'bg-[#FAF8F6] border-[#304355]/30 shadow-xs ring-1 ring-[#304355]/10'
+                                ? 'bg-[#FAF8F6] border-slate-300 shadow-xs ring-1 ring-slate-400/20'
                                 : 'bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50'
                             }`}
                           >
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#1F2933] truncate">{dist.name}</span>
+                                <span className="text-xs font-bold text-slate-900 truncate">{dist.name}</span>
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${badge.bg} ${badge.text} ${badge.border}`}>
                                   {badge.label}
                                 </span>
                               </div>
-                              <p className="text-xs text-[#64707A] mt-0.5">
+                              <p className="text-xs text-slate-500 mt-0.5">
                                 {dist.openRequests} open request{dist.openRequests === 1 ? '' : 's'}
                               </p>
                             </div>
 
                             <div className="text-right shrink-0">
-                              <span className="text-xs font-extrabold text-[#1F2933]">
+                              <span className="text-xs font-extrabold text-slate-900">
                                 {Math.round(dist.totalQuantityRemaining).toLocaleString()} kg
                               </span>
-                              <span className="text-xs text-[#64707A] block">needed</span>
+                              <span className="text-xs text-slate-500 block">needed</span>
                             </div>
                           </div>
                         );
@@ -700,7 +691,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
 
-                <p className="text-xs text-[#64707A] pt-3 border-t border-slate-100 mt-3">
+                <p className="text-xs text-slate-500 pt-3 border-t border-slate-100 mt-3">
                   Click any district row or vector boundary to center telemetry.
                 </p>
               </div>
@@ -708,33 +699,33 @@ export default function AdminDashboard() {
           </div>
         </section>
 
-        {/* ── 4. TWO-COLUMN ROW: INSTITUTION QUEUE & REVIEW SIGNALS ── */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* ── 4. TWO-COLUMN ROW: INSTITUTION QUEUE & REVIEW SIGNALS (Reduced horizontal gap) ── */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4 items-stretch">
           {/* Left: Institution Verification Queue */}
-          <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col justify-between">
             <div>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-[#304355]" />
-                  <h3 className="text-base font-bold text-[#1F2933] tracking-tight">
+                  <Building2 className="w-5 h-5 text-slate-700" />
+                  <h3 className="text-base font-bold text-slate-900 tracking-tight">
                     Institution Verification Queue
                   </h3>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-[#304355]">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
                     {instLoading ? '…' : filteredInstitutions.length}
                   </span>
                 </div>
 
                 {/* Filter chips */}
-                <div className="flex items-center gap-1 bg-[#FAF8F6] p-0.5 rounded-lg border border-[#304355]/10 shrink-0">
+                <div className="flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-xl border border-slate-200/60 shrink-0">
                   {['all', 'pending', 'verified', 'rejected'].map((chip) => (
                     <button
                       key={chip}
                       type="button"
                       onClick={() => setInstFilter(chip)}
-                      className={`text-xs px-2.5 py-1 rounded-md font-semibold capitalize transition-all cursor-pointer ${
+                      className={`text-xs px-2.5 py-1 rounded-lg font-semibold capitalize transition-all cursor-pointer ${
                         instFilter === chip
-                          ? 'bg-[#304355] text-white shadow-xs'
-                          : 'text-[#64707A] hover:text-[#1F2933]'
+                          ? 'bg-[#0F1E2E] text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
                       {chip}
@@ -744,14 +735,14 @@ export default function AdminDashboard() {
               </div>
 
               {instLoading ? (
-                <div className="flex items-center gap-2 text-xs text-[#64707A] py-8">
-                  <span className="w-4 h-4 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2 text-xs text-slate-500 py-8">
+                  <span className="w-4 h-4 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
                   Loading institution queue…
                 </div>
               ) : filteredInstitutions.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
                   <CheckCircle2 className="w-7 h-7 text-emerald-500 mx-auto mb-1.5" />
-                  <p className="text-xs font-semibold text-[#64707A]">
+                  <p className="text-xs font-semibold text-slate-500">
                     {instFilter === 'all' ? 'No institutions in queue' : `No institutions matching "${instFilter}"`}
                   </p>
                 </div>
@@ -761,15 +752,15 @@ export default function AdminDashboard() {
                     <div key={inst.id} className="py-3 flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          <p className="font-bold text-sm text-[#1F2933] truncate">{inst.name}</p>
+                          <p className="font-bold text-sm text-slate-900 truncate">{inst.name}</p>
                           {inst.verificationStatus === 'verified' && (
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-[#64707A] capitalize">
+                        <p className="text-xs text-slate-500 capitalize">
                           {inst.type?.replace(/_/g, ' ')} {inst.district ? `· ${inst.district}` : ''}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-[#64707A] mt-1">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
                           <span
                             className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                               inst.verificationStatus === 'verified'
@@ -787,7 +778,7 @@ export default function AdminDashboard() {
 
                       <Link
                         to={`/admin/institution-review/${inst.id}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#304355] hover:underline shrink-0 mt-1"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#0F1E2E] hover:text-[#1A2E44] hover:underline shrink-0 mt-1"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         Review
@@ -798,26 +789,26 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <p className="text-xs text-[#64707A] pt-3 border-t border-slate-100 mt-3">
+            <p className="text-xs text-slate-500 pt-3 border-t border-slate-100 mt-3">
               Institutional credentials verified against Maharashtra registrar and tribal department records.
             </p>
           </div>
 
           {/* Right: Review Signals */}
-          <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5 flex flex-col justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-base font-bold text-[#1F2933] tracking-tight">Review Signals</h3>
+                  <h3 className="text-base font-bold text-slate-900 tracking-tight">Review Signals</h3>
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/80">
                   {fraudLoading ? '…' : fraudSignals.length} Pending
                 </span>
               </div>
 
               {/* Review Signals Notice */}
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2.5">
+              <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 mb-3.5 flex items-start gap-2.5">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-900 leading-relaxed">
                   <strong>These are review signals only — not confirmed fraud.</strong> They indicate patterns that require human review. Do not take action based on signals alone. A supervisor must investigate and decide.
@@ -825,24 +816,24 @@ export default function AdminDashboard() {
               </div>
 
               {fraudLoading ? (
-                <div className="flex items-center gap-2 text-xs text-[#64707A] py-8">
-                  <span className="w-4 h-4 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+                <div className="flex items-center gap-2 text-xs text-slate-500 py-8">
+                  <span className="w-4 h-4 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
                   Loading review signals…
                 </div>
               ) : fraudSignals.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
                   <CheckCircle2 className="w-7 h-7 text-emerald-500 mx-auto mb-1.5" />
-                  <p className="text-xs font-semibold text-[#64707A]">No active review signals pending</p>
+                  <p className="text-xs font-semibold text-slate-500">No active review signals pending</p>
                 </div>
               ) : (
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   {fraudSignals.map((item) => {
                     const isHighRisk = item.severity === 'critical' || item.severity === 'high';
                     return (
                       <div
                         key={item.id}
-                        className={`rounded-xl border p-4 transition-shadow ${
-                          isHighRisk ? 'border-red-200 bg-red-50/20' : 'border-amber-200 bg-amber-50/20'
+                        className={`rounded-xl border p-3.5 transition-all bg-white shadow-xs ${
+                          isHighRisk ? 'border-red-200/80 hover:border-red-300' : 'border-amber-200/80 hover:border-amber-300'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3 mb-2">
@@ -854,20 +845,20 @@ export default function AdminDashboard() {
                             />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 mb-0.5">
-                                <p className="font-bold text-xs sm:text-sm text-[#1F2933] capitalize truncate">
+                                <p className="font-bold text-xs sm:text-sm text-slate-900 capitalize truncate">
                                   {item.signalType?.replace(/_/g, ' ')}
                                 </p>
                                 <span
                                   className={`text-xs font-bold uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                                    isHighRisk ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                                    isHighRisk ? 'bg-red-50 text-red-700 border border-red-200/60' : 'bg-amber-50 text-amber-700 border border-amber-200/60'
                                   }`}
                                 >
                                   {item.severity}
                                 </span>
                               </div>
-                              <p className="text-xs text-[#64707A] leading-relaxed mb-1.5">{item.description}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed mb-1.5">{item.description}</p>
                               {item.entityName && (
-                                <p className="text-xs text-[#304355] font-semibold">
+                                <p className="text-xs text-slate-800 font-semibold">
                                   Target: {item.entityName} {item.district ? `(${item.district})` : ''}
                                 </p>
                               )}
@@ -880,7 +871,7 @@ export default function AdminDashboard() {
                               type="button"
                               onClick={() => handleResolveSignal(item.id, 'resolved')}
                               title="Mark Resolved"
-                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 text-[#64707A] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 text-slate-500 transition-colors cursor-pointer"
                             >
                               <Check className="w-4 h-4" />
                             </button>
@@ -888,7 +879,7 @@ export default function AdminDashboard() {
                               type="button"
                               onClick={() => handleResolveSignal(item.id, 'dismissed')}
                               title="Dismiss Signal"
-                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[#64707A] transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 hover:text-slate-700 text-slate-500 transition-colors cursor-pointer"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -899,7 +890,7 @@ export default function AdminDashboard() {
                         {item.entityType === 'requirement' && (
                           <Link
                             to={`/admin/review/${item.entityId}`}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#304355] hover:underline mt-1"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F1E2E] hover:text-[#1A2E44] hover:underline mt-1"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Review Target Requirement
@@ -908,7 +899,7 @@ export default function AdminDashboard() {
                         {item.entityType === 'institution' && (
                           <Link
                             to={`/admin/institution-review/${item.entityId}`}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#304355] hover:underline mt-1"
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0F1E2E] hover:text-[#1A2E44] hover:underline mt-1"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             Review Target Institution
@@ -921,43 +912,40 @@ export default function AdminDashboard() {
               )}
             </div>
 
-            <p className="text-xs text-[#64707A] pt-3 border-t border-slate-100 mt-3">
+            <p className="text-xs text-slate-500 pt-3 border-t border-slate-100 mt-3">
               Automated anomaly heuristics flag duplicate listings and frequency surges for admin audit.
             </p>
           </div>
         </section>
 
-        {/* FUTURE SECTION: Top Institutions table will be placed here once institution leaderboard endpoint is ready */}
-        {/* FUTURE SECTION: Disputes & Flagged Handoffs queue will be placed here once dispute resolution workflow is live */}
-
         {/* ── 5. REQUIREMENTS AWAITING REVIEW (Full-Width List) ── */}
-        <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5 sm:p-6 space-y-4">
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5 sm:p-6 space-y-3.5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-[#304355]" />
-              <h2 className="text-base sm:text-lg font-bold text-[#1F2933] tracking-tight">
+              <ClipboardList className="w-5 h-5 text-slate-700" />
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                 Requirements Awaiting Review ({pendingLoading ? '…' : pendingRequirements.length})
               </h2>
             </div>
-            <span className="text-xs text-[#64707A]">
+            <span className="text-xs text-slate-500">
               Under-review status queue
             </span>
           </div>
 
           {pendingLoading ? (
-            <div className="flex items-center gap-2 text-xs text-[#64707A] py-8">
-              <span className="w-4 h-4 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-xs text-slate-500 py-8">
+              <span className="w-4 h-4 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
               Loading pending requirements…
             </div>
           ) : pendingRequirements.length === 0 ? (
             <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
               <CheckCircle2 className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-              <p className="text-xs sm:text-sm font-semibold text-[#64707A]">
+              <p className="text-xs sm:text-sm font-semibold text-slate-500">
                 No requirements pending review
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {pendingRequirements.map((req) => {
                 const urgency = URGENCY_CONFIG[req.urgency] || URGENCY_CONFIG.medium;
                 const submittedDateStr = req.submittedAt
@@ -971,35 +959,35 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={req.id}
-                    className="p-4 sm:p-5 rounded-xl border border-slate-200/90 hover:border-[#304355]/30 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="p-3.5 sm:p-4 rounded-xl border border-slate-200/80 hover:border-slate-300 hover:shadow-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white"
                   >
-                    <div className="space-y-1.5 min-w-0">
+                    <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
                           className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${urgency.bg} ${urgency.text} ${urgency.border}`}
                         >
                           {urgency.label}
                         </span>
-                        <h3 className="font-bold text-sm sm:text-base text-[#1F2933] truncate">
+                        <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">
                           {req.title}
                         </h3>
                       </div>
 
-                      <p className="text-xs text-[#64707A]">
-                        Requester: <span className="font-semibold text-[#1F2933]">{req.requesterName}</span>
+                      <p className="text-xs text-slate-500">
+                        Requester: <span className="font-semibold text-slate-900">{req.requesterName}</span>
                       </p>
 
-                      <div className="flex items-center gap-4 text-xs text-[#64707A] flex-wrap">
+                      <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
                         <span className="inline-flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#304355]" />
+                          <MapPin className="w-3.5 h-3.5 text-slate-600" />
                           {req.district}
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5 text-[#304355]" />
+                          <Users className="w-3.5 h-3.5 text-slate-600" />
                           {req.beneficiaryCount} beneficiaries
                         </span>
                         <span className="inline-flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-[#304355]" />
+                          <Calendar className="w-3.5 h-3.5 text-slate-600" />
                           {submittedDateStr}
                         </span>
                       </div>
@@ -1008,7 +996,7 @@ export default function AdminDashboard() {
                     <div className="shrink-0">
                       <Link
                         to={`/admin/review/${req.id}`}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#304355] text-white text-xs font-semibold hover:bg-[#1A2E44] transition-colors cursor-pointer shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0F1E2E] hover:bg-[#1A2E44] text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         Review Requirement
@@ -1023,33 +1011,33 @@ export default function AdminDashboard() {
         </section>
 
         {/* ── 6. QUEUE SNAPSHOT (Small Card) ── */}
-        <section className="bg-white rounded-2xl border border-[#304355]/10 shadow-[0_2px_10px_rgba(25,45,62,0.04)] p-5">
+        <section className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3.5">
-            <h3 className="text-sm font-bold text-[#1F2933] tracking-tight flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#304355]" />
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-700" />
               Queue Snapshot
             </h3>
-            <span className="text-xs text-[#64707A]">Recent items across review channels</span>
+            <span className="text-xs text-slate-500">Recent items across review channels</span>
           </div>
 
           {pendingLoading && instLoading && fraudLoading ? (
-            <div className="flex items-center gap-2 text-xs text-[#64707A] py-3">
-              <span className="w-3.5 h-3.5 border-2 border-[#304355] border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2 text-xs text-slate-500 py-3">
+              <span className="w-3.5 h-3.5 border-2 border-[#0F1E2E] border-t-transparent rounded-full animate-spin" />
               Loading snapshot activity…
             </div>
           ) : recentActivity.length === 0 ? (
-            <p className="text-xs text-[#64707A]">No pending queue items right now.</p>
+            <p className="text-xs text-slate-500">No pending queue items right now.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="bg-[#FAF8F6] rounded-xl p-3 border border-[#304355]/5 flex items-start gap-2.5 text-xs"
+                  className="bg-[#FAF8F6] rounded-xl p-3 border border-slate-200/60 flex items-start gap-2.5 text-xs"
                 >
                   <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${activity.dot}`} />
                   <div className="min-w-0">
-                    <span className="font-semibold text-[#1F2933] block truncate">{activity.action}</span>
-                    <span className="text-[#64707A] truncate block">{activity.target}</span>
+                    <span className="font-semibold text-slate-900 block truncate">{activity.action}</span>
+                    <span className="text-slate-500 truncate block">{activity.target}</span>
                   </div>
                 </div>
               ))}
@@ -1058,7 +1046,7 @@ export default function AdminDashboard() {
         </section>
 
         {/* ── 7. FOOTER NOTE (Static Text) ── */}
-        <footer className="pt-2 pb-6 border-t border-slate-200/80 text-xs text-[#64707A] space-y-1.5">
+        <footer className="pt-2 pb-6 border-t border-slate-200/80 text-xs text-slate-500 space-y-1.5">
           <p>
             Official district nutrition indicators are sourced from NFHS-5 (National Family Health Survey 2019-21) and state ICDS reporting.
           </p>
