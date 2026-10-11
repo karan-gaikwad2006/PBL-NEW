@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import { getDashboardForRole } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
-import logo from '../../assets/logo.png';
+
+const NAVBAR_HEIGHT = '5rem';
 
 export default function Navbar() {
   const location = useLocation();
@@ -17,6 +18,13 @@ export default function Navbar() {
     return false;
   };
 
+  const navLinkClass = (path) =>
+    `relative font-medium text-base transition-colors after:absolute after:-bottom-1 after:left-0 after:h-0.5 after:bg-[#278A3D] ${
+      isActive(path)
+        ? 'text-[#102C1A] after:w-full'
+        : 'text-[#193A25] after:w-0 hover:text-[#102C1A] hover:after:w-full hover:after:transition-all'
+    }`;
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -29,16 +37,23 @@ export default function Navbar() {
   };
 
   return (
-    <header className="bg-[#FAF8F6] border-b border-[#304355]/10 shadow-xs sticky top-0 z-50">
-      <div className="flex justify-between items-center px-6 md:px-10 py-0 max-w-[1280px] mx-auto w-full">
+    <header
+      className="bg-[#F5F8F0] border-b border-[#31543B]/15 shadow-sm sticky top-0 z-50"
+      style={{ '--navbar-height': NAVBAR_HEIGHT }}
+    >
+      <div
+        className="flex justify-between items-center px-6 md:px-10 max-w-[1280px] mx-auto w-full"
+        style={{ height: 'var(--navbar-height)' }}
+      >
         {/* Brand — overflow clips the "Bridge of Nutrition" tagline */}
         <div className="flex items-center">
           <Link to="/" className="flex items-center hover:opacity-90 transition group">
-            <div className="h-[4.5rem] sm:h-[4.9rem] md:h-[5.5rem] overflow-hidden flex items-start pt-1.5">
+            <div className="relative h-[var(--navbar-height)] w-[190px] shrink-0 overflow-hidden">
               <img 
-                src={logo} 
-                alt="PoshanSetu — Bridge of Nutrition • Community Care" 
-                className="h-[4.5rem] sm:h-[5rem] md:h-[5.75rem] w-auto object-contain object-top transition-transform group-hover:scale-[1.02]" 
+                src="/logo.png"
+                alt="PoshanSetu — Bridge of Nutrition • Community Care"
+                className="absolute w-[170px] h-auto max-w-none object-contain transition-transform"
+                style={{ top: '56%', left: '5%', transform: 'translateY(-50%) scale(110%)' }}
               />
             </div>
           </Link>
@@ -48,51 +63,31 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-8">
           <Link
             to="/"
-            className={`font-semibold text-base ${
-              isActive('/')
-                ? 'text-[#304355] border-b-2 border-[#304355] pb-1'
-                : 'text-[#43474C] hover:text-[#304355]'
-            }`}
+            className={navLinkClass('/')}
           >
             Home
           </Link>
           <Link
             to="/explore"
-            className={`font-medium text-base ${
-              isActive('/explore')
-                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
-                : 'text-[#43474C] hover:text-[#304355]'
-            }`}
+            className={navLinkClass('/explore')}
           >
             Explore Needs
           </Link>
           <Link
             to="/how-it-works"
-            className={`font-medium text-base ${
-              isActive('/how-it-works')
-                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
-                : 'text-[#43474C] hover:text-[#304355]'
-            }`}
+            className={navLinkClass('/how-it-works')}
           >
             How It Works
           </Link>
           <Link
             to="/submit-requirement"
-            className={`font-medium text-base ${
-              isActive('/submit-requirement')
-                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
-                : 'text-[#43474C] hover:text-[#304355]'
-            }`}
+            className={navLinkClass('/submit-requirement')}
           >
             Submit a Requirement
           </Link>
           <Link
             to="/about"
-            className={`font-medium text-base ${
-              isActive('/about')
-                ? 'text-[#304355] border-b-2 border-[#304355] pb-1 font-semibold'
-                : 'text-[#43474C] hover:text-[#304355]'
-            }`}
+            className={navLinkClass('/about')}
           >
             About
           </Link>
@@ -112,8 +107,8 @@ export default function Navbar() {
                 className={[
                   'w-9 h-9 rounded-lg flex items-center justify-center transition-colors',
                   isChatOpen
-                    ? 'bg-[#304355] text-white'
-                    : 'text-[#304355]/70 hover:bg-[#304355]/10 hover:text-[#304355]',
+                    ? 'bg-[#DDF1D8] text-[#1D7B37]'
+                    : 'text-[#405747] hover:bg-[#E6F0E2] hover:text-[#1D7B37]',
                 ].join(' ')}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -122,24 +117,24 @@ export default function Navbar() {
               </button>
               <Link 
                 to={getDashboardPath()} 
-                className="text-[#304355] font-bold text-base hover:underline"
+                className="text-[#244A2E] font-bold text-base hover:text-[#1D7B37] hover:underline"
               >
                 Dashboard
               </Link>
               <button 
                 onClick={handleLogout}
-                className="bg-[#304355] text-white text-base font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors shadow-xs"
+                className="bg-[#278A3D] text-white text-base font-semibold px-6 py-2 rounded-md hover:bg-[#1D7331] transition-colors shadow-xs"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-[#304355] font-medium text-base hover:underline">
+              <Link to="/login" className="text-[#244A2E] font-medium text-base hover:text-[#1D7B37] hover:underline">
                 Login
               </Link>
               <Link to="/register">
-                <button className="bg-[#304355] text-white text-base font-semibold px-6 py-2 rounded-md hover:bg-[#243342] transition-colors shadow-xs">
+                <button className="bg-[#278A3D] text-white text-base font-semibold px-6 py-2 rounded-md hover:bg-[#1D7331] transition-colors shadow-xs">
                   Get Started
                 </button>
               </Link>
