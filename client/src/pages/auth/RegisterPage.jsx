@@ -1,5 +1,26 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowRight,
+  BarChart3,
+  BadgeCheck,
+  Building2,
+  Check,
+  CircleCheck,
+  ContactRound,
+  Eye,
+  EyeOff,
+  Globe,
+  HandHeart,
+  Handshake,
+  LoaderCircle,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  Sprout,
+  UserRound,
+} from 'lucide-react';
 import useAuth from '../../hooks/useAuth';
 import { getDashboardForRole } from '../../context/AuthContext';
 
@@ -27,30 +48,24 @@ function isRedirectAuthorizedForRole(redirectPath, role) {
 const ROLE_DATA = [
   {
     id: 'donor',
-    icon: 'volunteer_activism',
+    icon: HandHeart,
     label: 'Donor',
-    desc: 'Provide nutrition, groceries, or logistics support.',
     namePlaceholder: 'Enter your full name or foundation',
     nameHint: 'Donor representative name',
-    leftHint: 'Join as a resource provider or community donor.',
   },
   {
     id: 'requester',
-    icon: 'person',
+    icon: UserRound,
     label: 'Requester',
-    desc: 'Seek direct nutrition kits for pregnant women or infants.',
     namePlaceholder: 'Enter your full name or guardian name',
     nameHint: 'Primary beneficiary contact',
-    leftHint: 'Request maternal and child nutrition assistance directly.',
   },
   {
     id: 'institution',
-    icon: 'domain',
+    icon: Building2,
     label: 'Institution',
-    desc: 'Anganwadi centers, orphanages, or verified NGOs.',
     namePlaceholder: 'Enter institution coordinator name',
     nameHint: 'Authorized nodal officer',
-    leftHint: 'Manage cluster nutrition demands for anganwadis or schools.',
   },
 ];
 
@@ -80,7 +95,7 @@ export default function RegisterPage() {
     const errs = {};
     if (!fullName.trim()) errs.fullName = 'Full name is required.';
     if (!email.trim()) errs.email = 'Email address is required.';
-    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Email already in registry or invalid.';
+    else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Please enter a valid email address.';
     if (!password) errs.password = 'Password is required.';
     else if (password.length < 8) errs.password = 'Min. 8 characters';
     if (!terms) errs.terms = 'You must accept the terms to continue.';
@@ -89,9 +104,9 @@ export default function RegisterPage() {
 
   const runSubmitProgress = () => {
     const stages = [
-      { pct: 30, label: 'Verifying details...' },
-      { pct: 68, label: 'Connecting to Maharashtra nutrition registry...' },
-      { pct: 95, label: 'Setting up secure public directory profile...' },
+      { pct: 30, label: 'Creating your account...' },
+      { pct: 68, label: 'Saving your PoshanSetu profile...' },
+      { pct: 95, label: 'Preparing your dashboard...' },
     ];
     let i = 0;
     setSubmitProgress(30);
@@ -162,8 +177,6 @@ export default function RegisterPage() {
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
-
       <style>{`
         .ps-root * { box-sizing: border-box; }
         .ps-root { font-family: 'Manrope', sans-serif; }
@@ -313,6 +326,61 @@ export default function RegisterPage() {
         }
         .ps-role-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 10px 22px -6px rgba(48,67,85,0.12); }
 
+        .ps-role-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .ps-root {
+          height: calc(100dvh - 4.5rem - 1px);
+          min-height: 0;
+          overflow: hidden;
+        }
+        .ps-register-main {
+          min-height: 0;
+          overflow: hidden;
+        }
+        .ps-register-content {
+          height: 100%;
+        }
+        .ps-register-card {
+          max-height: calc(100% - 48px);
+        }
+
+        @media (min-width: 640px) {
+          .ps-root { height: calc(100dvh - 4.9rem - 1px); }
+        }
+        @media (min-width: 768px) {
+          .ps-root { height: calc(100dvh - 5.5rem - 1px); }
+        }
+        @media (max-width: 767px) {
+          .ps-panel-left,
+          .ps-security-badges { display: none !important; }
+          .ps-panel-right { flex-basis: 100% !important; min-width: 0 !important; padding: 18px 16px !important; gap: 8px !important; }
+          .ps-register-form { gap: 10px !important; }
+          .ps-role-grid { gap: 6px; }
+          .ps-register-card { max-height: 100%; }
+        }
+        @media (max-height: 650px) {
+          .ps-security-badges { display: none !important; }
+          .ps-register-main { padding-top: 4px !important; padding-bottom: 4px !important; }
+          .ps-panel-left { padding: 16px !important; }
+          .ps-trust-list { display: none !important; }
+          .ps-panel-right { padding-top: 12px !important; padding-bottom: 12px !important; }
+          .ps-register-form { gap: 8px !important; }
+          .ps-role-card { padding: 7px !important; }
+          .ps-register-card { max-height: 100%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ps-ambient-bg,
+          .ps-particle,
+          .ps-contour-mesh,
+          .ps-logo-aura,
+          .ps-btn-shimmer::after,
+          .ps-role-card:hover { animation: none !important; transform: none !important; }
+        }
+
         /* CTA button */
         .ps-cta {
           transition: transform 160ms cubic-bezier(0.16,1,0.3,1), box-shadow 160ms ease;
@@ -366,12 +434,11 @@ export default function RegisterPage() {
         className="ps-root"
         style={{
           background: '#FAF8F6',
-          minHeight: 'calc(100vh - 64px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           position: 'relative',
-          overflowX: 'hidden',
+          overflow: 'hidden',
           padding: '0 0',
         }}
       >
@@ -386,23 +453,14 @@ export default function RegisterPage() {
         <div aria-hidden className="ps-particle" style={{width:8,height:8,background:'rgba(208,229,251,0.4)',top:'50%',right:'5%',animationDuration:'13s',animationDelay:'5s'}}/>
 
         {/* â”€â”€ Main content â”€â”€ */}
-        <main style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'12px 16px', position:'relative', zIndex:10 }}>
-          <div style={{ display:'flex', flexDirection:'column', width:'100%', alignItems:'center', justifyContent:'center', position:'relative' }}>
+        <div className="ps-register-main" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'8px 12px', position:'relative', zIndex:10 }}>
+          <div className="ps-register-content" style={{ display:'flex', flexDirection:'column', width:'100%', alignItems:'center', justifyContent:'center', position:'relative' }}>
             {/* Glow blobs */}
             <div aria-hidden style={{ position:'absolute', top:-48, left:-64, width:384, height:384, borderRadius:'50%', background:'rgba(208,229,251,0.2)', filter:'blur(48px)', pointerEvents:'none' }}/>
             <div aria-hidden style={{ position:'absolute', bottom:-64, right:-64, width:384, height:384, borderRadius:'50%', background:'rgba(255,221,183,0.3)', filter:'blur(48px)', pointerEvents:'none' }}/>
 
-            {/* Live Registry Pill */}
-            <div className="ps-s1" style={{ marginBottom:10, display:'flex', alignItems:'center', gap:10, padding:'4px 14px', borderRadius:9999, background:'#efedef', boxShadow:'0 1px 3px rgba(0,0,0,.08)', border:'1px solid rgba(116,119,125,0.3)', fontSize:11, color:'#64707A', letterSpacing:'0.05em', textTransform:'uppercase', fontWeight:600 }}>
-              <div style={{ position:'relative', width:10, height:10 }}>
-                <span className="ps-ping" style={{ position:'absolute', inset:0, borderRadius:'50%', background:'#388E3C', opacity:0.75 }}/>
-                <span style={{ position:'relative', display:'inline-flex', width:10, height:10, borderRadius:'50%', background:'#388E3C' }}/>
-              </div>
-              Live Registry Pulse â€¢ 36 Districts Synchronized â€¢ NFHS-5 Geo-Aligned
-            </div>
-
             {/* Split container */}
-            <div style={{
+            <div className="ps-register-card" style={{
               width:'100%', maxWidth:1040,
               background:'#ffffff',
               borderRadius:16,
@@ -445,34 +503,24 @@ export default function RegisterPage() {
                   <div style={{ position:'relative', display:'inline-flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
                     <div className="ps-logo-aura" style={{ position:'absolute', inset:0, borderRadius:16, background:'#d0e5fb' }}/>
                     <div style={{ width:44, height:44, borderRadius:12, background:'#ffffff', color:'#304355', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', position:'relative', zIndex:10 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize:32, color:'#304355', fontVariationSettings:"'FILL' 1" }}>spa</span>
+                      <Sprout size={28} aria-hidden="true" />
                     </div>
                   </div>
-                  <span style={{ display:'inline-block', padding:'2px 10px', marginBottom:8, fontSize:11, letterSpacing:'0.08em', textTransform:'uppercase', borderRadius:4, background:'#192d3e', color:'#d0e5fb', fontWeight:700 }}>
-                    Public Good Architecture
-                  </span>
                   <h1 style={{ fontSize:22, fontWeight:700, color:'#ffffff', letterSpacing:'-0.01em', lineHeight:1.3, margin:0 }}>
                     Join PoshanSetu
                   </h1>
-                  <p style={{ fontSize:13, color:'#9cafc5', marginTop:6, lineHeight:1.5 }}>
-                    {selectedRole?.leftHint || 'Your account type helps us personalize your civic engagement, district routing, and verified grassroots requests.'}
-                  </p>
-                  <div style={{ marginTop:16, display:'inline-flex', alignItems:'center', gap:8, padding:'6px 12px', borderRadius:8, background:'rgba(48,67,85,0.7)', color:'#d0e5fb', fontSize:12, fontWeight:600 }}>
-                    <span className="ps-pulse" style={{ width:8, height:8, borderRadius:'50%', background:'#388E3C', display:'inline-block' }}/>
-                    Verified Non-Custodial Coordination
-                  </div>
                 </div>
 
                 {/* Trust pillars */}
-                <div style={{ margin:'16px 0', display:'flex', flexDirection:'column', gap:10, position:'relative', zIndex:10 }}>
+                <div className="ps-trust-list" style={{ margin:'16px 0', display:'flex', flexDirection:'column', gap:10, position:'relative', zIndex:10 }}>
                   {[
-                    { icon:'handshake', iconBg:'rgba(208,229,251,0.2)', iconColor:'#d0e5fb', title:'Direct drop-off, no cash handling', desc:'Physical nutritional kits delivered straight to local anganwadis.' },
-                    { icon:'verified_user', iconBg:'rgba(255,221,183,0.2)', iconColor:'#ffddb7', title:'Verified grassroots institutions', desc:'Cross-checked via Gram Panchayat and Women & Child Development logs.' },
-                    { icon:'analytics', iconBg:'rgba(208,229,251,0.2)', iconColor:'#d0e5fb', title:'NFHS-5 District Intelligence', desc:'Demands prioritized by real-time stunting and wasting metrics.' },
+                    { icon:Handshake, iconBg:'rgba(208,229,251,0.2)', iconColor:'#d0e5fb', title:'Food-only support', desc:'No cash or delivery.' },
+                    { icon:ShieldCheck, iconBg:'rgba(255,221,183,0.2)', iconColor:'#ffddb7', title:'Community requirements', desc:'Shared by people and organizations.' },
+                    { icon:BarChart3, iconBg:'rgba(208,229,251,0.2)', iconColor:'#d0e5fb', title:'Official district indicators', desc:'Separate from community needs.' },
                   ].map((item) => (
-                    <div key={item.icon} className="ps-trust-item" style={{ padding:10, borderRadius:12, display:'flex', alignItems:'flex-start', gap:12, background:'rgba(48,67,85,0.4)', backdropFilter:'blur(4px)' }}>
+                    <div key={item.title} className="ps-trust-item" style={{ padding:10, borderRadius:12, display:'flex', alignItems:'flex-start', gap:12, background:'rgba(48,67,85,0.4)', backdropFilter:'blur(4px)' }}>
                       <div className="ps-trust-icon" style={{ width:36, height:36, borderRadius:8, background:item.iconBg, color:item.iconColor, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <span className="material-symbols-outlined" style={{ fontSize:20 }}>{item.icon}</span>
+                        <item.icon size={20} strokeWidth={2} aria-hidden="true" />
                       </div>
                       <div>
                         <h4 style={{ fontSize:13, fontWeight:700, color:'#ffffff', margin:0 }}>{item.title}</h4>
@@ -482,14 +530,6 @@ export default function RegisterPage() {
                   ))}
                 </div>
 
-                {/* Bottom footnote */}
-                <div style={{ paddingTop:10, borderTop:'1px solid rgba(255,255,255,0.1)', position:'relative', zIndex:10, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, color:'#9cafc5', fontSize:12 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize:16 }}>health_and_safety</span>
-                    Zero Commission Civic Infrastructure
-                  </div>
-                  <span style={{ fontSize:12, color:'#d0e5fb', fontFamily:'monospace', fontWeight:600 }}>v2.4</span>
-                </div>
               </div>
 
               {/* â•â• RIGHT PANEL â•â• */}
@@ -509,7 +549,7 @@ export default function RegisterPage() {
                     padding:'14px', borderRadius:12, background:'#ffdad6', color:'#93000a',
                     display:'flex', alignItems:'flex-start', gap:12,
                   }}>
-                    <span className="material-symbols-outlined" style={{ fontSize:20, color:'#ba1a1a', flexShrink:0 }}>report</span>
+                    <AlertCircle size={20} color="#ba1a1a" aria-hidden="true" />
                     <div>
                       <h5 style={{ fontSize:13, fontWeight:700, margin:0 }}>Please check your registration details</h5>
                       <p style={{ fontSize:12, marginTop:2, lineHeight:1.4 }}>{errors.form}</p>
@@ -517,7 +557,7 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} noValidate style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                <form className="ps-register-form" onSubmit={handleSubmit} noValidate style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
                   {/* STEP 1: Role */}
                   <div className="ps-s2">
@@ -530,18 +570,21 @@ export default function RegisterPage() {
                         Selected: {selectedRole?.label}
                       </span>
                     </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10 }}>
+                    <div className="ps-role-grid" role="group" aria-label="Choose your account type">
                       {ROLE_DATA.map((role) => {
                         const isSelected = accountType === role.id;
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={role.id}
                             className="ps-role-card"
+                            aria-pressed={isSelected}
                             onClick={() => handleRoleSelect(role.id)}
                             style={{
                               cursor:'pointer',
                               position:'relative',
                               padding:10,
+                              width:'100%',
                               borderRadius:12,
                               border: isSelected ? '2px solid #304355' : '2px solid transparent',
                               background: isSelected ? 'rgba(48,67,85,0.08)' : '#f5f3f4',
@@ -550,6 +593,9 @@ export default function RegisterPage() {
                               flexDirection:'column',
                               justifyContent:'space-between',
                               overflow:'hidden',
+                              color:'inherit',
+                              fontFamily:'inherit',
+                              textAlign:'left',
                             }}
                           >
                             {/* Ripple */}
@@ -557,7 +603,7 @@ export default function RegisterPage() {
                             {/* Check badge */}
                             {isSelected && (
                               <div className="ps-check-pop" style={{ position:'absolute', top:8, right:8, width:20, height:20, borderRadius:'50%', background:'#304355', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize:13, fontWeight:700 }}>check</span>
+                                <Check size={13} strokeWidth={3} aria-hidden="true" />
                               </div>
                             )}
                             {/* Icon */}
@@ -569,13 +615,12 @@ export default function RegisterPage() {
                               marginBottom:10,
                               transition:'all 200ms',
                             }}>
-                              <span className={`material-symbols-outlined${isSelected ? ' ps-icon-wiggle' : ''}`} style={{ fontSize:18 }}>{role.icon}</span>
+                              <role.icon className={isSelected ? 'ps-icon-wiggle' : undefined} size={18} aria-hidden="true" />
                             </div>
                             <div>
                               <p style={{ fontSize:13, fontWeight:700, color:'#1F2933', margin:0 }}>{role.label}</p>
-                              <p style={{ fontSize:12, color:'#64707A', marginTop:2, lineHeight:1.3 }}>{role.desc}</p>
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -597,7 +642,7 @@ export default function RegisterPage() {
                         <label htmlFor="ps-fullName" style={{ fontSize:13, fontWeight:500, color:'#64707A' }}>Full Name / Organization</label>
                       </div>
                       <div className="ps-input-wrapper" style={{ position:'relative', display:'flex', alignItems:'center' }}>
-                        <span className="material-symbols-outlined" style={{ position:'absolute', left:12, fontSize:18, color:'#74777d', pointerEvents:'none' }}>badge</span>
+                        <ContactRound size={18} color="#74777d" aria-hidden="true" style={{ position:'absolute', left:12, pointerEvents:'none' }} />
                         <input
                           id="ps-fullName"
                           type="text"
@@ -618,25 +663,27 @@ export default function RegisterPage() {
                           onFocus={e => { if (!errors.fullName) e.target.style.borderColor='rgba(48,67,85,0.4)'; e.target.style.background='#ffffff'; e.target.style.boxShadow='0 0 0 2px rgba(48,67,85,0.12)'; }}
                           onBlur={e => { if (!errors.fullName) { e.target.style.borderColor='transparent'; e.target.style.background='#f5f3f4'; e.target.style.boxShadow='none'; } }}
                         />
-                        <span className="material-symbols-outlined ps-val-icon" style={{ position:'absolute', right:12, fontSize:18, color:'#388E3C', opacity: nameValid ? 1 : 0, transform: nameValid ? 'scale(1)' : 'scale(0.5)' }}>check_circle</span>
+                        <CircleCheck className="ps-val-icon" size={18} color="#388E3C" aria-hidden="true" style={{ position:'absolute', right:12, opacity: nameValid ? 1 : 0, transform: nameValid ? 'scale(1)' : 'scale(0.5)' }} />
                         <div className="ps-focus-line"/>
                       </div>
-                      {errors.fullName && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:3, display:'flex', alignItems:'center', gap:4 }}><span className="material-symbols-outlined" style={{fontSize:13}}>error</span>{errors.fullName}</p>}
+                      {errors.fullName && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:3, display:'flex', alignItems:'center', gap:4 }}><AlertCircle size={13} aria-hidden="true" />{errors.fullName}</p>}
                     </div>
 
                     {/* Email */}
                     <div>
                       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
-                        <label htmlFor="ps-email" style={{ fontSize:13, fontWeight:500, color:'#64707A' }}>Official Email Address</label>
-                        {errors.email && <span style={{ fontSize:11, color:'#ba1a1a', fontWeight:500 }}>Email already in registry</span>}
+                        <label htmlFor="ps-email" style={{ fontSize:13, fontWeight:500, color:'#64707A' }}>Email Address</label>
+                        {errors.email && <span id="ps-email-error" style={{ fontSize:11, color:'#ba1a1a', fontWeight:500 }}>{errors.email}</span>}
                       </div>
                       <div className="ps-input-wrapper" style={{ position:'relative', display:'flex', alignItems:'center' }}>
-                        <span className="material-symbols-outlined" style={{ position:'absolute', left:12, fontSize:18, color: errors.email ? '#ba1a1a' : '#74777d', pointerEvents:'none' }}>mail</span>
+                        <Mail size={18} color={errors.email ? '#ba1a1a' : '#74777d'} aria-hidden="true" style={{ position:'absolute', left:12, pointerEvents:'none' }} />
                         <input
                           id="ps-email"
                           type="email"
                           placeholder="name@organization.org"
                           value={email}
+                          aria-invalid={Boolean(errors.email)}
+                          aria-describedby={errors.email ? 'ps-email-error' : undefined}
                           required
                           disabled={isSubmitting}
                           onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: undefined, form: undefined })); }}
@@ -652,7 +699,7 @@ export default function RegisterPage() {
                           onFocus={e => { if (!errors.email) { e.target.style.borderColor='rgba(48,67,85,0.4)'; e.target.style.background='#ffffff'; e.target.style.boxShadow='0 0 0 2px rgba(48,67,85,0.12)'; } }}
                           onBlur={e => { if (!errors.email) { e.target.style.borderColor='transparent'; e.target.style.background='#f5f3f4'; e.target.style.boxShadow='none'; } }}
                         />
-                        <span className="material-symbols-outlined ps-val-icon" style={{ position:'absolute', right:12, fontSize:18, color:'#388E3C', opacity: emailValid && !errors.email ? 1 : 0, transform: emailValid && !errors.email ? 'scale(1)' : 'scale(0.5)' }}>check_circle</span>
+                        <CircleCheck className="ps-val-icon" size={18} color="#388E3C" aria-hidden="true" style={{ position:'absolute', right:12, opacity: emailValid && !errors.email ? 1 : 0, transform: emailValid && !errors.email ? 'scale(1)' : 'scale(0.5)' }} />
                         <div className="ps-focus-line"/>
                       </div>
                     </div>
@@ -664,11 +711,11 @@ export default function RegisterPage() {
                         <span style={{ fontSize:11, color:'#64707A' }}>Min. 8 characters</span>
                       </div>
                       <div className="ps-input-wrapper" style={{ position:'relative', display:'flex', alignItems:'center' }}>
-                        <span className="material-symbols-outlined" style={{ position:'absolute', left:12, fontSize:18, color:'#74777d', pointerEvents:'none' }}>lock</span>
+                        <LockKeyhole size={18} color="#74777d" aria-hidden="true" style={{ position:'absolute', left:12, pointerEvents:'none' }} />
                         <input
                           id="ps-password"
                           type={passwordVisible ? 'text' : 'password'}
-                          placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                          placeholder="********"
                           value={password}
                           required
                           disabled={isSubmitting}
@@ -692,11 +739,11 @@ export default function RegisterPage() {
                           onClick={() => { setPasswordVisible(v => !v); setToggledPass(t => !t); }}
                           style={{ position:'absolute', right:10, background:'none', border:'none', cursor:'pointer', color:'#74777d', display:'flex', alignItems:'center', padding:0 }}
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize:19 }}>{passwordVisible ? 'visibility_off' : 'visibility'}</span>
+                          {passwordVisible ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
                         </button>
                         <div className="ps-focus-line"/>
                       </div>
-                      {errors.password && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:3, display:'flex', alignItems:'center', gap:4 }}><span className="material-symbols-outlined" style={{fontSize:13}}>error</span>{errors.password}</p>}
+                      {errors.password && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:3, display:'flex', alignItems:'center', gap:4 }}><AlertCircle size={13} aria-hidden="true" />{errors.password}</p>}
                     </div>
                   </div>
 
@@ -715,11 +762,10 @@ export default function RegisterPage() {
                         I agree to PoshanSetu's{' '}
                         <a href="#" style={{ color:'#1F2933', textDecoration:'underline', fontWeight:500 }}>Terms of Service</a>{' '}
                         and{' '}
-                        <a href="#" style={{ color:'#1F2933', textDecoration:'underline', fontWeight:500 }}>Privacy Policy</a>.{' '}
-                        I understand that PoshanSetu is a non-custodial coordination layer and does not hold cash reserves.
+                        <a href="#" style={{ color:'#1F2933', textDecoration:'underline', fontWeight:500 }}>Privacy Policy</a>.
                       </span>
                     </label>
-                    {errors.terms && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:4, paddingLeft:28, display:'flex', alignItems:'center', gap:4 }}><span className="material-symbols-outlined" style={{fontSize:13}}>error</span>{errors.terms}</p>}
+                    {errors.terms && <p style={{ fontSize:11, color:'#ba1a1a', marginTop:4, paddingLeft:28, display:'flex', alignItems:'center', gap:4 }}><AlertCircle size={13} aria-hidden="true" />{errors.terms}</p>}
                   </div>
 
                   {/* Submitting progress */}
@@ -728,8 +774,8 @@ export default function RegisterPage() {
                       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:12, color:'#64707A', marginBottom:8 }}>
                         <span style={{ display:'flex', alignItems:'center', gap:6, fontWeight:600, color:'#1F2933' }}>
                           {submitDone
-                            ? <span className="material-symbols-outlined" style={{ fontSize:16, color:'#388E3C' }}>verified</span>
-                            : <span className="material-symbols-outlined ps-spin" style={{ fontSize:16, color:'#304355' }}>autorenew</span>
+                            ? <BadgeCheck size={16} color="#388E3C" aria-hidden="true" />
+                            : <LoaderCircle className="ps-spin" size={16} color="#304355" aria-hidden="true" />
                           }
                           {submitStageLabel || 'Verifying details...'}
                         </span>
@@ -761,8 +807,8 @@ export default function RegisterPage() {
                     >
                       <span>{submitDone ? 'Success!' : isSubmitting ? 'Creating profile...' : 'Create Account'}</span>
                       {isSubmitting && !submitDone
-                        ? <span className="material-symbols-outlined ps-spin" style={{ fontSize:18 }}>progress_activity</span>
-                        : <span className="material-symbols-outlined" style={{ fontSize:18 }}>arrow_forward</span>
+                        ? <LoaderCircle className="ps-spin" size={18} aria-hidden="true" />
+                        : <ArrowRight size={18} aria-hidden="true" />
                       }
                     </button>
                   </div>
@@ -781,23 +827,23 @@ export default function RegisterPage() {
             </div>
 
             {/* Bottom civic badge bar */}
-            <div className="ps-s1" style={{ marginTop:12, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:14, color:'#64707A', fontSize:12 }}>
+            <div className="ps-s1 ps-security-badges" style={{ marginTop:30, display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:14, color:'#64707A', fontSize:12 }}>
               {[
-                { icon:'lock_clock', text:'256-Bit Encrypted Data Transits' },
-                { icon:'shield_person', text:'Aadhaar/PAN verification for nodal coordinators' },
-                { icon:'public', text:'Maharashtra Nutrition Registry v2.4' },
+                { icon:LockKeyhole, text:'Email and password account access' },
+                { icon:ShieldCheck, text:'Separate roles for donors and requesters' },
+                { icon:Globe, text:'Maharashtra-focused food coordination' },
               ].map((item, i) => (
                 <React.Fragment key={item.icon}>
                   {i > 0 && <span style={{ color:'#c3c7cc', display:'none' }} className="sm-dot">â€¢</span>}
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize:18, color:'#304355' }}>{item.icon}</span>
+                    <item.icon size={18} color="#304355" aria-hidden="true" />
                     <span>{item.text}</span>
                   </div>
                 </React.Fragment>
               ))}
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </>
   );
