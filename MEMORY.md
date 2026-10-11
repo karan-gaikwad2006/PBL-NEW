@@ -8,6 +8,25 @@ Update this file after each major milestone, structural change, or resolved bug.
 **Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
 **Current Task:** Admin Dashboard visual & layout refactor to Stitch design reference.
 
+### 2026-10-11 — Brand logo and favicon refresh
+- Replaced the site navbar brand image with a custom SVG logo matching the provided PoshanSetu mark and text treatment.
+- Updated the browser favicon to a matching square emblem SVG so the browser tab reflects the new identity.
+- Verified the client still builds successfully via `npm --prefix client run build`.
+
+### 2026-10-11 — Navbar logo sizing and alignment
+- Moved navbar logo scaling to a visual transform (`scale(125%)`) inside a fixed-width slot, so changing the scale does not resize the space reserved for the navigation links.
+- Vertically centered the logo in the navbar and verified the client build.
+- Reduced the responsive logo slot heights slightly (64px mobile, 72px small screens, 80px desktop) to trim navbar height while keeping the logo centered.
+- Replaced flex-based logo centering with editable `top` and `left` inline position values, preserving vertical alignment while making the logo placement straightforward to tune manually.
+- Added a single `NAVBAR_HEIGHT` value in Navbar.jsx that controls the navbar content height and logo positioning slot together.
+- Fixed the logo container height to reference the navbar height CSS variable, keeping its containing block sized after navbar height became configurable; confirmed the image loads and is visible in the browser.
+- Refreshed navbar colors to a soft botanical off-white with forest-green text and brighter green active states/buttons, coordinated with the supplied green-and-yellow logo. Client build and diagnostics passed.
+- Darkened desktop nav-link colors to a deeper green drawn from the navbar background palette for better contrast and visual cohesion.
+- Standardized nav links to one font weight on every route; active/hover state now uses color and an underline that does not change the link's layout.
+- Moved the Manrope stylesheet from Login/Register route components to the shared HTML head so the navbar font is loaded consistently before and after navigating to auth routes.
+- Removed underline transition when active routes change; retained the smooth underline transition for hover only.
+- Fixed footer brand image rendering by switching its nonexistent `/logo.svg` path to the existing bundled `src/assets/logo.png` asset.
+
 ### 2026-10-08 — Admin Dashboard Compact Cards & Clean UI Spacing Polish
 - Compact Top 8 Stats: updated `StatCard` to use compact padding (`p-3 sm:p-3.5`), `rounded-xl`, smaller typography (`text-xl sm:text-2xl`), concise icon badges (`w-7 h-7`), and consolidated them into a unified responsive grid (`grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3`) to reduce both horizontal and vertical gap between cards.
 - Reduced Horizontal Spacing Across the Page: tightened grid gaps across all sections from `gap-6` (24px) down to `gap-3.5 sm:gap-4` (14-16px) for the District Map vs Telemetry side-by-side workspace and Institution Queue vs Review Signals two-column section.

@@ -15,9 +15,9 @@ export default function Footer() {
           <Link to="/" className="inline-block hover:opacity-90 transition">
             <div className="bg-white/95 backdrop-blur-xs rounded-xl px-4 py-2.5 shadow-xs inline-block">
               <img 
-                src={logo} 
-                alt="PoshanSetu — Bridge of Nutrition • Community Care" 
-                className="h-20 sm:h-24 md:h-28 w-auto object-contain" 
+                src={logo}
+                alt="PoshanSetu — Bridge of Nutrition • Community Care"
+                className="h-20 sm:h-24 md:h-28 w-auto object-contain"
               />
             </div>
           </Link>
