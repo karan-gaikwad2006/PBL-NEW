@@ -1,8 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 
 export default function Footer() {
+  const { pathname } = useLocation();
+
+  if (pathname === '/login' || pathname === '/register' || pathname === '/create-account') return null;
+
   return (
     <footer className="bg-[#304355] text-white mt-auto">
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-12 w-full grid grid-cols-1 md:grid-cols-4 gap-8 text-slate-200">
