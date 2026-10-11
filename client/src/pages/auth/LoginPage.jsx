@@ -100,7 +100,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <style>{`
         .ps-login-root * { box-sizing: border-box; }
         .ps-login-root { font-family: 'Manrope', sans-serif; }
