@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
-import { requirementService, institutionService, adminFraudService, adminStatsService } from '../../services/api';
+import { requirementService, institutionService, adminFraudService, adminStatsService, adminTrustService } from '../../services/api';
 import PageContainer from '../../components/layout/PageContainer';
 import MaharashtraDistrictMap from '../../components/domain/MaharashtraDistrictMap';
 import {
@@ -110,6 +110,8 @@ export default function AdminDashboard() {
   const [fraudLoading, setFraudLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [reportSummary, setReportSummary] = useState(null);
+  const [reportSummaryError, setReportSummaryError] = useState('');
 
   // New state for Maharashtra Map telemetry
   const [activeRequirements, setActiveRequirements] = useState([]);
@@ -133,12 +135,13 @@ export default function AdminDashboard() {
 
       try {
         const token = await firebaseUser.getIdToken();
-        const [reqRes, instRes, fraudRes, statsRes, activeReqsRes] = await Promise.allSettled([
+        const [reqRes, instRes, fraudRes, statsRes, activeReqsRes, reportsRes] = await Promise.allSettled([
           requirementService.adminGetAll(token, { status: 'under_review', limit: 20 }),
           institutionService.adminGetAll(token, { limit: 20 }),
           adminFraudService.getFraudSignals(token, { status: 'pending', limit: 20 }),
           adminStatsService.getDashboardStats(token),
           requirementService.getAll({ limit: 100 }),
+          adminTrustService.getReportSummary(token),
         ]);
 
         if (!cancelled && reqRes.status === 'fulfilled') {
@@ -162,6 +165,13 @@ export default function AdminDashboard() {
             ? activeReqsRes.value.requirements
             : [];
           setActiveRequirements(reqs);
+        }
+        if (!cancelled && reportsRes.status === 'fulfilled') {
+          setReportSummary(reportsRes.value.data || null);
+          setReportSummaryError('');
+        } else if (!cancelled) {
+          setReportSummaryError('Unable to load report counts.');
+          console.error('[AdminDashboard] Failed to load report summary:', reportsRes.reason);
         }
       } catch (err) {
         console.error('[AdminDashboard] Failed to load dashboard data:', err.message);
@@ -458,6 +468,34 @@ export default function AdminDashboard() {
             color="text-purple-500"
           />
         </div>
+
+        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs md:grid-cols-2">
+          <div>
+            <h2 className="mb-3 text-sm font-bold text-slate-900">Community report counts by reason</h2>
+            {reportSummary?.byReason?.length ? (
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                {reportSummary.byReason.map((entry) => (
+                  <li key={entry.reason} className="flex justify-between gap-3">
+                    <span>{entry.reason.replaceAll('_', ' ')}</span><strong>{entry.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-xs text-slate-500">{reportSummaryError || 'No report counts available.'}</p>}
+          </div>
+          <div>
+            <h2 className="mb-3 text-sm font-bold text-slate-900">Report counts by requirement</h2>
+            {reportSummary?.byRequirement?.length ? (
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                {reportSummary.byRequirement.map((entry) => (
+                  <li key={entry.requirementId} className="flex justify-between gap-3">
+                    <span className="font-mono">{entry.requirementId}</span><strong>{entry.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-xs text-slate-500">{reportSummaryError || 'No report counts available.'}</p>}
+            <p className="mt-2 text-[11px] text-slate-500">Read-only summary; reporter identities and report actions are not shown.</p>
+          </div>
+        </section>
 
         {/* FUTURE SECTION: Platform Trend chart will be rendered here once daily aggregation telemetry is ready */}
 
