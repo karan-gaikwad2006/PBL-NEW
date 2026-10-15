@@ -18,7 +18,8 @@ import {
   User,
   UserRound,
   FileText,
-  ArrowRight,
+  Bell,
+  Building2,
   Loader2,
 } from 'lucide-react';
 
@@ -53,7 +54,7 @@ function computeStats(reqs) {
 function StatusChip({ status }) {
   const s = STATUS_CONFIG[status] || STATUS_CONFIG.under_review;
   return (
-    <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full border ${s.bg} ${s.text} ${s.border}`}>
+    <span className={`inline-flex items-center text-[11px] font-bold px-2.5 py-1 rounded-full border ${s.bg} ${s.text} ${s.border}`}>
       {s.label}
     </span>
   );
@@ -61,12 +62,14 @@ function StatusChip({ status }) {
 
 function StatCard({ icon: Icon, value, label, color = 'text-[#304355]' }) {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-[#304355]/10 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-3">
-        <Icon className={`w-5 h-5 ${color}`} />
-        <span className="text-3xl font-extrabold text-[#304355]">{value}</span>
+    <div className="flex h-[108px] flex-col justify-between rounded-2xl border border-[#E8E6E8] bg-white p-4 shadow-[0_2px_10px_rgba(25,45,62,0.04)] transition-shadow hover:shadow-md">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-xs font-semibold text-[#64707A]">{label}</span>
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F4F5F6] ${color}`}>
+          <Icon className="h-4 w-4" />
+        </span>
       </div>
-      <p className="text-xs font-semibold text-[#64707A] uppercase tracking-wider">{label}</p>
+      <span className="text-[27px] font-bold leading-none tracking-tight text-[#1F2933]">{value}</span>
     </div>
   );
 }
@@ -78,61 +81,80 @@ export function RequirementCard({ req }) {
   const location = [req.city, req.district].filter(Boolean).join(', ');
 
   return (
-    <div className="bg-white rounded-xl border border-[#304355]/10 p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex flex-wrap items-start gap-2 mb-2">
-        <StatusChip status={req.status} />
-        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${URGENCY_CONFIG[req.urgency]?.color}`}>
-          <span className={`w-2 h-2 rounded-full ${URGENCY_CONFIG[req.urgency]?.dot}`} />
-          {URGENCY_CONFIG[req.urgency]?.label}
-        </span>
-      </div>
-      <h3 className="font-bold text-[#304355] text-base mb-1">{req.title}</h3>
-      <div className="flex items-center gap-1.5 text-xs text-[#64707A] mb-4">
-        <MapPin className="w-3.5 h-3.5 shrink-0" />
-        <span>{location}</span>
-        {req.beneficiaryCount && (
-          <>
-            <span className="mx-1">•</span>
-            <span>{req.beneficiaryCount} beneficiaries</span>
-          </>
-        )}
-      </div>
-
-      {/* Progress */}
-      {req.status !== 'under_review' && totalItems > 0 && (
-        <div className="mb-4">
-          <div className="flex justify-between text-xs mb-1">
-            <span className="text-[#64707A]">Progress</span>
-            <span className="font-semibold text-[#304355]">{pct}% fulfilled</span>
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full transition-all ${req.status === 'fulfilled' ? 'bg-purple-500' : 'bg-[#304355]'}`}
-              style={{ width: `${pct}%` }}
-            />
-          </div>
+    <article className="overflow-hidden rounded-2xl border border-[#E8E6E8] bg-white shadow-[0_2px_10px_rgba(25,45,62,0.04)] transition-shadow hover:shadow-md">
+      <div className="p-4 sm:p-5">
+        <div className="mb-2.5 flex flex-wrap items-center gap-2">
+          <StatusChip status={req.status} />
+          <span className={`inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold ${URGENCY_CONFIG[req.urgency]?.color}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${URGENCY_CONFIG[req.urgency]?.dot}`} />
+            {URGENCY_CONFIG[req.urgency]?.label} urgency
+          </span>
         </div>
-      )}
 
-      <div className="flex items-center justify-between text-xs text-[#64707A]">
-        <div className="flex items-center gap-4">
-          {req.expiresAt && (
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Expires {new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold leading-snug tracking-tight text-[#192D3E]">{req.title}</h3>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[#64707A]">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                {location}
+              </span>
+              {req.beneficiaryCount && (
+                <span className="inline-flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 shrink-0" />
+                  {req.beneficiaryCount} beneficiaries
+                </span>
+              )}
+              {req.expiresAt && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 shrink-0" />
+                  Expires {new Date(req.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
+          </div>
           <Link
             to={`/requester/requirements/${req.id}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#304355] hover:underline"
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#192D3E] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#263F54] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#192D3E] focus-visible:ring-offset-2"
           >
-            Manage <ChevronRight className="w-3.5 h-3.5" />
+            Manage requirement
+            <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
+
+        {req.items.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {req.items.map((item) => (
+              <span key={item.id || item.name} className="rounded-lg border border-[#E8E6E8] bg-[#FAF9F8] px-3 py-1.5 text-xs font-medium text-[#465360]">
+                {item.name} <span className="text-[#7A838C]">· {item.quantityRemaining} {item.unit} needed</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {req.status !== 'under_review' && totalItems > 0 && (
+          <div className="mt-4 border-t border-[#F0EDEF] pt-3">
+            <div className="mb-2 flex items-center justify-between text-xs">
+              <span className="font-medium text-[#64707A]">Overall progress</span>
+              <span className="font-bold text-[#304355]">{pct}% fulfilled</span>
+            </div>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-[#EAE8EA]"
+              role="progressbar"
+              aria-label="Requirement fulfillment progress"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className={`h-full rounded-full transition-all ${req.status === 'fulfilled' ? 'bg-purple-500' : 'bg-emerald-500'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -187,66 +209,102 @@ export default function RequesterDashboard() {
   const isInstitution = profile?.role === 'institution';
 
   return (
-    <PageContainer>
-      <div className="max-w-[1280px] mx-auto px-6 md:px-10 py-10">
-        {/* Header */}
-        <div className="mb-8 flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-[#304355] mb-1 tracking-tight">
-              {isInstitution ? 'Ashram Shala Dashboard' : 'My Requirements'}
-            </h1>
-            <p className="text-sm text-[#64707A]">
-              {isInstitution
-                ? 'Manage your institution’s food requirements and respond to donor offers.'
-                : 'Manage your submitted requirements and respond to donor offers.'}
-            </p>
-          </div>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#304355]/10 bg-white p-4">
-            <div>
-              <TrustBadge tiers={profile?.trust?.tiers} />
+    <PageContainer className="!max-w-none !px-0 !py-0">
+      <div className="mx-auto max-w-[1280px] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+        <header className="mb-5 rounded-2xl border border-[#E8E6E8] bg-white p-4 shadow-[0_2px_10px_rgba(25,45,62,0.04)] sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#192D3E] text-white">
+                  <ClipboardList className="h-4 w-4" />
+                </span>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#64707A]">
+                  Requester workspace
+                </p>
+                <TrustBadge tiers={profile?.trust?.tiers} />
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#192D3E]">
+                {isInstitution ? 'Ashram Shala Dashboard' : 'My Requirements'}
+              </h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-[#64707A]">
+                {isInstitution
+                  ? 'Manage your institution’s food requirements and respond to donor offers.'
+                  : 'Manage your submitted requirements and respond to donor offers.'}
+              </p>
+              <p className="mt-1 max-w-2xl text-xs text-[#64707A]">
+                New requirements start as Under Review and appear to donors after admin approval.
+              </p>
+              {profile?.full_name && (
+                <p className="mt-1 text-xs text-[#64707A]">
+                  Signed in as <span className="font-semibold text-[#465360]">{profile.full_name}</span>
+                  {profile.role && ` · ${profile.role}`}
+                </p>
+              )}
               {profile?.postingLimits && (
-                <p className="mt-2 text-xs text-[#64707A]">
+                <p className="mt-2 inline-flex rounded-lg bg-[#F5F7F8] px-3 py-1.5 text-xs text-[#64707A]">
                   Requirement posting limit: {profile.postingLimits.remaining} of {profile.postingLimits.daily} remaining in the current 24-hour window.
                 </p>
               )}
             </div>
-            <Link
-              to="/profile"
-              className="group inline-flex items-center gap-2.5 rounded-xl border border-[#304355]/15 bg-white px-3 py-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#304355]/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#304355]"
-            >
-              <span className="rounded-lg bg-[#304355]/5 p-2 text-[#304355] transition group-hover:bg-[#304355]/10">
-                <UserRound className="h-4 w-4" />
-              </span>
-              <span>
-                <span className="block text-sm font-bold text-[#304355]">My profile</span>
-                <span className="block text-xs text-[#64707A]">Documents & account</span>
-              </span>
-              <FileText className="h-4 w-4 text-[#64707A]" />
-            </Link>
+            <div className="flex flex-wrap gap-2 lg:max-w-[520px] lg:justify-end">
+              <Link
+                to="/submit-need"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-[#192D3E] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#263F54] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#192D3E] focus-visible:ring-offset-2"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Submit new requirement
+              </Link>
+              <Link
+                to="/profile"
+                className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#D8DDE1] bg-white px-3 py-2 text-xs font-semibold text-[#304355] transition hover:border-[#304355]/35 hover:bg-[#F8F9FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#304355] focus-visible:ring-offset-2"
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                My profile & documents
+                <FileText className="h-3 w-3 text-[#64707A]" />
+              </Link>
+              <Link
+                to="/notifications"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#D8DDE1] bg-white px-3 py-2 text-xs font-semibold text-[#304355] transition hover:border-[#304355]/35 hover:bg-[#F8F9FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#304355] focus-visible:ring-offset-2"
+              >
+                <Bell className="h-3.5 w-3.5" />
+                Notifications
+              </Link>
+              {isInstitution && (
+                <Link
+                  to="/institution-profile"
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#D8DDE1] bg-white px-3 py-2 text-xs font-semibold text-[#304355] transition hover:border-[#304355]/35 hover:bg-[#F8F9FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#304355] focus-visible:ring-offset-2"
+                >
+                  <Building2 className="h-3.5 w-3.5" />
+                  Institution profile
+                </Link>
+              )}
+            </div>
           </div>
-          <Link
-            to="/submit-need"
-            className="inline-flex items-center gap-2 bg-[#304355] text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-[#243342] transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Submit New Requirement
-          </Link>
-        </div>
+        </header>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
+        <section aria-label="Requirement summary" className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <StatCard icon={ClipboardList} value={stats.totalSubmitted} label="Total Submitted" />
           <StatCard icon={CheckCircle2} value={stats.activeRequirements} label="Active" color="text-emerald-500" />
           <StatCard icon={RefreshCw} value={stats.partialCount} label="Partial" color="text-blue-500" />
           <StatCard icon={TrendingUp} value={stats.fulfilled} label="Fulfilled" color="text-purple-500" />
           <StatCard icon={Clock} value={stats.expired} label="Expired" color="text-slate-400" />
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Column */}
-          <div className="lg:col-span-2 space-y-6">
+        <section className="min-w-0 space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-[#192D3E]">Your requirements</h2>
+                <p className="mt-1 text-xs text-[#64707A]">
+                  Track progress, review status, and manage each request.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#F1F3F4] px-3 py-1 text-xs font-semibold text-[#53616E]">
+                {filteredReqs.length} shown
+              </span>
+            </div>
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-px">
+            <div role="group" aria-label="Filter requirements" className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
               {[
                 { id: 'all', label: 'All' },
                 { id: 'active', label: 'Active' },
@@ -257,10 +315,11 @@ export default function RequesterDashboard() {
                 <button
                   key={tab.id}
                   onClick={() => setFilter(tab.id)}
-                  className={`px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors shrink-0 ${
+                  aria-pressed={filter === tab.id}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                     filter === tab.id
-                      ? 'border-[#304355] text-[#304355]'
-                      : 'border-transparent text-[#64707A] hover:text-[#304355]'
+                      ? 'bg-[#192D3E] text-white shadow-sm'
+                      : 'border border-[#E2E5E7] bg-white text-[#64707A] hover:border-[#C8CED3] hover:text-[#304355]'
                   }`}
                 >
                   {tab.label}
@@ -270,78 +329,41 @@ export default function RequesterDashboard() {
 
             {/* Requirements List */}
             {loading ? (
-              <div className="flex items-center justify-center py-16 gap-3 text-[#64707A]">
-                <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="flex items-center justify-center gap-3 rounded-2xl border border-[#E8E6E8] bg-white py-16 text-[#64707A]">
+                <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm font-medium">Loading your requirements…</span>
               </div>
             ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+                <AlertCircle className="mx-auto mb-2 h-8 w-8 text-red-400" />
                 <p className="font-semibold text-red-700 text-sm">{error}</p>
               </div>
             ) : filteredReqs.length === 0 ? (
-              <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center">
-                <ClipboardList className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                <p className="font-semibold text-[#64707A] mb-1">
+              <div className="rounded-2xl border border-dashed border-[#CCD2D7] bg-white p-10 text-center">
+                <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F2F4F5]">
+                  <ClipboardList className="h-6 w-6 text-[#89939C]" />
+                </span>
+                <p className="mb-1 font-semibold text-[#304355]">
                   {filter === 'all' ? 'No requirements yet' : 'No requirements with this status'}
                 </p>
+                <p className="mb-4 text-sm text-[#64707A]">
+                  {filter === 'all' ? 'Submit a requirement to start receiving relevant food support.' : 'Try another status filter to find your requirements.'}
+                </p>
                 {filter === 'all' && (
-                  <Link to="/submit-need" className="text-sm font-semibold text-[#304355] hover:underline">
-                    Submit your first requirement →
+                  <Link to="/submit-need" className="inline-flex items-center gap-2 rounded-xl bg-[#192D3E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#263F54]">
+                    <Plus className="h-4 w-4" />
+                    Submit your first requirement
                   </Link>
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredReqs.map((req) => (
                   <RequirementCard key={req.id} req={req} />
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {/* Info Panel */}
-            <div className="bg-white rounded-xl border border-[#304355]/10 shadow-sm p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-[#304355]/10 flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#304355]" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-[#1F2933]">{profile?.full_name || 'My Account'}</p>
-                  <p className="text-xs text-[#64707A] capitalize">{profile?.role || 'Requester'}</p>
-                </div>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  <strong>Status note:</strong> New requirements start as <em>Under Review</em>. An admin must approve them before they appear publicly for donors.
-                </p>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl border border-[#304355]/10 shadow-sm p-4">
-              <h3 className="font-bold text-sm text-[#304355] mb-3">Quick Actions</h3>
-              <div className="space-y-1">
-                {[
-                  { label: 'Submit New Requirement', to: '/submit-need' },
-                  { label: 'View Notifications', to: '/notifications' },
-                  ...(isInstitution ? [{ label: 'Institution Profile', to: '/institution-profile' }] : []),
-                ].map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-medium text-[#1F2933] hover:bg-[#FAF8F6] transition-colors group"
-                  >
-                    {link.label}
-                    <ArrowRight className="w-3.5 h-3.5 text-[#64707A] group-hover:text-[#304355]" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </PageContainer>
   );

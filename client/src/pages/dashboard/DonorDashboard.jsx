@@ -320,6 +320,7 @@ function SupportedInstitutionsAndActivityCard({ dynamicInstitutions, offers }) {
 
 // ─── Dynamic Live Support Card Component (Preserving Full Business Logic) ─────
 function DynamicSupportCard({ support }) {
+  const [offersOpen, setOffersOpen] = useState(false);
   const isPartial = support.isPartial;
   const donorOffers = support.donorOffers || [];
   const pendingOffers = donorOffers.filter((offer) => offer.status === 'pending');
@@ -327,9 +328,6 @@ function DynamicSupportCard({ support }) {
   const disputed = donorOffers.some((offer) => offer.status === 'disputed');
   const handedOff = donorOffers.some((offer) => offer.status === 'handed_off');
   const active = donorOffers.some((offer) => ['accepted', 'in_progress'].includes(offer.status));
-  const supportDetailsPath = (pendingOffers[0] || donorOffers[0])?.id
-    ? `/donor/supports/${(pendingOffers[0] || donorOffers[0]).id}`
-    : null;
 
   const items = Array.isArray(support.items) ? support.items : [];
 
@@ -419,12 +417,12 @@ function DynamicSupportCard({ support }) {
                       <span className="font-semibold text-[#1F2933]">
                         {itm.name} ({required} {itm.unit} requirement)
                       </span>
-                      <span className="font-bold text-[#16A34A]">Your Support: {yourSupport} {itm.unit}</span>
+                      <span className="font-bold text-[#16A34A]">Your Offers: {yourSupport} {itm.unit}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-[9.5px] text-[#64707A] mb-1">
                       <span>Remaining needed: {remaining} {itm.unit}</span>
-                      <span>{percent}% allocated</span>
+                      <span>{percent}% offered</span>
                     </div>
 
                     <div className="w-full bg-[#EAE8EA] rounded-full h-1.5 overflow-hidden flex">
@@ -441,22 +439,55 @@ function DynamicSupportCard({ support }) {
         <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2 shrink-0">
           <Link
             to={`/requirements/${support.requirementId}`}
-            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-white border border-[#D8DDE1] text-[#304355] text-[11px] font-semibold hover:bg-[#F5F3F4] transition-colors"
+            className="inline-flex min-h-9 min-w-40 items-center justify-center gap-1.5 rounded-lg border border-[#D8DDE1] bg-white px-3.5 py-2 text-[11px] font-semibold text-[#304355] transition-colors hover:bg-[#F5F3F4]"
           >
             View Requirement
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
 
-          {supportDetailsPath && (
-            <Link
-              to={supportDetailsPath}
-              className="px-3.5 py-2 rounded-lg bg-[#C96A00] text-white text-[11px] font-semibold hover:bg-[#A85800] transition-colors shadow-xs"
+          {donorOffers.some((offer) => offer.id) && (
+            <button
+              type="button"
+              onClick={() => setOffersOpen((open) => !open)}
+              aria-expanded={offersOpen}
+              aria-controls={`support-offers-${support.requirementId}`}
+              className="inline-flex min-h-9 min-w-40 items-center justify-center gap-1.5 rounded-lg bg-[#C96A00] px-3.5 py-2 text-[11px] font-semibold text-white shadow-xs transition-colors hover:bg-[#A85800]"
             >
-              Open offer details
-            </Link>
+              {offersOpen ? 'Close offers' : `Manage offers (${donorOffers.filter((offer) => offer.id).length})`}
+            </button>
           )}
         </div>
       </div>
+      {offersOpen && (
+        <div
+          id={`support-offers-${support.requirementId}`}
+          className="mt-4 border-t border-[#EAE6E8] pt-4"
+        >
+          <div className="max-h-48 divide-y divide-[#EAE6E8] overflow-y-auto rounded-lg border border-[#EAE6E8] bg-white">
+            {donorOffers.filter((offer) => offer.id).map((offer) => (
+              <div
+                key={offer.id}
+                className="flex min-h-12 items-center gap-3 px-3 py-2"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-[#1F2933]">
+                    {offer.item_name} · {offer.quantity_offered} {offer.unit}
+                  </p>
+                  <p className="mt-0.5 text-[10px] capitalize text-[#64707A]">
+                    {offer.status.replace(/_/g, ' ')}
+                  </p>
+                </div>
+                <Link
+                  to={`/donor/supports/${offer.id}`}
+                  className="shrink-0 text-xs font-semibold text-[#C96A00] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C96A00] focus-visible:ring-offset-2"
+                >
+                  Manage <ArrowRight className="ml-0.5 inline h-3.5 w-3.5" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

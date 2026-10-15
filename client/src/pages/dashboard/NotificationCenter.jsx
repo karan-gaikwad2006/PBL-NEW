@@ -23,6 +23,7 @@ const NOTIFICATION_ICONS = {
   requirement_approved: { icon: CheckCircle2, bg: 'bg-[#304355]/10', color: 'text-[#304355]', category: 'Requirements' },
   requirement_rejected: { icon: AlertCircle, bg: 'bg-red-100', color: 'text-red-600', category: 'Requirements' },
   offer_received: { icon: Package, bg: 'bg-[#304355]/10', color: 'text-[#304355]', category: 'Offers' },
+  handoff_recorded: { icon: CheckCircle2, bg: 'bg-amber-100', color: 'text-amber-600', category: 'Supports' },
   donor_confirmed: { icon: Clock, bg: 'bg-amber-100', color: 'text-amber-600', category: 'Supports' },
   requester_confirmed: { icon: CheckCircle2, bg: 'bg-[#304355]/10', color: 'text-[#304355]', category: 'Supports' },
   requirement_fulfilled: { icon: CheckCircle2, bg: 'bg-emerald-100', color: 'text-emerald-600', category: 'Requirements' },
@@ -279,4 +280,3 @@ export default function NotificationCenter() {
     </PageContainer>
   );
 }
-

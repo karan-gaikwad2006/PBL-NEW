@@ -2,6 +2,31 @@
 
 Update this file after each major milestone, structural change, or resolved bug.
 
+### 2026-10-15 — Requester handoff confirmation notification
+- Diagnosed the Chandrapur requirement state: Rice was fully dual-confirmed, while the 200 kg Milk Powder offer was `handed_off` with neither donor nor requester confirmation recorded. Quantity remaining is intentionally unchanged until both parties confirm.
+- Updated the handoff flow to notify the requester when a donor records delivery; the notification links directly to the offer confirmation page and is categorized as a support notification. The donor's confirmation remains required, and quantity/status updates still occur only after both confirmations.
+- Verification: backend test suite passed (119/119), backend syntax build passed, client production build passed, editor diagnostics found no errors, and `git diff --check` passed. Targeted lint reports two existing unused imports in `NotificationCenter.jsx` (`ShieldCheck`, `MessageSquare`).
+
+### 2026-10-15 — Multi-item donor offer details
+- Fixed donor support cards so each offer gets its own details link instead of routing every item to the first offer in the requirement. Links identify the food item, offered quantity, and offer status. Renamed the item summary labels to “Your Offers” and “% offered” because these include pledges not yet dual-confirmed.
+- Verification: targeted donor dashboard lint passed, client production build passed, editor diagnostics found no errors, and `git diff --check` passed.
+
+### 2026-10-15 — Donor offer selector UX refinement
+- Replaced the multiple per-item links on each donor support card with one “Manage offers” toggle. Expanding it shows each offered item, quantity, and status, with an individual manage action that opens the existing offer workflow for handoff or confirmation.
+- Verification: targeted donor dashboard lint and frontend production build passed; editor diagnostics reported no errors; `git diff --check` passed.
+
+### 2026-10-15 — Compact donor offer selector
+- Made the expanded offer selector a compact, capped-height scrollable list instead of separate large cards, so many items do not make the dashboard card excessively tall. Aligned “Manage offers” and “View Requirement” to the same minimum dimensions and centered button treatment.
+- Verification: targeted donor dashboard lint and client production build passed; editor diagnostics reported no errors; `git diff --check` passed.
+
+### 2026-10-15 — Requester dashboard visual refresh
+- Refreshed the requester dashboard presentation to align with the donor dashboard: clear workspace header and primary actions, consistent summary cards, accessible status filters, scannable requirement cards with existing item quantities/progress, and more organized account/quick-action panels. Existing data loading, filter states, routes, statistics, and actions were preserved.
+- Verification: targeted requester dashboard lint, client production build, editor diagnostics, and `git diff --check` passed.
+
+### 2026-10-15 — Compact requester dashboard layout
+- Tightened the requester dashboard's page gutters, header, summary cards, filter spacing, and requirement cards. Removed the tall right sidebar so requirements use the full content width, and moved its notification/institution actions and review-process guidance into the compact header without changing routes or behavior.
+- Verification: targeted requester dashboard lint, client production build, editor diagnostics, and `git diff --check` passed. Vite reports the existing large-chunk warning; visual browser verification was unavailable.
+
 ### 2026-10-14 — Backend process restored and verified
 - The backend process from the prior session was no longer running. Restarted the existing `npm --prefix server run dev` command; it initialized Firebase Admin and began listening on port 5000 without a crash.
 - Verified `/api/health` reports API up and database connected across six checks over 30 seconds. Backend syntax build and the full server test suite passed. No reproducible source crash was found, so no backend source code was changed; keep the development process running and capture its terminal output if the crash recurs.

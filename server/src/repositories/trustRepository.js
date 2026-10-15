@@ -230,7 +230,34 @@ async function markHandoff(offerId, donorId) {
       );
     }
     await client.query('COMMIT');
-    return rows[0] || null;
+    const handoff = rows[0] || null;
+
+    if (handoff) {
+      try {
+        const { rows: offerRows } = await query(
+          `SELECT r.requester_user_id, so.item_name, so.quantity_offered, so.unit
+           FROM support_offers so
+           JOIN requirements r ON r.id = so.requirement_id
+           WHERE so.id = $1`,
+          [offerId]
+        );
+        if (offerRows[0]) {
+          const notificationRepository = require('./notificationRepository');
+          const offer = offerRows[0];
+          await notificationRepository.createNotification(offer.requester_user_id, {
+            type: 'handoff_recorded',
+            title: 'Please Confirm Receipt',
+            message: `A donor marked ${offer.quantity_offered} ${offer.unit} of ${offer.item_name} as handed off. Confirm receipt only after you have received it.`,
+            relatedEntityType: 'offer',
+            relatedEntityId: offerId,
+          });
+        }
+      } catch (error) {
+        console.error('[Notification] Failed to notify requester about offer handoff', error.message);
+      }
+    }
+
+    return handoff;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
