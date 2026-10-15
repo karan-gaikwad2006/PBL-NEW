@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const app = require('./app');
 const { validateRequiredEnv, getEnv } = require('./config/env');
+const { startTrustJobs, stopTrustJobs } = require('./jobs/trustJobs');
 // Initialize Firebase Admin
 require('./config/firebaseAdmin');
 
@@ -28,6 +29,7 @@ function startup() {
     console.log(`  · DB Config'd : ${dbConfigured ? 'yes' : 'no'}`);
     console.log(`  · Health      : GET /api/health`);
     console.log(`  · API v1      : GET /api/v1`);
+    startTrustJobs();
   });
 
   server.on('error', (err) => {
@@ -42,6 +44,7 @@ function startup() {
 function shutdown(signal) {
   console.log(`[SHUTDOWN] ${signal} received — closing server`);
   if (server) {
+    stopTrustJobs();
     server.close(async () => {
       try {
         const { closePool } = require('./config/db');

@@ -12,6 +12,9 @@ export default function Step3Beneficiaries({ formData, updateData, onNext, onBac
   const validate = () => {
     if (!formData.beneficiary_count) return false;
     if (!formData.beneficiary_desc.trim()) return false;
+    if (!formData.beneficiary_name?.trim()) return false;
+    if (!formData.delivery_point?.trim()) return false;
+    if (formData.beneficiary_ack !== true) return false;
     return true;
   };
 
@@ -46,6 +49,35 @@ export default function Step3Beneficiaries({ formData, updateData, onNext, onBac
             helperText="Describe the specific demographic or group (e.g., age group, community type)."
             required
           />
+
+          <Input
+            label="Beneficiary Name"
+            name="beneficiary_name"
+            value={formData.beneficiary_name || ''}
+            onChange={handleChange}
+            placeholder="Name of the intended beneficiary or responsible contact"
+            required
+          />
+
+          <Input
+            label="Delivery Point"
+            name="delivery_point"
+            value={formData.delivery_point || ''}
+            onChange={handleChange}
+            placeholder="Where the food support will be handed over"
+            required
+          />
+
+          <label className="flex items-start gap-3 rounded-lg border border-[#304355]/15 bg-[#FAF8F6] p-4 text-sm text-[#304355]">
+            <input
+              type="checkbox"
+              checked={formData.beneficiary_ack === true}
+              onChange={(event) => updateData({ beneficiary_ack: event.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-[#304355]"
+              required
+            />
+            <span>This requirement is only for the beneficiary named above.</span>
+          </label>
 
           <div className="rounded-lg overflow-hidden border border-[#304355]/10 h-32 relative hidden md:block mt-6">
             <img 

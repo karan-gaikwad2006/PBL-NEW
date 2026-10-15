@@ -6,18 +6,15 @@ import AuthContext from '../../context/AuthContext';
 import { offerService } from '../../services/api';
 import { 
   CheckCircle2, 
-  XCircle, 
   Clock, 
   MapPin, 
   Calendar, 
   User, 
   Utensils,
   BarChart3, 
-  History, 
   Info,
   ArrowLeft,
   Check,
-  X,
   Loader2,
   AlertCircle
 } from 'lucide-react';
@@ -31,7 +28,6 @@ export default function ConfirmSupportCompletion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [notReceived, setNotReceived] = useState(false);
 
   useEffect(() => {
     if (!firebaseUser || !id) return;
@@ -74,16 +70,11 @@ export default function ConfirmSupportCompletion() {
       }
       
       setOffer(res.data);
-      setNotReceived(false);
     } catch (err) {
       setError(err.message || 'Failed to confirm action');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleNotReceived = () => {
-    setNotReceived(true);
   };
 
   if (loading) {
@@ -133,8 +124,6 @@ export default function ConfirmSupportCompletion() {
   const confirmedByRequester = offer.confirmedByRequester;
   const isFullyCompleted = offer.status === 'completed';
 
-  const needsDonorAction = isDonor && !confirmedByDonor;
-  const needsRequesterAction = isRequester && !confirmedByRequester;
   const actionDone = (isDonor && confirmedByDonor) || (isRequester && confirmedByRequester);
 
   return (
@@ -206,10 +195,10 @@ export default function ConfirmSupportCompletion() {
                     <CheckCircle2 className="w-4 h-4" />
                     Support Offer Fully Completed
                   </div>
-                ) : notReceived ? (
-                  <div className="bg-red-50 text-red-700 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border border-red-200">
-                    <XCircle className="w-4 h-4" />
-                    Awaiting Coordination / Review
+                ) : offer.status !== 'handed_off' ? (
+                  <div className="bg-slate-50 text-slate-700 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border border-slate-200">
+                    <Clock className="w-4 h-4" />
+                    Awaiting Handoff
                   </div>
                 ) : (
                   <div className="bg-amber-50 text-amber-800 px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border border-amber-200">
@@ -242,21 +231,15 @@ export default function ConfirmSupportCompletion() {
                 <div className={`bg-[#FAF8F6] relative z-10 p-5 rounded-xl border flex flex-col items-center text-center transition-all duration-300 ${
                   confirmedByRequester 
                     ? 'border-emerald-200' 
-                    : notReceived
-                    ? 'border-red-200'
                     : 'border-amber-200 shadow-[0_0_15px_rgba(245,124,0,0.08)]'
                 }`}>
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
                     confirmedByRequester 
                       ? 'bg-emerald-100 text-emerald-600' 
-                      : notReceived
-                      ? 'bg-red-100 text-red-600'
                       : 'bg-amber-100 text-amber-700'
                   }`}>
                     {confirmedByRequester ? (
                       <CheckCircle2 className="w-6 h-6" />
-                    ) : notReceived ? (
-                      <XCircle className="w-6 h-6" />
                     ) : (
                       <Clock className="w-6 h-6 animate-pulse" />
                     )}
@@ -265,14 +248,10 @@ export default function ConfirmSupportCompletion() {
                   <p className={`text-xs font-bold ${
                     confirmedByRequester 
                       ? 'text-emerald-600' 
-                      : notReceived
-                      ? 'text-red-600'
                       : 'text-amber-700'
                   }`}>
                     {confirmedByRequester 
                       ? '✓ Confirmed received' 
-                      : notReceived
-                      ? 'Reported as not yet received'
                       : 'Waiting for receipt confirmation'}
                   </p>
                 </div>
@@ -284,13 +263,17 @@ export default function ConfirmSupportCompletion() {
               <div className="max-w-md mx-auto space-y-2">
                 <Utensils className="w-10 h-10 text-[#304355] mx-auto mb-2" />
                 <h2 className="text-lg font-bold text-[#304355]">
-                  {isDonor 
+                  {offer.status !== 'handed_off'
+                    ? 'Confirmations open after the donor records the offline handoff.'
+                    : isDonor
                     ? `Have you delivered the ${offer.quantityOffered} ${offer.unit} of ${offer.item}?`
                     : `Did you receive the ${offer.quantityOffered} ${offer.unit} of ${offer.item} from ${offer.donorName}?`
                   }
                 </h2>
                 <p className="text-xs text-[#64707A]">
-                  {isDonor
+                  {offer.status !== 'handed_off'
+                    ? 'This keeps fulfillment dependent on both parties confirming an actual handoff.'
+                    : isDonor
                     ? "Confirming delivery lets the requester know the food is provided. The requester must then confirm receipt to finalize this support."
                     : "Please confirm receipt to finalize this support offer and update your requirement progress."
                   }
@@ -310,27 +293,10 @@ export default function ConfirmSupportCompletion() {
                     : "Thank you! You have confirmed the receipt of this support offer."
                   }
                 </div>
-              ) : notReceived ? (
-                <div className="space-y-4">
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-sm font-semibold max-w-md mx-auto">
-                    You indicated that the support has not yet been received.
-                  </div>
-                  <Button variant="outline" onClick={() => setNotReceived(false)}>
-                    Change status
-                  </Button>
-                </div>
-              ) : (
+              ) : offer.status !== 'handed_off' ? (
+                <p className="text-sm text-slate-600">Waiting for the donor to record the handoff.</p>
+              ) : (isDonor || isRequester) ? (
                 <div className="flex flex-col sm:flex-row justify-center gap-3">
-                  {isRequester && (
-                    <button
-                      onClick={handleNotReceived}
-                      disabled={submitting}
-                      className="bg-[#FAF8F6] border border-[#304355] text-[#304355] font-bold text-sm px-6 py-3 rounded-lg hover:bg-slate-200 transition-colors w-full sm:w-auto flex justify-center items-center gap-2 disabled:opacity-50"
-                    >
-                      <X className="w-4 h-4" />
-                      Not yet received
-                    </button>
-                  )}
                   <button
                     onClick={handleConfirmAction}
                     disabled={submitting}
@@ -344,7 +310,7 @@ export default function ConfirmSupportCompletion() {
                     {isDonor ? 'Yes, I have delivered it' : 'Yes, I have received it'}
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
 
           </div>
@@ -384,4 +350,3 @@ export default function ConfirmSupportCompletion() {
     </PageContainer>
   );
 }
-

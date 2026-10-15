@@ -38,6 +38,11 @@ function mapRequirement(row) {
     address: row.address,
     beneficiaryCount: row.beneficiary_count,
     beneficiaryDescription: row.beneficiary_description,
+    beneficiaryName: row.beneficiary_name,
+    deliveryPoint: row.delivery_point,
+    beneficiaryAckAt: row.beneficiary_ack_at,
+    visibilityStatus: row.visibility_status || 'normal',
+    extendedOnce: Boolean(row.extended_once),
     urgency: row.urgency,
     status: row.status,
     description: row.description,
@@ -45,14 +50,24 @@ function mapRequirement(row) {
     submittedAt: row.submitted_at,
     institutionName: row.institution_name || row.beneficiary_description || 'Local Institution',
     institutionType: row.institution_type || 'Ashram Shala',
+    institutionDetails: row.institution_id ? {
+      id: row.institution_id,
+      darpanId: row.darpan_id,
+      section80G: Boolean(row.section_80g),
+      section12A: Boolean(row.section_12a),
+      fcraStatus: row.fcra_status,
+    } : null,
     items: Array.isArray(row.items) ? row.items.filter(Boolean).map(mapItem) : [],
   };
 }
 
 const requirementSelect = `
   SELECT r.id, d.name AS district, r.taluka, r.address,
-         r.beneficiary_count, r.beneficiary_description, r.urgency,
+         r.beneficiary_count, r.beneficiary_description, r.beneficiary_name,
+         r.delivery_point, r.beneficiary_ack_at, r.visibility_status, r.extended_once, r.urgency,
          r.status, r.description, r.expires_at, r.submitted_at,
+         r.beneficiary_ack_at, r.visibility_status, r.extended_once,
+         i.id AS institution_id, i.darpan_id, i.section_80g, i.section_12a, i.fcra_status,
          i.name AS institution_name, i.organization_type AS institution_type,
          json_agg(json_build_object(
            'id', ri.id, 'item_name', ri.item_name, 'category', ri.category,
@@ -125,11 +140,13 @@ async function create(userId, payload, expiresAt) {
     const requirementResult = await client.query(
       `INSERT INTO requirements
        (requester_user_id, district_id, taluka, address, beneficiary_count,
-        beneficiary_description, urgency, status, expires_at, description)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'under_review', $8, $9)
+        beneficiary_description, beneficiary_name, delivery_point, beneficiary_ack_at,
+        urgency, status, expires_at, description)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, 'under_review', $10, $11)
        RETURNING id`,
       [userId, districtId, payload.taluka, payload.address, payload.beneficiary_count,
-        payload.beneficiary_description, payload.urgency, expiresAt, payload.description]
+        payload.beneficiary_description, payload.beneficiary_name, payload.delivery_point,
+        payload.urgency, expiresAt, payload.description]
     );
     const requirementId = requirementResult.rows[0].id;
     for (const item of payload.items) {
@@ -215,7 +232,7 @@ async function findAll({ district, limit = 50, offset = 0 } = {}) {
     `${requirementSelect}
      WHERE ${conditions.join(' AND ')}
      GROUP BY r.id, d.name, i.id, i.name, i.organization_type
-     ORDER BY r.submitted_at DESC
+     ORDER BY r.visibility_status ASC, r.submitted_at DESC
      LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
     values
   );
@@ -246,7 +263,7 @@ async function findAllForMatching() {
        AND r.expires_at > NOW()
        AND (r.institution_id IS NULL OR i.verification_status = 'verified')
      GROUP BY r.id, d.name, i.id, i.name, i.organization_type
-     ORDER BY r.submitted_at DESC`,
+     ORDER BY r.visibility_status ASC, r.submitted_at DESC`,
   );
   return rows.map((row) => ({ ...mapRequirement(row), nutritionIndicators: row.nutrition_indicators || [] }));
 }
@@ -313,7 +330,7 @@ async function findAllForAdmin({ status, limit = 100, offset = 0 } = {}) {
   const offsetIndex = values.length;
 
   const { rows } = await query(
-    `SELECT r.id, d.name AS district, r.taluka, r.beneficiary_count,
+    `SELECT r.id, r.requester_user_id, d.name AS district, r.taluka, r.beneficiary_count,
             r.urgency, r.status, r.submitted_at, r.expires_at,
             u.full_name AS requester_name, u.email AS requester_email
      FROM requirements r
@@ -355,13 +372,14 @@ async function findByIdForAdmin(id) {
 
   // Attach requester info
   const { rows: userRows } = await query(
-    `SELECT u.full_name, u.email, r.taluka, r.address, r.contact_name, r.contact_phone
+    `SELECT r.requester_user_id, u.full_name, u.email, r.taluka, r.address, r.contact_name, r.contact_phone
      FROM requirements r
      JOIN users u ON u.id = r.requester_user_id
      WHERE r.id = $1`,
     [id]
   );
   if (userRows[0]) {
+    req.requesterUserId = userRows[0].requester_user_id;
     req.requesterName = userRows[0].full_name;
     req.requesterEmail = userRows[0].email;
     req.contactName = userRows[0].contact_name;
@@ -412,6 +430,23 @@ async function isOwner(requirementId, userId) {
   return rows.length > 0;
 }
 
+async function hasVerifiedIdentityDocumentForRequirement(requirementId) {
+  const { rows } = await query(
+    `SELECT u.role,
+            EXISTS (
+              SELECT 1 FROM user_documents ud
+              WHERE ud.user_id = u.id
+                AND ud.document_type = CASE WHEN u.role = 'institution' THEN 'pan' ELSE 'aadhaar' END
+                AND ud.review_status = 'verified'
+            ) AS document_verified
+     FROM requirements r
+     JOIN users u ON u.id = r.requester_user_id
+     WHERE r.id = $1`,
+    [requirementId]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   findAll,
   findAllForMatching,
@@ -422,6 +457,7 @@ module.exports = {
   findByIdForAdmin,
   updateStatus,
   isOwner,
+  hasVerifiedIdentityDocumentForRequirement,
   create,
   findDistrictId,
   findDuplicateRequirement,

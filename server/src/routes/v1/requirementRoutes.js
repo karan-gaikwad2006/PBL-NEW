@@ -1,5 +1,6 @@
 const express = require('express');
 const requirementController = require('../../controllers/requirementController');
+const trustController = require('../../controllers/trustController');
 const {
   verifyFirebaseToken,
   attachUser,
@@ -33,6 +34,8 @@ router.get('/', requirementController.getRequirements);
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 router.post('/', ...authChain, requireRole(['requester', 'institution', 'admin']), requirementSubmitLimiter, requirementController.createRequirement);
+router.post('/:id/reports', ...authChain, requireRole(['donor', 'requester', 'institution', 'admin']), trustController.createRequirementReport);
+router.patch('/:id/extend', ...authChain, requireRole(['requester', 'institution', 'admin']), trustController.extendRequirement);
 
 // ─── Dynamic /:id routes (after all static routes) ────────────────────────────
 router.get('/:id', requirementController.getRequirementById);

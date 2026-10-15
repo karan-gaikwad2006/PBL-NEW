@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import PageContainer from '../../components/layout/PageContainer';
-import FormLayout from '../../components/common/FormLayout';
 import Step1Requester from '../../components/domain/requirement-submit/Step1Requester';
 import Step2Location from '../../components/domain/requirement-submit/Step2Location';
 import Step3Beneficiaries from '../../components/domain/requirement-submit/Step3Beneficiaries';
@@ -34,6 +33,9 @@ export default function RequirementSubmit() {
     // Step 3
     beneficiary_count: '',
     beneficiary_desc: '',
+    beneficiary_name: '',
+    delivery_point: '',
+    beneficiary_ack: false,
     // Step 4
     items: [{ name: '', quantity: '', unit: 'kg' }],
     // Step 5

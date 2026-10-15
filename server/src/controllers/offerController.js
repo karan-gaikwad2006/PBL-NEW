@@ -2,6 +2,8 @@ const { successResponse, AppError } = require('../utils/response');
 const offerRepository = require('../repositories/offerRepository');
 const requirementRepository = require('../repositories/requirementRepository');
 const { logAudit } = require('../utils/auditLogger');
+const trustService = require('../services/trustService');
+const TRUST_CONFIG = require('../config/trust');
 
 async function createOffer(req, res, next) {
   try {
@@ -125,7 +127,7 @@ async function getMyStats(req, res, next) {
 
 async function getOfferById(req, res, next) {
   try {
-    const offer = await offerRepository.findByIdWithDetails(req.params.id);
+    let offer = await offerRepository.findByIdWithDetails(req.params.id);
     if (!offer) {
       throw new AppError('Offer not found', 404);
     }
@@ -139,6 +141,17 @@ async function getOfferById(req, res, next) {
       throw new AppError('Forbidden: Access denied to this offer', 403);
     }
 
+    if (offer.institutionOwnerUserId) {
+      offer = {
+        ...offer,
+        institutionTrustTiers: await trustService.computeTiers(offer.institutionOwnerUserId),
+      };
+    }
+    offer = {
+      ...offer,
+      confirmationWindowHours: TRUST_CONFIG.CONFIRMATION_WINDOW_HOURS,
+      reminderAfterHours: TRUST_CONFIG.REMINDER_AFTER_HOURS,
+    };
     return successResponse(res, 'Offer retrieved successfully', offer);
   } catch (error) {
     next(error);
@@ -162,6 +175,10 @@ async function confirmDonor(req, res, next) {
 
     if (offer.confirmedByDonor) {
       throw new AppError('Donor confirmation already recorded', 400);
+    }
+
+    if (offer.status !== 'handed_off') {
+      throw new AppError('Record the handoff before confirming delivery', 409);
     }
 
     const result = await offerRepository.confirmByDonor(offer.id);
@@ -200,6 +217,10 @@ async function confirmRequester(req, res, next) {
       throw new AppError('Requester confirmation already recorded', 400);
     }
 
+    if (offer.status !== 'handed_off') {
+      throw new AppError('Receipt confirmation is available after the donor records the handoff', 409);
+    }
+
     const result = await offerRepository.confirmByRequester(offer.id);
     const updated = await offerRepository.findByIdWithDetails(offer.id);
 
@@ -235,5 +256,3 @@ module.exports = {
   getMyImpact,
   getMyStats,
 };
-
-

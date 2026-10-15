@@ -228,11 +228,21 @@ async function runAllTests() {
     { path: '/api/v1/notifications',          method: 'GET',  name: 'TC-IT-15 | Any auth: notifications list' },
     { path: '/api/v1/institutions/me',        method: 'GET',  name: 'TC-IT-16 | Requester: own institution profile' },
     { path: '/api/v1/institutions/me/documents', method: 'POST', name: 'TC-IT-17 | Requester: upload institution document' },
-    // Admin-only protected routes (TC-IT-18 to TC-IT-22)
+    // Identity and trust routes (TC-IT-22 to TC-IT-28)
+    { path: '/api/v1/users/me/documents', method: 'GET', name: 'TC-IT-22 | Account: list own identity documents' },
+    { path: '/api/v1/users/me/documents', method: 'POST', name: 'TC-IT-23 | Account: upload identity document' },
+    { path: '/api/v1/requirements/00000000-0000-4000-8000-000000000000/reports', method: 'POST', name: 'TC-IT-24 | Trust: report a requirement' },
+    { path: '/api/v1/requirements/00000000-0000-4000-8000-000000000000/extend', method: 'PATCH', name: 'TC-IT-25 | Trust: extend own requirement' },
+    { path: '/api/v1/offers/00000000-0000-4000-8000-000000000000/dispute', method: 'POST', name: 'TC-IT-26 | Trust: dispute offer' },
+    { path: '/api/v1/offers/00000000-0000-4000-8000-000000000000/handoff', method: 'PATCH', name: 'TC-IT-27 | Trust: record offer handoff' },
+    // Admin-only protected routes (TC-IT-18 to TC-IT-21 and TC-IT-28 to TC-IT-30)
     { path: '/api/v1/admin/stats',            method: 'GET',  name: 'TC-IT-18 | Admin: dashboard statistics' },
     { path: '/api/v1/admin/fraud-signals',    method: 'GET',  name: 'TC-IT-19 | Admin: fraud signals list' },
     { path: '/api/v1/requirements/admin/list',method: 'GET',  name: 'TC-IT-20 | Admin: all requirements list' },
     { path: '/api/v1/institutions/admin/list',method: 'GET',  name: 'TC-IT-21 | Admin: all institutions list' },
+    { path: '/api/v1/admin/reports/summary', method: 'GET', name: 'TC-IT-28 | Admin: report counts summary' },
+    { path: '/api/v1/users/admin/user-id/documents', method: 'GET', name: 'TC-IT-29 | Admin: list user identity documents' },
+    { path: '/api/v1/users/admin/user-id/documents/document-id', method: 'PATCH', name: 'TC-IT-30 | Admin: review user identity document' },
   ];
 
   for (const ep of protectedEndpoints) {
@@ -422,6 +432,9 @@ async function runAllTests() {
       address: 'Ashram Road',
       beneficiary_count: 50,
       beneficiary_desc: 'Tribal schoolchildren',
+      beneficiary_name: 'Dindori Community Kitchen',
+      delivery_point: 'Main kitchen receiving desk',
+      beneficiary_ack: true,
       urgency: 'high',              // Allowed: 'low' | 'medium' | 'high' | 'critical'
       description: 'Monthly food requirement',
       items: [{ name: 'Toor Dal', quantity: 20, unit: 'kg' }],
@@ -434,9 +447,19 @@ async function runAllTests() {
     assert(validated.items[0].name === 'Toor Dal',
       'TC-UT-08b | Valid item name preserved after validation');
 
+    // TC-UT-08c: Beneficiary acknowledgement is mandatory before submission.
+    let thrown = false;
+    try {
+      validateCreateRequirement({ ...validPayload, beneficiary_ack: false });
+    } catch {
+      thrown = true;
+    }
+    assert(thrown,
+      'TC-UT-08c | Missing beneficiary acknowledgement rejects requirement submission');
+
     // TC-UT-09: Negative beneficiary_count is below the valid boundary (BVA: min = 1)
     // Mutation: change beneficiary_count from 50 to -10 (invalid class)
-    let thrown = false;
+    thrown = false;
     try {
       validateCreateRequirement({ ...validPayload, beneficiary_count: -10 });
     } catch {

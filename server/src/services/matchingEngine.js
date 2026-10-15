@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { getEnv } = require('../config/env');
+const TRUST_CONFIG = require('../config/trust');
 
 // DETERMINISTIC MATCHING ENGINE:
 // This module must remain deterministic.
@@ -18,6 +19,7 @@ const DEFAULT_MATCHING_CONFIG = Object.freeze({
     remainingNeed: 0.10,
   }),
   maxRadiusKm: 50,
+  visibilityPenalty: TRUST_CONFIG.VISIBILITY_MATCH_PENALTY,
 });
 
 const FOOD_FAMILIES = [
@@ -161,6 +163,7 @@ function getConfig(overrides = {}) {
   };
   return {
     maxRadiusKm: Number(overrides.maxRadiusKm || getEnv('MATCHING_MAX_RADIUS_KM', DEFAULT_MATCHING_CONFIG.maxRadiusKm)),
+    visibilityPenalty: Number(overrides.visibilityPenalty ?? getEnv('MATCHING_VISIBILITY_PENALTY', DEFAULT_MATCHING_CONFIG.visibilityPenalty)),
     weights: { ...envWeights, ...(overrides.weights || {}) },
   };
 }
@@ -191,7 +194,10 @@ function matchRequirement(donorInput, requirement, config, mappings) {
     urgency: urgencyScore(requirement.urgency, expiresAt),
     remainingNeed: remainingNeedScore(requirementItems),
   };
-  const score = Object.entries(breakdown).reduce((total, [key, value]) => total + config.weights[key] * value, 0);
+  const baseScore = Object.entries(breakdown).reduce((total, [key, value]) => total + config.weights[key] * value, 0);
+  const score = requirement.visibilityStatus === 'reduced'
+    ? baseScore * (1 - config.visibilityPenalty)
+    : baseScore;
   return {
     requirementId: requirement.id,
     matchScore: Number(score.toFixed(6)),

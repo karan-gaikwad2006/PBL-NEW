@@ -7,19 +7,11 @@ import { requirementService } from '../../services/api';
 import {
   ArrowLeft,
   MapPin,
-  Calendar,
   ChevronRight,
-  CheckCircle2,
   AlertCircle,
-  User,
-  Package,
-  Edit3,
   Clock,
   RefreshCw,
   Eye,
-  MessageSquare,
-  ShieldCheck,
-  Trash2,
   Loader2,
 } from 'lucide-react';
 
@@ -78,9 +70,11 @@ export default function RequirementManagement() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { firebaseUser } = useContext(AuthContext);
+  const [currentTime] = useState(() => Date.now());
   const [req, setReq] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [extending, setExtending] = useState(false);
 
   useEffect(() => {
     if (!firebaseUser || !id) return;
@@ -103,6 +97,21 @@ export default function RequirementManagement() {
     load();
     return () => { cancelled = true; };
   }, [firebaseUser, id]);
+
+  const handleExtend = async () => {
+    if (!firebaseUser || extending) return;
+    setExtending(true);
+    setError(null);
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await requirementService.extend(token, id);
+      setReq((previous) => ({ ...previous, expiresAt: response.data.expiresAt, extendedOnce: true }));
+    } catch (extendError) {
+      setError(extendError.message || 'Unable to extend this requirement');
+    } finally {
+      setExtending(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -182,6 +191,11 @@ export default function RequirementManagement() {
             </div>
           </div>
         )}
+        {req.visibilityStatus === 'reduced' && (
+          <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            This requirement is being shown lower in search while community reports are reviewed.
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
           {/* Left Column */}
@@ -190,6 +204,10 @@ export default function RequirementManagement() {
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-6">
               <h2 className="font-bold text-[#304355] mb-3">About this Requirement</h2>
               <p className="text-sm text-[#64707A] leading-relaxed mb-4">{req.description}</p>
+              <div className="mb-4 grid gap-3 rounded-xl bg-[#FAF8F6] p-4 text-sm sm:grid-cols-2">
+                <div><span className="block text-xs font-semibold uppercase text-[#64707A]">Beneficiary</span><span className="font-semibold text-[#304355]">{req.beneficiaryName || '—'}</span></div>
+                <div><span className="block text-xs font-semibold uppercase text-[#64707A]">Delivery point</span><span className="font-semibold text-[#304355]">{req.deliveryPoint || '—'}</span></div>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs text-[#64707A]">
                 <div>
                   <p className="font-semibold uppercase tracking-wider mb-0.5">Submitted</p>
@@ -273,6 +291,17 @@ export default function RequirementManagement() {
                 </div>
               </div>
             )}
+            {(req.status === 'active' || req.status === 'partially_supported') &&
+              !req.extendedOnce &&
+              new Date(req.expiresAt).getTime() - currentTime <= 3 * 24 * 60 * 60 * 1000 &&
+              new Date(req.expiresAt).getTime() > currentTime && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="mb-3 text-sm text-[#1F2933]">This requirement expires soon. Extend it once for 14 days.</p>
+                  <Button variant="primary" disabled={extending} onClick={handleExtend} icon={extending ? Loader2 : RefreshCw}>
+                    {extending ? 'Extending…' : 'Extend'}
+                  </Button>
+                </div>
+              )}
 
             {/* Quick Links */}
             <div className="bg-white rounded-2xl border border-[#304355]/10 shadow-sm p-4">

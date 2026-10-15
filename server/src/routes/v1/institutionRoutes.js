@@ -1,5 +1,6 @@
 const express = require('express');
 const institutionController = require('../../controllers/institutionController');
+const trustController = require('../../controllers/trustController');
 const {
   verifyFirebaseToken,
   attachUser,
@@ -24,6 +25,7 @@ const documentUploadLimiter = createRateLimiter({
 router.get('/me', ...authChain, requireRole(['institution', 'requester', 'admin']), institutionController.getMyInstitution);
 router.post('/', ...authChain, requireRole(['requester', 'institution', 'admin']), institutionController.createInstitution);
 router.patch('/me', ...authChain, requireRole(['institution', 'requester', 'admin']), institutionController.updateMyInstitution);
+router.post('/:id/vouch', ...authChain, requireRole(['donor']), trustController.vouchForInstitution);
 
 // Document management
 router.post(

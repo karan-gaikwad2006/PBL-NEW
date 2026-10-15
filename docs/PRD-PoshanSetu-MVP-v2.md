@@ -17,7 +17,7 @@ v2 narrows this to a single, coherent, buildable loop:
 
 > A donor (individual or NGO) can see **what a region needs and why**, find a **real, verified institution's active requirement**, get matched using **deterministic logic + a citable nutrition table**, and be **handed off to complete the donation offline**, with the loop closed by an **automated confirmation + trust-score system**.
 
-Only **one manual step exists in the entire product**: admin review of an institution's registration documents at signup. Everything else — matching, requirement posting by verified institutions, requirement posting by individuals, fulfillment confirmation, disputes, fraud flags, expiry — is automated.
+Admin review is required for institution registration documents and for each requester/institution requirement before it is published. Matching, fulfillment confirmation, disputes, fraud flags, and expiry remain in-app workflows.
 
 Everything runs on **100% free-tier infrastructure**.
 
@@ -49,11 +49,13 @@ PoshanSetu closes this gap by combining:
 
 | Role | Description | Capabilities |
 |---|---|---|
-| **Individual Donor** | Any person with food to give | Post supply, browse/search by location, get matched, initiate handoff, confirm fulfillment |
+| **Individual Donor** | Any person with food to give | Upload and view a private Aadhaar document in their profile; browse/search by location, get matched, initiate handoff, confirm fulfillment |
 | **NGO/Institution Donor** | Organization donating (not requesting) | Same as individual donor |
-| **Individual Requester** | Person/family needing food support | Post a requirement, gated by trust tier (see §9); no document verification required |
-| **Institution Requester** | Ashram Shala, NGO, school, etc. | Must complete one-time document verification (admin-reviewed) before requirements go live; thereafter posts requirements with no further manual review |
-| **Admin** | Platform operator | **Only** reviews institution verification documents at signup. Does not review individual requirement posts, does not adjudicate disputes, does not manually flag fraud. |
+| **Individual Requester** | Person/family needing food support | Upload a private Aadhaar document; submit requirements for admin review before publication |
+| **Institution Requester** | Ashram Shala, NGO, school, etc. | Upload a private PAN document; complete institution verification and submit each requirement for admin review before publication |
+| **Admin** | Platform operator | Reviews requester/institution identity documents and requirements before approval; does not adjudicate disputes or automatically declare fraud. |
+
+**Project-specific verification decision (2026-10-11):** Following the project owner's direction, requester requirements require Aadhaar review, institution requirements require PAN review, and donors may upload/view Aadhaar documents. Identity files are private; donor document review is not a prerequisite for donor activity.
 
 ---
 
@@ -104,16 +106,18 @@ Weights (`w1`–`w5`) should be config values, not hardcoded, so they can be tun
 
 ---
 
-## 6. Requirement Lifecycle (fully automated)
+## 6. Requirement Lifecycle (admin approval before publication)
 
 ```
-Draft → Active → (Partially Fulfilled ⇄ Active) → Fulfilled
-                → Expired (auto, if no activity before deadline)
-                → Renewed (auto-offered to requester near expiry, one click to extend)
+Draft → Under Review → Active → (Partially Fulfilled ⇄ Active) → Fulfilled
+                     → Rejected
+                     → Expired (auto, if no activity before deadline)
+                     → Extended (one-time requester action near expiry)
 ```
 
-- Institution requirements go live immediately after the institution's one-time verification is approved — no per-requirement review
-- Individual requirements go live immediately, gated by the poster's trust tier (see §9)
+- Requester requirements remain under review until an admin approves the requirement and the requester's Aadhaar document
+- Institution requirements remain under review until an admin approves the requirement and the institution's PAN document; institution profile verification remains a separate review
+- Donor Aadhaar upload is available from the private profile and does not gate donor activity
 - Expiry is a scheduled job (e.g. daily cron), not a manual action
 - Partial fulfillment simply decrements `remaining_quantity`; requirement stays active until it hits zero or expires
 

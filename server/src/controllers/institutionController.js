@@ -1,6 +1,8 @@
 const { successResponse, AppError } = require('../utils/response');
 const institutionRepository = require('../repositories/institutionRepository');
 const { uploadBuffer, deleteFile } = require('../config/cloudinary');
+const trustService = require('../services/trustService');
+const trustRepository = require('../repositories/trustRepository');
 
 const ALLOWED_INSTITUTION_UPDATE_FIELDS = [
   'name',
@@ -10,6 +12,10 @@ const ALLOWED_INSTITUTION_UPDATE_FIELDS = [
   'address',
   'contact_email',
   'contact_phone',
+  'darpan_id',
+  'section_80g',
+  'section_12a',
+  'fcra_status',
 ];
 
 const sanitizeInstitutionUpdate = (payload = {}) => {
@@ -25,6 +31,12 @@ const sanitizeInstitutionUpdate = (payload = {}) => {
   const nextData = {};
   for (const [key, value] of entries) {
     if (value !== undefined && value !== null) {
+      if (['section_80g', 'section_12a'].includes(key) && typeof value !== 'boolean') {
+        throw new AppError(`${key} must be true or false`, 400);
+      }
+      if (key === 'fcra_status' && !['not_applicable', 'registered', 'none'].includes(value)) {
+        throw new AppError('fcra_status is invalid', 400);
+      }
       nextData[key] = typeof value === 'string' ? value.trim() : value;
     }
   }
@@ -47,9 +59,19 @@ const getMyInstitution = async (req, res, next) => {
     }
 
     const documents = await institutionRepository.findDocumentsByInstitutionId(institution.id);
+    const [tiers, postingLimits, reportCounts, vouchCount] = await Promise.all([
+      trustService.computeTiers(req.user.id),
+      trustService.getPostingLimits(req.user.id),
+      trustRepository.getRequirementReportCountsForInstitution(institution.id),
+      trustRepository.getVouchCount(institution.id),
+    ]);
     return successResponse(res, 'Institution profile retrieved', {
       ...institution,
       documents,
+      trust: { tiers },
+      postingLimits,
+      reportCounts,
+      vouchCount,
     });
   } catch (error) {
     next(error);
@@ -236,12 +258,12 @@ const getAdminInstitutionById = async (req, res, next) => {
  */
 const verifyInstitution = async (req, res, next) => {
   try {
-    const { status, notes } = req.body;
+    const { status } = req.body;
     if (!['verified', 'rejected', 'under_review', 'pending'].includes(status)) {
       throw new AppError('Invalid verification status', 400);
     }
 
-    const updated = await institutionRepository.updateVerificationStatus(req.params.id, status);
+    const updated = await institutionRepository.updateVerificationStatus(req.params.id, status, req.user.id);
     if (!updated) {
       throw new AppError('Institution not found', 404);
     }

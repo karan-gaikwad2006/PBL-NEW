@@ -78,6 +78,10 @@ async function adminApproveRequirement(req, res, next) {
     if (requirement.status !== 'under_review') {
       throw new AppError(`Cannot approve: requirement is already ${requirement.status}`, 409);
     }
+    const identity = await requirementRepository.hasVerifiedIdentityDocumentForRequirement(req.params.id);
+    if (identity && ['requester', 'institution'].includes(identity.role) && !identity.document_verified) {
+      throw new AppError('Verify the requester identity document before approving this requirement', 409);
+    }
     const updated = await requirementRepository.updateStatus(req.params.id, 'active');
     return successResponse(res, 'Requirement approved and set to active', updated);
   } catch (error) {

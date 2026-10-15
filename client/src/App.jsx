@@ -39,6 +39,8 @@ import SupportDetails from './pages/dashboard/SupportDetails';
 import RequesterDashboard from './pages/dashboard/RequesterDashboard';
 import RequirementManagement from './pages/dashboard/RequirementManagement';
 import RequirementStatus from './pages/dashboard/RequirementStatus';
+import InstitutionDashboard from './pages/dashboard/InstitutionDashboard';
+import AccountProfile from './pages/dashboard/AccountProfile';
 
 // Phase 2J — Institution Profile
 import InstitutionProfile from './pages/dashboard/InstitutionProfile';
@@ -160,8 +162,17 @@ export default function App() {
               path="/institution/dashboard"
               element={
                 <ProtectedRoute
-                  element={<RequesterDashboard />}
+                  element={<InstitutionDashboard />}
                   allowedRoles={['institution', 'admin']}
+                />
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute
+                  element={<AccountProfile />}
+                  allowedRoles={['donor', 'requester', 'institution', 'admin']}
                 />
               }
             />
@@ -170,7 +181,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   element={<RequirementManagement />}
-                  allowedRoles={['requester', 'admin']}
+                  allowedRoles={['requester', 'institution', 'admin']}
                 />
               }
             />
@@ -179,7 +190,7 @@ export default function App() {
               element={
                 <ProtectedRoute
                   element={<RequirementStatus />}
-                  allowedRoles={['requester', 'admin']}
+                  allowedRoles={['requester', 'institution', 'admin']}
                 />
               }
             />

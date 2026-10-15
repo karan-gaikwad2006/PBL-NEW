@@ -1,6 +1,7 @@
 const { getEnv } = require('../config/env');
 const { AppError } = require('../utils/response');
 const requirementRepository = require('../repositories/requirementRepository');
+const TRUST_CONFIG = require('../config/trust');
 
 function getExpiryDays() {
   const configuredDays = Number(getEnv('REQUIREMENT_EXPIRY_DAYS', 30));
@@ -10,7 +11,7 @@ function getExpiryDays() {
 async function createRequirement(userId, payload) {
   // 1. Rate check: Maximum 5 requirements per 24 hours per requester
   const recentCount = await requirementRepository.countRecentRequirements(userId, 24);
-  if (recentCount >= 5) {
+  if (recentCount >= TRUST_CONFIG.DAILY_REQUIREMENT_LIMIT) {
     throw new AppError('You have reached the maximum allowed submissions for today (5). Please wait before creating more requirements.', 429);
   }
 
@@ -32,4 +33,3 @@ async function createRequirement(userId, payload) {
 }
 
 module.exports = { createRequirement, getExpiryDays };
-

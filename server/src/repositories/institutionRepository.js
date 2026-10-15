@@ -1,4 +1,5 @@
-const { query } = require('../config/db');
+const { getPool, query } = require('../config/db');
+const TRUST_CONFIG = require('../config/trust');
 
 async function findByUserId(userId) {
   const { rows } = await query(
@@ -164,15 +165,37 @@ async function findAllForAdmin({ status, limit = 50, offset = 0 } = {}) {
   }));
 }
 
-async function updateVerificationStatus(institutionId, newStatus) {
-  const { rows } = await query(
-    `UPDATE institutions
-     SET verification_status = $1, updated_at = NOW()
-     WHERE id = $2
-     RETURNING *`,
-    [newStatus, institutionId]
-  );
-  const updated = rows[0] || null;
+async function updateVerificationStatus(institutionId, newStatus, adminId) {
+  const pool = getPool();
+  const client = await pool.connect();
+  let updated = null;
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `UPDATE institutions
+       SET verification_status = $1,
+           verification_renewal_due = CASE WHEN $1 = 'verified'
+             THEN CURRENT_DATE + ($3 || ' days')::INTERVAL ELSE verification_renewal_due END,
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [newStatus, institutionId, TRUST_CONFIG.VERIFICATION_VALIDITY_DAYS]
+    );
+    updated = rows[0] || null;
+    if (updated) {
+      await client.query(
+        `INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
+         VALUES ($1, 'institution_verification_updated', 'institution', $2, $3::jsonb)`,
+        [adminId, institutionId, JSON.stringify({ verificationStatus: newStatus })]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 
   if (updated) {
     // Notify institution owner

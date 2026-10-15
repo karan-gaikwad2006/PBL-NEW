@@ -12,6 +12,7 @@
     "test:chat": "node test/aiChatTests.js",
     "verify:ai": "node scripts/verifyAiLayer.js",
     "migrate": "node src/db/runMigrations.js",
+    "seed:demo": "node src/db/seedDemoData.js",
     "import:nfhs5": "node src/db/importNfhs5.js"
   },
   "dependencies": {

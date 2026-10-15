@@ -7,12 +7,10 @@ import { requirementService } from '../../services/api';
 import {
   ArrowLeft,
   CheckCircle2,
-  Clock,
   RefreshCw,
   AlertCircle,
   ChevronRight,
   MapPin,
-  Calendar,
   XCircle,
   Loader2,
 } from 'lucide-react';
@@ -178,7 +176,6 @@ export default function RequirementStatus() {
                   const Icon = stage.icon;
                   const isDone = i < currentStageIndex;
                   const isCurrent = i === currentStageIndex;
-                  const isFuture = i > currentStageIndex;
                   const isLast = i === stages.length - 1;
 
                   return (

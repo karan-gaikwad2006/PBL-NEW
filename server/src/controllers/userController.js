@@ -1,5 +1,6 @@
 const { query } = require('../config/db');
 const { successResponse, AppError } = require('../utils/response');
+const trustService = require('../services/trustService');
 
 const ALLOWED_USER_UPDATE_FIELDS = ['full_name'];
 
@@ -90,7 +91,15 @@ const getProfile = async (req, res, next) => {
     if (!req.user) {
       throw new AppError('User profile not found', 404);
     }
-    return successResponse(res, 'User profile retrieved', req.user);
+    const [tiers, postingLimits] = await Promise.all([
+      trustService.computeTiers(req.user.id),
+      trustService.getPostingLimits(req.user.id),
+    ]);
+    return successResponse(res, 'User profile retrieved', {
+      ...req.user,
+      trust: { tiers },
+      postingLimits,
+    });
   } catch (error) {
     next(error);
   }

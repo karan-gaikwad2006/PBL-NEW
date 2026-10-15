@@ -1,5 +1,6 @@
 const express = require('express');
 const offerController = require('../../controllers/offerController');
+const trustController = require('../../controllers/trustController');
 const {
   verifyFirebaseToken,
   attachUser,
@@ -29,9 +30,10 @@ router.get('/:id', ...authChain, offerController.getOfferById);
 // ─── Dual Confirmation Routes ───────────────────────────────────────────────
 router.patch('/:id/confirm-donor', ...authChain, requireRole(['donor', 'admin']), offerController.confirmDonor);
 router.patch('/:id/confirm-requester', ...authChain, requireRole(['requester', 'institution', 'admin']), offerController.confirmRequester);
+router.post('/:id/dispute', ...authChain, requireRole(['donor']), trustController.disputeOffer);
+router.patch('/:id/handoff', ...authChain, requireRole(['donor']), trustController.markHandoff);
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 router.post('/', ...authChain, requireRole(['donor', 'admin']), offerCreateLimiter, offerController.createOffer);
 
 module.exports = router;
-

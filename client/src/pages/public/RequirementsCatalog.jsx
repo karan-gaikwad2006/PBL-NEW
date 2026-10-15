@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { requirementService } from '../../services/api';
+import ReportButton from '../../components/trust/ReportButton';
 
 const URGENCY_STYLES = {
   CRITICAL: {
@@ -322,6 +323,9 @@ export default function RequirementsCatalog() {
                       <span>View Details</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
+                    <div className="flex justify-end">
+                      <ReportButton requirementId={req.id} />
+                    </div>
                   </div>
                 ))}
               </div>

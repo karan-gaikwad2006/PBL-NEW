@@ -131,12 +131,12 @@ function mapRequirementToCard(req) {
     urgency: urgencyKey,
     urgencyLabel: urgencyMeta.label,
     urgencyMeta,
-    confidence: (req.status === 'active' || req.status === 'ACTIVE' || req.verification_status === 'VERIFIED') ? 'Verified Institution' : 'Pending Verification',
     daysLeft: daysUntil(req.expires_at || req.expiresAt),
     createdAt: req.created_at || req.createdAt || req.submittedAt,
-    institutionName: req.institutionName || req.institution_name || req.beneficiaryDescription || 'Verified Partner Center',
-    institutionType: req.institutionType || req.institution_type || 'Residential Ashram Shala',
-    location: req.city || req.taluka || req.address || 'Maharashtra Belt',
+    institutionName: req.institutionName || req.institution_name || req.beneficiaryDescription || '',
+    institutionType: req.institutionType || req.institution_type || '',
+    taluka: req.city || req.taluka || '',
+    location: req.city || req.taluka || req.address || '',
     rationale: req.description || req.rationale || '',
   };
 }
@@ -393,7 +393,7 @@ export default function ExploreMap() {
           : 'bg-emerald-50 text-emerald-700 border border-emerald-200',
         desc: attention?.level === 'UNAVAILABLE'
           ? 'No district nutrition indicators are currently available.'
-          : 'Seasonal supply quota delays in tribal residential ashram shalas; acute demand for unpolished rice and protein pulses across enrolled boarders.',
+          : `${selectedNutrition?.nutritionIndicators?.length || 0} official nutrition indicators are available for this district.`,
         icon: Database,
       };
     }
@@ -501,26 +501,44 @@ export default function ExploreMap() {
   };
 
   // --- Derived stats for Selected District panel ---
-  const verifiedCenters = selectedRequirements.filter(
-    (r) => r.confidence === 'Verified Institution'
-  ).length || 14;
-
   const allDistrictItems = selectedRequirements.flatMap((r) => r.items);
-  
-  const totalStapleGap = Math.round(
-    allDistrictItems.reduce((sum, item) => sum + (Number(item.quantityRemaining) || 0), 0)
-  ) || 840;
+  const openItemCount = allDistrictItems.filter(
+    (item) => Number(item.quantityRemaining) > 0
+  ).length;
+  const fulfillmentRates = allDistrictItems
+    .filter((item) => Number(item.quantityRequired) > 0)
+    .map((item) => {
+      const required = Number(item.quantityRequired);
+      const remaining = Number(item.quantityRemaining);
+      return Math.min(100, Math.max(0, ((required - remaining) / required) * 100));
+    });
+  const avgFulfilled = fulfillmentRates.length
+    ? Math.round(fulfillmentRates.reduce((total, rate) => total + rate, 0) / fulfillmentRates.length)
+    : null;
 
-  const totalQuantityNeeded = Math.round(
-    allDistrictItems.reduce((sum, item) => sum + (Number(item.quantityRequired) || 0), 0)
-  ) || 2210;
+  const outstandingByUnit = allDistrictItems.reduce((totals, item) => {
+    const remaining = Number(item.quantityRemaining);
+    if (remaining <= 0) return totals;
+    const unit = item.unit || 'units';
+    totals.set(unit, (totals.get(unit) || 0) + remaining);
+    return totals;
+  }, new Map());
+  const outstandingSummary = Array.from(outstandingByUnit, ([unit, quantity]) =>
+    `${Number(quantity.toFixed(2)).toLocaleString()} ${unit}`
+  ).join(' · ');
 
-  const totalQuantityPledged = Math.max(0, totalQuantityNeeded - totalStapleGap) || 1370;
-
-  const avgFulfilled =
-    totalQuantityNeeded > 0
-      ? Math.round((totalQuantityPledged / totalQuantityNeeded) * 100)
-      : 62;
+  const listedFoods = [...new Set(
+    allDistrictItems
+      .filter((item) => Number(item.quantityRemaining) > 0)
+      .map((item) => item.name)
+      .filter(Boolean)
+  )];
+  const listedTalukas = [...new Set(
+    selectedRequirements.map((requirement) => requirement.taluka).filter(Boolean)
+  )];
+  const districtNeedsSummary = selectedRequirements.length
+    ? `${selectedRequirements.length} active ${selectedRequirements.length === 1 ? 'requirement' : 'requirements'} currently list${selectedRequirements.length === 1 ? 's' : ''} ${listedFoods.length ? listedFoods.join(', ') : 'food support'}${listedTalukas.length ? ` across ${listedTalukas.join(', ')}` : ''}.`
+    : `No active food requirements are currently listed for ${selectedDistrict} District.`;
 
   return (
     <div className="bg-[#FAF8F6] min-h-screen text-[#1B1C1D] font-sans pb-16">
@@ -742,12 +760,9 @@ export default function ExploreMap() {
                     <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                       {selectedDistrict} District
                     </h2>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[11px] font-semibold">
-                      North Zone
-                    </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Trimbak, Peint, Surgana, Igatpuri belts
+                    {listedTalukas.length ? listedTalukas.join(', ') : 'No active local areas listed'}
                   </p>
                 </div>
                 <span
@@ -762,42 +777,44 @@ export default function ExploreMap() {
               {/* Plain-language Reason Line */}
               <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-100">
                 <p className="text-xs text-slate-700 leading-relaxed">
-                  Seasonal supply quota delays in tribal residential ashram shalas; acute demand for unpolished rice and protein pulses across <strong className="font-bold text-[#0F1E2E]">180+ enrolled boarders</strong>.
+                  {districtNeedsSummary}
                 </p>
               </div>
 
               {/* Key Telemetry Stats Grid */}
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
-                  <div className="text-xl font-extrabold text-[#0F1E2E]">{verifiedCenters}</div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Verified Centers</div>
+                  <div className="text-xl font-extrabold text-[#0F1E2E]">{selectedRequirements.length}</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Active Requirements</div>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
-                  <div className="text-xl font-extrabold text-[#EA580C]">
-                    {totalStapleGap} kg
+                  <div className="text-sm font-extrabold text-[#EA580C]" title={outstandingSummary || 'No open quantity'}>
+                    {outstandingSummary || 'None'}
                   </div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Total Staple Gap</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5" title={`${openItemCount} open food items`}>
+                    Outstanding Quantity · {openItemCount} {openItemCount === 1 ? 'item' : 'items'}
+                  </div>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-100/80">
                   <div className="text-xl font-extrabold text-emerald-600">
-                    {avgFulfilled}%
+                    {avgFulfilled === null ? '—' : `${avgFulfilled}%`}
                   </div>
-                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Avg Fulfilled</div>
+                  <div className="text-[11px] font-medium text-slate-500 mt-0.5">Avg. Item Fulfillment</div>
                 </div>
               </div>
 
               {/* Mini Progress Visualizer */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-500">District Allocation Pledged</span>
+                  <span className="text-slate-500">Average fulfillment across listed items</span>
                   <span className="text-[#0F1E2E] font-bold">
-                    {totalQuantityPledged.toLocaleString()} kg / {totalQuantityNeeded.toLocaleString()} kg
+                    {avgFulfilled === null ? 'No quantity data' : `${avgFulfilled}%`}
                   </span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-[#0F1E2E] rounded-full transition-all duration-700"
-                    style={{ width: `${Math.min(100, Math.max(0, avgFulfilled))}%` }}
+                    style={{ width: `${avgFulfilled ?? 0}%` }}
                   />
                 </div>
               </div>
@@ -1103,7 +1120,7 @@ export default function ExploreMap() {
 
                     {/* Institution & Requirement Title */}
                     <h3 className="text-lg font-bold text-slate-900 truncate">
-                      {req.institutionName} &mdash; {req.title}
+                      {req.institutionName ? <>{req.institutionName} &mdash; </> : null}{req.title}
                     </h3>
 
                     {/* Food Items & Subtitle */}
@@ -1144,7 +1161,7 @@ export default function ExploreMap() {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-orange-50 text-orange-900 text-xs border border-orange-200">
                       <AlertTriangle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
                       <span>
-                        {req.rationale || `Matches standard pulse pledges · Urgent ration stockout expected within ${req.daysLeft} days`}
+                        {req.rationale || 'No additional details provided by the requester.'}
                       </span>
                     </div>
                   </div>

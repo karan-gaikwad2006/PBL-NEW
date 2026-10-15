@@ -11,6 +11,10 @@ function requireText(value, field, maxLength = 5000) {
 }
 
 function validateCreateRequirement(payload = {}) {
+  if (payload.beneficiary_ack !== true) {
+    throw new AppError('Beneficiary acknowledgement is required', 400);
+  }
+
   const items = Array.isArray(payload.items) ? payload.items : [];
   if (items.length === 0 || items.length > 20) {
     throw new AppError('At least one and no more than 20 requirement items are required', 422);
@@ -45,6 +49,9 @@ function validateCreateRequirement(payload = {}) {
     address: requireText(payload.address, 'Address', 2000),
     beneficiary_count: beneficiaryCount,
     beneficiary_description: requireText(payload.beneficiary_desc, 'Beneficiary description', 2000),
+    beneficiary_name: requireText(payload.beneficiary_name, 'Beneficiary name', 255),
+    delivery_point: requireText(payload.delivery_point, 'Delivery point', 2000),
+    beneficiary_ack: payload.beneficiary_ack,
     urgency,
     description: requireText(payload.description, 'Requirement description', 5000),
     items: parsedItems,

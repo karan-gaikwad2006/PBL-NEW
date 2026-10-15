@@ -2,9 +2,10 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import AuthContext from '../../context/AuthContext';
 import { requirementService, offerService } from '../../services/api';
+import OfficialChannelNotice from '../../components/trust/OfficialChannelNotice';
 import PageContainer from '../../components/layout/PageContainer';
 import Button from '../../components/common/Button';
-import { ArrowLeft, Send, ClipboardList, ShieldCheck, Info, User, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Send, ClipboardList, ShieldCheck, Info, User } from 'lucide-react';
 
 export default function SendSupportOffer() {
   const { id } = useParams();
@@ -152,6 +153,9 @@ export default function SendSupportOffer() {
             <ArrowLeft className="w-4 h-4" />
             Back to Request Details
           </Link>
+        </div>
+        <div className="mb-6">
+          <OfficialChannelNotice />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

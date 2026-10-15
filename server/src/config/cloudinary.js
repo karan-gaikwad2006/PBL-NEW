@@ -70,8 +70,20 @@ function deleteFile(publicId, resourceType = 'image') {
   });
 }
 
+function createPrivateDownloadUrl(publicId, format, resourceType = 'image') {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary is not configured on the server.');
+  }
+  return cloudinary.utils.private_download_url(publicId, format, {
+    resource_type: resourceType,
+    type: 'authenticated',
+    expires_at: Math.floor(Date.now() / 1000) + 300,
+  });
+}
+
 module.exports = {
   cloudinary,
+  createPrivateDownloadUrl,
   isCloudinaryConfigured,
   uploadBuffer,
   deleteFile,

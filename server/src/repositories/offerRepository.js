@@ -1,4 +1,5 @@
 const { getPool, query } = require('../config/db');
+const { AppError } = require('../utils/response');
 
 async function hasActiveOffer(donorId, requirementId, itemName) {
   const { rows } = await query(
@@ -6,7 +7,7 @@ async function hasActiveOffer(donorId, requirementId, itemName) {
      WHERE donor_user_id = $1
        AND requirement_id = $2
        AND lower(item_name) = lower($3)
-       AND status IN ('pending', 'accepted')
+       AND status IN ('pending', 'accepted', 'in_progress', 'handed_off', 'disputed')
      LIMIT 1`,
     [donorId, requirementId, itemName]
   );
@@ -153,7 +154,7 @@ async function findByDonorId(donorId, { limit = 50, offset = 0, filter = 'all' }
          r.taluka,
          r.status AS requirement_status,
          MAX(so.created_at) AS last_offered_at,
-         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress')) AS has_active,
+         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress', 'handed_off', 'disputed')) AS has_active,
          BOOL_OR(so.status = 'completed') AS has_completed,
          BOOL_OR(so.status NOT IN ('cancelled', 'declined')) AS has_valid_offer,
          BOOL_OR(
@@ -239,7 +240,7 @@ async function getDonorStats(donorId) {
       SELECT
          r.id AS requirement_id,
          r.status AS requirement_status,
-         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress')) AS has_active,
+         BOOL_OR(so.status IN ('pending', 'accepted', 'in_progress', 'handed_off', 'disputed')) AS has_active,
          BOOL_OR(so.status = 'completed') AS has_completed,
          BOOL_OR(so.status NOT IN ('cancelled', 'declined')) AS has_valid_offer,
          BOOL_OR(
@@ -260,20 +261,38 @@ async function getDonorStats(donorId) {
        GROUP BY r.id, r.status
      )
      SELECT
-       COUNT(CASE WHEN has_active THEN 1 END) AS active_count,
+       COUNT(CASE WHEN has_active AND NOT (has_valid_offer AND has_open_relevant_item) THEN 1 END) AS active_count,
       COUNT(CASE WHEN has_valid_offer AND has_open_relevant_item THEN 1 END) AS partial_count,
       COUNT(CASE WHEN NOT has_active AND has_completed AND NOT has_open_relevant_item THEN 1 END) AS complete_count,
+      COUNT(*) AS total_count,
        SUM(pending_action_count) AS action_needed_count
      FROM donor_reqs`,
     [donorId]
   );
 
   const stats = rows[0] || {};
+  const { rows: recordRows } = await query(
+    `SELECT
+       COUNT(*) FILTER (WHERE so.status = 'completed')::int AS fulfilled_offers,
+       COUNT(*) FILTER (
+         WHERE sc.confirmed_by_donor = TRUE AND sc.confirmed_by_requester = TRUE
+       )::int AS confirmed_offers,
+       COUNT(*) FILTER (WHERE so.status = 'pending')::int AS pending_offers
+     FROM support_offers so
+     LEFT JOIN support_confirmations sc ON sc.support_offer_id = so.id
+     WHERE so.donor_user_id = $1`,
+    [donorId]
+  );
+  const records = recordRows[0] || {};
   return {
     activeSupports: Number(stats.active_count || 0),
     partiallySupported: Number(stats.partial_count || 0),
     completedSupports: Number(stats.complete_count || 0),
-    pendingConfirmations: Number(stats.action_needed_count || 0)
+    totalSupports: Number(stats.total_count || 0),
+    pendingConfirmations: Number(stats.action_needed_count || 0),
+    fulfilledOffers: Number(records.fulfilled_offers || 0),
+    confirmedOffers: Number(records.confirmed_offers || 0),
+    pendingOffers: Number(records.pending_offers || 0),
   };
 }
 
@@ -284,12 +303,20 @@ async function findByIdWithDetails(id) {
             'Food support for ' || r.beneficiary_count || ' beneficiaries' AS requirement_title, r.requester_user_id,
             u_req.full_name AS requester_name, d.name AS district, r.taluka,
             u_donor.full_name AS donor_name,
+            i.id AS institution_id, i.name AS institution_name,
+            i.created_by_user_id AS institution_owner_user_id,
+            so.handoff_at,
+            EXISTS (
+              SELECT 1 FROM vouches v
+              WHERE v.donor_id = so.donor_user_id AND v.institution_id = i.id
+            ) AS donor_vouched,
             sc.confirmed_by_donor, sc.donor_confirmed_at,
             sc.confirmed_by_requester, sc.requester_confirmed_at
      FROM support_offers so
      JOIN requirements r ON r.id = so.requirement_id
      JOIN users u_req ON u_req.id = r.requester_user_id
      JOIN users u_donor ON u_donor.id = so.donor_user_id
+     LEFT JOIN institutions i ON i.id = r.institution_id
      LEFT JOIN districts d ON d.id = r.district_id
      LEFT JOIN support_confirmations sc ON sc.support_offer_id = so.id
      WHERE so.id = $1
@@ -306,6 +333,12 @@ async function findByIdWithDetails(id) {
     requirementTitle: row.requirement_title || `Food support for beneficiaries`,
     requesterName: row.requester_name,
     donorName: row.donor_name,
+    institutionId: row.institution_id,
+    institutionName: row.institution_name,
+    institutionOwnerUserId: row.institution_owner_user_id,
+    institutionTrustTiers: [],
+    donorVouched: Boolean(row.donor_vouched),
+    handoffAt: row.handoff_at,
     location: [row.taluka, row.district].filter(Boolean).join(', '),
     item: row.item_name,
     quantityOffered: Number(row.quantity_offered),
@@ -325,6 +358,7 @@ async function confirmByDonor(offerId) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await lockOfferForConfirmation(client, offerId);
     
     // Ensure row exists in support_confirmations
     await client.query(
@@ -332,14 +366,6 @@ async function confirmByDonor(offerId) {
        VALUES ($1, TRUE, CURRENT_TIMESTAMP)
        ON CONFLICT (support_offer_id)
        DO UPDATE SET confirmed_by_donor = TRUE, donor_confirmed_at = CURRENT_TIMESTAMP`,
-      [offerId]
-    );
-
-    // Update status to in_progress if pending
-    await client.query(
-      `UPDATE support_offers
-       SET status = CASE WHEN status = 'pending' THEN 'accepted' ELSE status END
-       WHERE id = $1`,
       [offerId]
     );
 
@@ -388,6 +414,7 @@ async function confirmByRequester(offerId) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await lockOfferForConfirmation(client, offerId);
     
     // Ensure row exists in support_confirmations
     await client.query(
@@ -435,6 +462,17 @@ async function confirmByRequester(offerId) {
     throw err;
   } finally {
     client.release();
+  }
+}
+
+async function lockOfferForConfirmation(client, offerId) {
+  const { rows } = await client.query(
+    `SELECT status FROM support_offers WHERE id = $1 FOR UPDATE`,
+    [offerId]
+  );
+  if (!rows[0]) throw new AppError('Offer not found', 404);
+  if (rows[0].status !== 'handed_off') {
+    throw new AppError('Both confirmations are only available after the handoff is recorded', 409);
   }
 }
 
@@ -567,5 +605,3 @@ module.exports = {
   getDonorImpact,
   getDonorStats,
 };
-
-

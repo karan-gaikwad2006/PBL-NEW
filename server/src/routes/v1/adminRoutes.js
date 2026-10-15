@@ -1,6 +1,7 @@
 const express = require('express');
 const fraudSignalController = require('../../controllers/fraudSignalController');
 const adminStatsController = require('../../controllers/adminStatsController');
+const trustController = require('../../controllers/trustController');
 const {
   verifyFirebaseToken,
   attachUser,
@@ -18,6 +19,7 @@ const adminOnly = [
 ];
 
 router.get('/stats', ...adminOnly, adminStatsController.getDashboardStats);
+router.get('/reports/summary', ...adminOnly, trustController.getReportsSummary);
 
 // Fraud Review Signals
 router.get('/fraud-signals', ...adminOnly, fraudSignalController.getFraudSignals);

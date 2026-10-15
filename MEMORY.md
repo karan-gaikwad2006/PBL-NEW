@@ -2,11 +2,55 @@
 
 Update this file after each major milestone, structural change, or resolved bug.
 
+### 2026-10-14 — Backend process restored and verified
+- The backend process from the prior session was no longer running. Restarted the existing `npm --prefix server run dev` command; it initialized Firebase Admin and began listening on port 5000 without a crash.
+- Verified `/api/health` reports API up and database connected across six checks over 30 seconds. Backend syntax build and the full server test suite passed. No reproducible source crash was found, so no backend source code was changed; keep the development process running and capture its terminal output if the crash recurs.
+- Follow-up: the user's `EADDRINUSE` output was caused by a duplicate backend process. Stopped the backend process started in this session, confirmed no listener remains on port 5000, and confirmed the health endpoint no longer responds. The user's nodemon terminal is waiting for restart; enter `rs` there (or stop it and run the dev command once) to start its backend without a port conflict.
+
+### 2026-10-14 — Admin route rendering error
+- Investigated the admin dashboard visibility report using the shared local browser. `/admin/dashboard` is protected by the existing admin-role route and the signed-in admin session successfully renders its dashboard data.
+- Browser history exposed a runtime `ReferenceError: Building2 is not defined` in `AdminReview.jsx` from the preceding review-page redesign. Imported the missing Lucide icon; the route renders without the runtime exception.
+- Verification: browser confirmed dashboard headings and pending review data render with no page alert; targeted admin page lint, editor diagnostics, and client production build passed.
+
+### 2026-10-13 — Admin requirement review UI redesign
+- Redesigned the admin review workspace in `client/src/pages/admin/AdminReview.jsx` to align with donor dashboard navy/emerald styling. Added a compact requirement overview, scannable item-quantity rows, improved requester detail cards, and a sticky review-decision/checklist sidebar.
+- Promoted private identity documents with clear privacy context, upload/status metadata, accessible open/review controls, in-progress feedback, and explicit empty/error states. Added a direct jump link to documents and surfaced fraud-signal update failures in the page.
+- Approval now stays disabled for requirements until an identity document is verified, matching the server-side approval requirement; rejection remains available. Institution verification continues to use its existing note and decision flow.
+- Verification: targeted client lint, production build, Problems diagnostics, and `git diff --check` passed. A direct browser route redirected to `/login-required`, so visual inspection of the protected admin screen was unavailable in the unauthenticated browser session.
+
+### 2026-10-13 — Safe development demo data
+- Added `npm --prefix server run seed:demo -- --apply --target=development`, a guarded, transactional and repeatable seed using fixed IDs and reserved `.invalid` emails. It creates six clearly labeled synthetic role profiles; five sample requirements across four districts; seven food items; six support offers spanning pending, in-progress, handed-off, disputed, and dual-confirmed completed states; plus notifications, a report, moderation/review signals, audit entries, and trust events.
+- Ran the seed against the confirmed development database (`neondb`) and repeated it to verify idempotence: counts remained at 6 users, 5 requirements, 7 items, 6 offers, 2 confirmations, 5 notifications, 1 report, 1 fraud signal, 3 audit events, and 4 trust events. Verified completed support is dual-confirmed, requirement quantities match completed support, and no fake Firebase accounts or uploaded document records were created.
+- Official nutrition indicators and Cloudinary/Aadhaar/PAN document metadata/files were left untouched; synthetic users have no Firebase UID and cannot sign in. Seed requires both explicit apply/target flags and refuses non-development `NODE_ENV`.
+- Verification: backend build/syntax checks passed; seed guard rejected an invocation without confirmation; database lifecycle and quantity invariants passed.
+
+### 2026-10-13 — Dashboard profile/document actions
+- Restyled donor, requester, and institution dashboard profile/document links as clear, responsive, keyboard-focusable actions with consistent iconography and supporting labels.
+- Removed the institution-profile quick action from requester accounts; the shared requester dashboard keeps that action only when the authenticated role is institution.
+- Verification: targeted lint and client production build passed.
+
+### 2026-10-13 — Explore district needs card uses live data
+- Replaced shared hardcoded district zone/talukas, need narrative, beneficiary count, and fallback statistics with values derived from the selected district's current public requirements. Outstanding quantities remain grouped by unit; fulfillment is averaged per listed item to avoid summing incompatible units.
+- The card now shows a clear empty state when a district has no active requirements and no longer labels active requirements as verified centers. Removed fabricated Explore-list fallback institution and urgency descriptions.
+- Verification: `/api/v1/districts` returned 36 districts; Nashik requirements returned an empty list; browser check showed the no-active-needs state and confirmed old Nashik-only text is absent. Targeted lint, client production build, and `git diff --check` passed. Existing unrelated lint warnings remain.
+
+### 2026-10-13 — Diagnosed sign-in profile loading failure
+- Confirmed the UI's “sign-in completed, but your profile could not be loaded” message means Firebase authentication succeeded but `/api/v1/users/me` failed. The profile endpoint now calls trust-service queries that depend on migration 003.
+- Local API health reported a connected development database; a read-only schema check confirmed migration 003 was missing (`users.phone_verified_at`, `requirements.visibility_status`, `trust_score_events`, and `user_documents` were absent). The user confirmed the development target and backup, then migration 003 applied successfully using `npm --prefix server run migrate` after one transient connection timeout.
+- Verified the migration tracking row and required schema markers; API health returns 200 and unauthenticated `/api/v1/users/me` correctly returns 401. User should refresh the app and sign in again to verify the authenticated profile journey.
+
 ## Active Phase & Goal
-## Active Phase & Goal
-**Current Phase:** Phase 10 — Real Donor Support Offers COMPLETE + Chat Assistant COMPLETE + Admin Dashboard Stitch Refactor COMPLETE
-**Next Recommended Phase:** Phase 11 — Dual Confirmation and Partial Fulfillment
-**Current Task:** Admin Dashboard visual & layout refactor to Stitch design reference.
+**Current Phase:** Phase 2 — Core Features (per AGENTS.md)
+**Next Recommended Phase:** Verify the authenticated profile flow in the browser after migration 003.
+**Current Task:** Safe, synthetic development seed data is implemented and verified; identity-document review, trust/report workflows, and dashboard integration remain in place.
+
+### 2026-10-11 — Identity verification and donor dashboard integration
+- Added private Aadhaar uploads for donors/requesters and PAN uploads for institutions, profile document viewing, expiring private Cloudinary access, and admin document review. Requester/institution requirement approval is gated on the corresponding reviewed identity document.
+- Added requirement beneficiary acknowledgement, trust/report/dispute/vouch/handoff/extension workflows, renewal/reminder jobs, and admin report-count summaries. Updated the PRD's roles and lifecycle sections to reflect the owner's manual-review decision.
+- Finished the admin report-count view and removed donor dashboard placeholder identities, fabricated KPIs, static trend/location/category previews, and sample support records. The donor view now uses API counts/activity and includes trust/profile-document links. Donor actions open offer details so confirmation remains unavailable until an offline handoff is recorded.
+- Fixed the `/profile` route nesting error and enabled institutions to access requirement management/status routes.
+- Added validator coverage for beneficiary acknowledgement and unauthenticated route cases for identity and trust endpoints.
+- Verification: client production build passes; backend JavaScript syntax checks and direct beneficiary-validator checks pass; `git diff --check` passes. Client lint exits successfully with existing workspace warnings; the recently changed files have no new lint warnings. Handoff-gated confirmation changes passed build/syntax checks, but no database-backed confirmation journey was run because no API is running. Migration 003 was not applied because the configured database target has not been confirmed as development.
 
 ### 2026-10-11 — Brand logo and favicon refresh
 - Replaced the site navbar brand image with a custom SVG logo matching the provided PoshanSetu mark and text treatment.

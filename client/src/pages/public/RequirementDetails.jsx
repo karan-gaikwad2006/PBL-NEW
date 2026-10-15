@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import Button from '../../components/common/Button';
 import { requirementService } from '../../services/api';
+import ReportButton from '../../components/trust/ReportButton';
+import OfficialChannelNotice from '../../components/trust/OfficialChannelNotice';
 
 function formatExpiry(expiresAt) {
   if (!expiresAt) return '—';
@@ -156,6 +158,9 @@ export default function RequirementDetails() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-12">
+            <OfficialChannelNotice />
+          </div>
           <div className="lg:col-span-8 space-y-8">
             <section className="bg-white rounded-2xl p-6 md:p-8 shadow-xs border border-[#304355]/10 space-y-6">
               <h2 className="text-xl font-bold text-[#304355] flex items-center gap-2">
@@ -228,6 +233,14 @@ export default function RequirementDetails() {
                       <MapPin className="w-4 h-4 text-[#64707A]" />{' '}
                       {[requirement.city, requirement.district].filter(Boolean).join(', ')}
                     </div>
+                    {requirement.institutionDetails && (
+                      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 border-t border-slate-100 pt-3 text-xs text-[#64707A]">
+                        {requirement.institutionDetails.darpanId && <div><dt>DARPAN ID</dt><dd className="font-semibold text-[#304355]">{requirement.institutionDetails.darpanId}</dd></div>}
+                        {requirement.institutionDetails.section80G && <div><dt>80G</dt><dd className="font-semibold text-[#304355]">Registered</dd></div>}
+                        {requirement.institutionDetails.section12A && <div><dt>12A</dt><dd className="font-semibold text-[#304355]">Registered</dd></div>}
+                        {requirement.institutionDetails.fcraStatus && <div><dt>FCRA status</dt><dd className="font-semibold capitalize text-[#304355]">{requirement.institutionDetails.fcraStatus.replaceAll('_', ' ')}</dd></div>}
+                      </dl>
+                    )}
                   </div>
                 </div>
               </div>
@@ -278,6 +291,7 @@ export default function RequirementDetails() {
                 >
                   I Want to Help
                 </Button>
+                <ReportButton requirementId={requirement.id} />
                 <Button
                   variant="outline"
                   className="w-full py-3"

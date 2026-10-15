@@ -56,6 +56,24 @@ export const userService = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }, token),
+
+  getDocuments: (token) =>
+    apiRequest('/v1/users/me/documents', { method: 'GET' }, token),
+
+  uploadDocument: (token, formData) =>
+    apiRequest('/v1/users/me/documents', { method: 'POST', body: formData }, token),
+
+  getDocumentAccess: (token, id) =>
+    apiRequest(`/v1/users/documents/${id}/access`, { method: 'GET' }, token),
+
+  adminGetDocuments: (token, userId) =>
+    apiRequest(`/v1/users/admin/${userId}/documents`, { method: 'GET' }, token),
+
+  adminReviewDocument: (token, userId, documentId, status) =>
+    apiRequest(`/v1/users/admin/${userId}/documents/${documentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }, token),
 };
 
 export const institutionService = {
@@ -180,6 +198,15 @@ export const requirementService = {
   /** PATCH /:id/reject — admin: → rejected */
   adminReject: (token, id) =>
     apiRequest(`/v1/requirements/${id}/reject`, { method: 'PATCH' }, token),
+
+  report: (token, id, data) =>
+    apiRequest(`/v1/requirements/${id}/reports`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, token),
+
+  extend: (token, id) =>
+    apiRequest(`/v1/requirements/${id}/extend`, { method: 'PATCH' }, token),
 };
 
 export const matchingService = {
@@ -218,6 +245,18 @@ export const offerService = {
   confirmRequester: (token, id) =>
     apiRequest(`/v1/offers/${id}/confirm-requester`, { method: 'PATCH' }, token),
 
+  dispute: (token, id, reason) =>
+    apiRequest(`/v1/offers/${id}/dispute`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }, token),
+
+  markHandoff: (token, id) =>
+    apiRequest(`/v1/offers/${id}/handoff`, { method: 'PATCH' }, token),
+
+  vouch: (token, institutionId) =>
+    apiRequest(`/v1/institutions/${institutionId}/vouch`, { method: 'POST' }, token),
+
   getImpact: (token) =>
     apiRequest('/v1/offers/mine/impact', { method: 'GET' }, token),
 };
@@ -241,6 +280,11 @@ export const notificationService = {
 export const adminStatsService = {
   getDashboardStats: (token) =>
     apiRequest('/v1/admin/stats', { method: 'GET' }, token),
+};
+
+export const adminTrustService = {
+  getReportSummary: (token) =>
+    apiRequest('/v1/admin/reports/summary', { method: 'GET' }, token),
 };
 
 export const adminFraudService = {
@@ -279,4 +323,3 @@ export const chatService = {
 };
 
 export default apiRequest;
-
