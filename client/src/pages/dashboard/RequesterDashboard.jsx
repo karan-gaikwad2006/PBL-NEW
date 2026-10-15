@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import PageContainer from '../../components/layout/PageContainer';
-import Button from '../../components/common/Button';
 import AuthContext from '../../context/AuthContext';
-import { requirementService } from '../../services/api';
+import { requirementService, userService } from '../../services/api';
+import TrustBadge from '../../components/trust/TrustBadge';
 import {
   ClipboardList,
-  Bell,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -14,12 +13,12 @@ import {
   Plus,
   MapPin,
   Calendar,
-  Package,
   RefreshCw,
   TrendingUp,
   User,
+  UserRound,
+  FileText,
   ArrowRight,
-  Eye,
   Loader2,
 } from 'lucide-react';
 
@@ -72,7 +71,7 @@ function StatCard({ icon: Icon, value, label, color = 'text-[#304355]' }) {
   );
 }
 
-function RequirementCard({ req }) {
+export function RequirementCard({ req }) {
   const totalItems = req.items.reduce((a, i) => a + i.quantityRequired, 0);
   const remainingItems = req.items.reduce((a, i) => a + i.quantityRemaining, 0);
   const pct = totalItems > 0 ? Math.round(((totalItems - remainingItems) / totalItems) * 100) : 0;
@@ -144,6 +143,7 @@ export default function RequesterDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [profile, setProfile] = useState(user);
 
   useEffect(() => {
     if (!firebaseUser) return;
@@ -164,6 +164,16 @@ export default function RequesterDashboard() {
     }
 
     load();
+    async function loadProfile() {
+      try {
+        const token = await firebaseUser.getIdToken();
+        const response = await userService.getProfile(token);
+        if (!cancelled) setProfile(response.data);
+      } catch (profileError) {
+        if (!cancelled) setError(profileError.message || 'Failed to load account trust details');
+      }
+    }
+    loadProfile();
     return () => { cancelled = true; };
   }, [firebaseUser]);
 
@@ -174,7 +184,7 @@ export default function RequesterDashboard() {
     : requirements.filter((r) => r.status === filter);
 
   const stats = computeStats(requirements);
-  const isInstitution = user?.role === 'institution';
+  const isInstitution = profile?.role === 'institution';
 
   return (
     <PageContainer>
@@ -190,6 +200,29 @@ export default function RequesterDashboard() {
                 ? 'Manage your institution’s food requirements and respond to donor offers.'
                 : 'Manage your submitted requirements and respond to donor offers.'}
             </p>
+          </div>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#304355]/10 bg-white p-4">
+            <div>
+              <TrustBadge tiers={profile?.trust?.tiers} />
+              {profile?.postingLimits && (
+                <p className="mt-2 text-xs text-[#64707A]">
+                  Requirement posting limit: {profile.postingLimits.remaining} of {profile.postingLimits.daily} remaining in the current 24-hour window.
+                </p>
+              )}
+            </div>
+            <Link
+              to="/profile"
+              className="group inline-flex items-center gap-2.5 rounded-xl border border-[#304355]/15 bg-white px-3 py-2.5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#304355]/35 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#304355]"
+            >
+              <span className="rounded-lg bg-[#304355]/5 p-2 text-[#304355] transition group-hover:bg-[#304355]/10">
+                <UserRound className="h-4 w-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-bold text-[#304355]">My profile</span>
+                <span className="block text-xs text-[#64707A]">Documents & account</span>
+              </span>
+              <FileText className="h-4 w-4 text-[#64707A]" />
+            </Link>
           </div>
           <Link
             to="/submit-need"
@@ -276,8 +309,8 @@ export default function RequesterDashboard() {
                   <User className="w-5 h-5 text-[#304355]" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm text-[#1F2933]">{user?.full_name || 'My Account'}</p>
-                  <p className="text-xs text-[#64707A] capitalize">{user?.role || 'Requester'}</p>
+                  <p className="font-bold text-sm text-[#1F2933]">{profile?.full_name || 'My Account'}</p>
+                  <p className="text-xs text-[#64707A] capitalize">{profile?.role || 'Requester'}</p>
                 </div>
               </div>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -294,7 +327,7 @@ export default function RequesterDashboard() {
                 {[
                   { label: 'Submit New Requirement', to: '/submit-need' },
                   { label: 'View Notifications', to: '/notifications' },
-                  { label: 'Institution Profile', to: '/institution-profile' },
+                  ...(isInstitution ? [{ label: 'Institution Profile', to: '/institution-profile' }] : []),
                 ].map((link) => (
                   <Link
                     key={link.to}
